@@ -1,0 +1,8 @@
+[package]
+name = "faces"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bevy = { version = "0.11.3", default-features = true }
+winit = "0.28.7"
