@@ -7,6 +7,7 @@ use bevy::{
 mod states;
 mod startup;
 mod resources;
+mod playground;
 
 fn main() {
     App::new()
@@ -18,6 +19,6 @@ fn main() {
             ..Default::default()
         }))
         .add_state::<states::GameState>()
-        .add_systems(Startup, startup::setup)
+        .add_systems(Startup, playground::setup)
         .run();
 }

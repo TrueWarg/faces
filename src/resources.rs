@@ -1,6 +1,6 @@
 use bevy::{prelude::{Handle, Resource}, sprite::TextureAtlas};
 
 #[derive(Resource)]
-pub struct CharsetAsset {
+pub struct AssetsPack {
     pub atlas: Handle<TextureAtlas>,
 }
