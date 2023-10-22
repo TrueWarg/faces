@@ -1,5 +1,5 @@
 use bevy::{
-    prelude::{App, PluginGroup, Startup},
+    prelude::{App, PluginGroup, Startup, Update},
     window::{Window, WindowPlugin},
     DefaultPlugins,
 };
@@ -19,6 +19,7 @@ fn main() {
             ..Default::default()
         }))
         .add_state::<states::GameState>()
-        .add_systems(Startup, playground::setup)
+        .add_systems(Startup, (playground::setup, playground::spawn_player))
+        .add_systems(Update, playground::player_movement)
         .run();
 }
