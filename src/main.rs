@@ -3,6 +3,7 @@ use bevy::{
     window::{Window, WindowPlugin},
     DefaultPlugins,
 };
+use bevy_rapier2d::prelude::{RapierPhysicsPlugin, NoUserData};
 
 mod states;
 mod startup;
@@ -11,6 +12,7 @@ mod playground;
 
 fn main() {
     App::new()
+        .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 title: "Faces".to_string(),

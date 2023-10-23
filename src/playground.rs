@@ -5,6 +5,8 @@ use bevy::prelude::{
 use bevy::sprite::collide_aabb::collide;
 use bevy::sprite::{SpriteBundle, SpriteSheetBundle, TextureAtlas, TextureAtlasSprite};
 use bevy::time::Time;
+use bevy::transform::TransformBundle;
+use bevy_rapier2d::prelude::{Collider, RigidBody, Velocity, KinematicCharacterController};
 
 use crate::resources::AssetsPack;
 use crate::states::GameState;
@@ -23,8 +25,9 @@ fn build_map(mut commands: Commands) {}
 fn spawn_map(mut commands: Commands) {}
 
 pub fn setup(asset_server: Res<AssetServer>, mut commands: Commands) {
-    let wall_left = commands
-        .spawn(SpriteBundle {
+    commands
+        .spawn(RigidBody::Fixed)
+        .insert(SpriteBundle {
             texture: asset_server.load("wall_left.png"),
             transform: Transform {
                 translation: Vec3::new(0.0, 0.0, 20.0),
@@ -32,50 +35,37 @@ pub fn setup(asset_server: Res<AssetServer>, mut commands: Commands) {
             },
             ..Default::default()
         })
-        .id();
-    commands.entity(wall_left).insert(TileCollider);
+        .insert(Collider::cuboid(128.0, 1.0));
 
-    let mut shift_x = 64.0 + 32.0;
-    for i in 0..2 {
-        let wall = commands
-            .spawn(SpriteBundle {
-                texture: asset_server.load("wall.png"),
-                transform: Transform {
-                    translation: Vec3::new(shift_x, 0.0, 20.0),
-                    ..Default::default()
-                },
-                ..Default::default()
-            })
-            .id();
-        commands.entity(wall).insert(TileCollider);
-        shift_x += 64.0;
-    }
-
-    let mut shift_x = -(64.0 - 16.0);
-    for i in 0..8 {
-        let idx = 2 & i;
-        let asset_path = format!("floor_{}.png", idx);
-        commands.spawn(SpriteBundle {
-            texture: asset_server.load(asset_path),
+    commands
+        .spawn(RigidBody::Fixed)
+        .insert(SpriteBundle {
+            texture: asset_server.load("wall_left.png"),
             transform: Transform {
-                translation: Vec3::new(shift_x, -(32.0 + 12.0), 15.0),
+                translation: Vec3::new(128.0, 0.0, 20.0),
                 ..Default::default()
             },
             ..Default::default()
-        });
-        shift_x += 32.0;
-    }
+        })
+        .insert(Collider::cuboid(128.0, 1.0));
 
-    for i in 0..2 {
-        commands.spawn(SpriteBundle {
-            texture: asset_server.load("bottom_floor.png"),
-            transform: Transform {
-                translation: Vec3::new((128 * i) as f32, -(59.0 + 58.0 / 2.0 + 16.0 + 12.0), 15.0),
-                ..Default::default()
-            },
+    commands.spawn(RigidBody::Fixed).insert(SpriteBundle {
+        texture: asset_server.load("bottom_floor.png"),
+        transform: Transform {
+            translation: Vec3::new(0.0, -88.0, 15.0),
             ..Default::default()
-        });
-    }
+        },
+        ..Default::default()
+    });
+
+    commands.spawn(RigidBody::Fixed).insert(SpriteBundle {
+        texture: asset_server.load("bottom_floor.png"),
+        transform: Transform {
+            translation: Vec3::new(128.0, -88.0, 15.0),
+            ..Default::default()
+        },
+        ..Default::default()
+    });
 
     let mut cam = Camera2dBundle::default();
     cam.transform.scale = Vec3::new(0.5, 0.5, 1.0);
@@ -83,74 +73,45 @@ pub fn setup(asset_server: Res<AssetServer>, mut commands: Commands) {
 }
 
 pub fn player_movement(
-    mut player_query: Query<(&Player, &mut Transform)>,
-    wall_query: Query<&Transform, (With<TileCollider>, Without<Player>)>,
     keyboard: Res<Input<KeyCode>>,
-    time: Res<Time>,
+    mut player_info: Query<(&Player, &mut Velocity)>,
+
 ) {
-    let (player, mut transform) = player_query.single_mut();
+    for (player, mut rb_vels) in player_info.iter_mut() {
+        let up = keyboard.pressed(KeyCode::W) || keyboard.pressed(KeyCode::Up);
+        let down = keyboard.pressed(KeyCode::S) || keyboard.pressed(KeyCode::Down);
+        let left = keyboard.pressed(KeyCode::A) || keyboard.pressed(KeyCode::Left);
+        let right = keyboard.pressed(KeyCode::D) || keyboard.pressed(KeyCode::Right);
 
-    let mut y_delta = 0.0;
-    if keyboard.pressed(KeyCode::W) {
-        y_delta += player.speed * TILE_SIZE * time.delta_seconds();
-    }
-    if keyboard.pressed(KeyCode::S) {
-        y_delta -= player.speed * TILE_SIZE * time.delta_seconds();
-    }
+        let x_axis = -(left as i8) + right as i8;
+        let y_axis = -(down as i8) + up as i8;
 
-    let mut x_delta = 0.0;
-    if keyboard.pressed(KeyCode::A) {
-        x_delta -= player.speed * TILE_SIZE * time.delta_seconds();
-    }
-    if keyboard.pressed(KeyCode::D) {
-        x_delta += player.speed * TILE_SIZE * time.delta_seconds();
-    }
+        if x_axis != 0 {
+            rb_vels.linvel.x = player.speed * (x_axis as f32);
+        } else {
+            rb_vels.linvel.x = 0.0;
+        }
 
-    let target = transform.translation + Vec3::new(x_delta, 0.0, 0.0);
-    if wall_collision_check(target, &wall_query) {
-        transform.translation = target;
-    }
-
-    let target = transform.translation + Vec3::new(0.0, y_delta, 0.0);
-    if wall_collision_check(target, &wall_query) {
-        transform.translation = target;
-    }
-}
-
-fn wall_collision_check(
-    target_player_pos: Vec3,
-    wall_query: &Query<&Transform, (With<TileCollider>, Without<Player>)>,
-) -> bool {
-    for wall_transform in wall_query.iter() {
-        let collision = collide(
-            target_player_pos,
-            Vec2::splat(TILE_SIZE * 0.9),
-            wall_transform.translation,
-            Vec2::splat(TILE_SIZE),
-        );
-        if collision.is_some() {
-            return false;
+        if y_axis != 0 {
+            rb_vels.linvel.y = player.speed * (y_axis as f32);
+        } else {
+            rb_vels.linvel.y = 0.0;
         }
     }
-    true
 }
 
 pub fn spawn_player(asset_server: Res<AssetServer>, mut commands: Commands) {
-    let player = commands
-        .spawn(SpriteBundle {
+    commands
+        .spawn(RigidBody::Dynamic)
+        .insert(SpriteBundle {
             texture: asset_server.load("npc.png"),
-            transform: Transform {
-                translation: Vec3::new(100.0, -100.0, 25.0),
-                ..Default::default()
-            },
             ..Default::default()
         })
-        .id();
-
-    commands
-        .entity(player)
-        .insert(Name::new("Player"))
-        .insert(Player { speed: 3.0 });
+        .insert(Velocity::zero())
+        .insert(TransformBundle::from(Transform::from_xyz(100.0, -100.0, 25.0)))
+        .insert(Collider::cuboid(20.0, 20.0))
+        // .insert(KinematicCharacterController::default())
+        .insert(Player { speed: 80.0 });
 }
 
 #[derive(Component)]
@@ -158,8 +119,6 @@ pub struct MainCamera;
 
 #[derive(Component)]
 pub struct TileCollider;
-
-const TILE_SIZE: f32 = 50.0;
 
 #[derive(Component, Debug)]
 pub struct Player {
