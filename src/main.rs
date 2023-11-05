@@ -27,7 +27,7 @@ fn main() {
             }),
             ..Default::default()
         }))
-        .add_plugins(player::systems::PlayerPlugin)
+        .add_plugins((player::systems::PlayerPlugin, level::house::HousePlugin))
         .add_systems(Startup, startup::setup)
         .add_state::<core::states::GameState>()
         .run();

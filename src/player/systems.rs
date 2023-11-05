@@ -59,10 +59,10 @@ fn player_spawns(
         .insert(LockedAxes::ROTATION_LOCKED)
         .insert(GravityScale(0.0))
         .insert(TransformBundle::from(Transform::from_xyz(
-            60.0, -100.0, 25.0,
+            60.0, -100.0, 30.0,
         )))
         .insert(Collider::cuboid(10.0, 10.0))
-        .insert(Player { speed: 100.0 });
+        .insert(Player { speed: 200.0 });
 }
 
 fn player_movement(
