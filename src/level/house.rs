@@ -7,10 +7,13 @@ use bevy::{
 };
 use bevy_rapier2d::prelude::{Collider, RigidBody};
 
-use crate::core::{
-    collisions::recalculate_z,
-    components::LevelYMax,
-    z_index::{calculate_z, FLOOR_Z, ON_WALL_OBJECT_Z, WALL_Z},
+use crate::{
+    core::{
+        collisions::recalculate_z,
+        components::{Description, LevelYMax},
+        z_index::{calculate_z, FLOOR_Z, ON_WALL_OBJECT_Z, WALL_Z},
+    },
+    interaction::component::{InteractionArea, InteractionSide, PassiveInteractor},
 };
 
 pub struct HousePlugin;
@@ -111,6 +114,13 @@ fn load(asset_server: Res<AssetServer>, mut commands: Commands) {
                 .insert(TransformBundle::from(Transform::from_xyz(
                     0.0, -6.0, chest_z,
                 )));
+        })
+        .insert(PassiveInteractor {
+            area: InteractionArea::from_sizes(31.0, 18.0),
+            side: InteractionSide::Bottom,
+        })
+        .insert(Description {
+            text: "Твой сундук. Сделан из титана, с замком 41-го типа. Правда, внутри пусто, т.к. кто-то всё же стащил оттуда деньги".to_string()
         });
 
     let vase_y = 132.0;
@@ -127,10 +137,17 @@ fn load(asset_server: Res<AssetServer>, mut commands: Commands) {
         })
         .with_children(|children| {
             children
-                .spawn(Collider::cuboid(31.0, 8.0))
+                .spawn(Collider::cuboid(31.0, 12.0))
                 .insert(TransformBundle::from(Transform::from_xyz(
                     0.0, -35.0, vase_z,
                 )));
+        })
+        .insert(PassiveInteractor {
+            area: InteractionArea::create(31.0, 8.0, 0.0, -25.0),
+            side: InteractionSide::Bottom,
+        })
+        .insert(Description {
+            text: "Ваза с трещинами, много раз склеенная".to_string(),
         });
 
     let bed_y = -168.0;
@@ -169,5 +186,12 @@ fn load(asset_server: Res<AssetServer>, mut commands: Commands) {
                 .insert(TransformBundle::from(Transform::from_xyz(
                     0.0, -16.0, doghouse_z,
                 )));
+        })
+        .insert(PassiveInteractor {
+            area: InteractionArea::from_sizes(36.0, 20.0),
+            side: InteractionSide::Bottom,
+        })
+        .insert(Description {
+            text: "Будка Грозного Пса. Нужно каждый раз проверять нет ли миски молока".to_string(),
         });
 }

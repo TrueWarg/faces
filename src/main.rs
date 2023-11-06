@@ -8,6 +8,7 @@ use player::resources::MoveAnimationResource;
 use ron::de::from_bytes;
 
 mod core;
+mod interaction;
 mod level;
 mod player;
 mod resources;
@@ -27,7 +28,11 @@ fn main() {
             }),
             ..Default::default()
         }))
-        .add_plugins((player::systems::PlayerPlugin, level::house::HousePlugin))
+        .add_plugins((
+            player::systems::PlayerPlugin,
+            level::house::HousePlugin,
+            interaction::lookups::LookupsPlugin,
+        ))
         .add_systems(Startup, startup::setup)
         .add_state::<core::states::GameState>()
         .run();

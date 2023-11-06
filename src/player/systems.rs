@@ -1,7 +1,7 @@
 use bevy::{
     prelude::{
-        AssetServer, Assets, Commands, Input, KeyCode, Plugin, Query, Res, ResMut, Startup,
-        Transform, Update, Vec2, With, IntoSystemConfigs, BuildChildren,
+        AssetServer, Assets, BuildChildren, Commands, Input, IntoSystemConfigs, KeyCode, Plugin,
+        Query, Res, ResMut, Startup, Transform, Update, Vec2, With,
     },
     sprite::{SpriteSheetBundle, TextureAtlas, TextureAtlasSprite},
     time::{Time, Timer},
@@ -9,7 +9,10 @@ use bevy::{
 };
 use bevy_rapier2d::prelude::{Collider, GravityScale, LockedAxes, RigidBody, Velocity};
 
-use crate::core::{components::BodyYOffset, z_index::DEFAULT_OBJECT_Z};
+use crate::{
+    core::{components::BodyYOffset, z_index::DEFAULT_OBJECT_Z},
+    interaction::component::{ActiveInteractor, InteractionArea, InteractionSide},
+};
 
 use super::{
     components::{MoveAnimationComponent, Player},
@@ -24,7 +27,8 @@ impl Plugin for PlayerPlugin {
         app.add_systems(Startup, player_spawns)
             .add_systems(Update, player_movement)
             .add_systems(Update, player_move_animation.after(player_movement))
-            .add_systems(Update, basic_animation.after(player_move_animation));
+            .add_systems(Update, basic_animation.after(player_move_animation))
+            .add_systems(Update, change_interaction_area.after(player_movement));
     }
 }
 
@@ -61,14 +65,24 @@ fn player_spawns(
         .insert(LockedAxes::ROTATION_LOCKED)
         .insert(GravityScale(0.0))
         .insert(TransformBundle::from(Transform::from_xyz(
-            60.0, -100.0, DEFAULT_OBJECT_Z,
+            60.0,
+            -100.0,
+            DEFAULT_OBJECT_Z,
         )))
         .insert(Player { speed: 200.0 })
         .insert(BodyYOffset::create(20.0))
         .with_children(|children| {
             children
-            .spawn(Collider::cuboid(8.0, 4.0))
-            .insert(TransformBundle::from(Transform::from_xyz(0.0, -16.0, DEFAULT_OBJECT_Z)));
+                .spawn(Collider::cuboid(8.0, 4.0))
+                .insert(TransformBundle::from(Transform::from_xyz(
+                    0.0,
+                    -16.0,
+                    DEFAULT_OBJECT_Z,
+                )));
+        })
+        .insert(ActiveInteractor {
+            area: InteractionArea::from_sizes(8.0, 20.0),
+            side: InteractionSide::Bottom,
         });
 }
 
@@ -162,6 +176,33 @@ fn player_move_animation(
             sprite.index = animation_data.0 as usize;
             character_animation.timer =
                 Timer::from_seconds(animation_data.2, bevy::time::TimerMode::Repeating);
+        }
+    }
+}
+
+fn change_interaction_area(
+    keyboard_input: Res<Input<KeyCode>>,
+    mut player_query: Query<&mut ActiveInteractor, With<Player>>,
+) {
+    for mut interactor in player_query.iter_mut() {
+        if keyboard_input.just_released(KeyCode::A) || keyboard_input.just_released(KeyCode::Left) {
+            interactor.area = InteractionArea::create(8.0, 20.0, -16.0, 0.0);
+            interactor.side = InteractionSide::Left;
+        } else if keyboard_input.just_released(KeyCode::D)
+            || keyboard_input.just_released(KeyCode::Right)
+        {
+            interactor.area = InteractionArea::create(8.0, 20.0, 16.0, 0.0);
+            interactor.side = InteractionSide::Right;
+        } else if keyboard_input.just_released(KeyCode::W)
+            || keyboard_input.just_released(KeyCode::Up)
+        {
+            interactor.area = InteractionArea::from_sizes(8.0, 20.0);
+            interactor.side = InteractionSide::Top;
+        } else if keyboard_input.just_released(KeyCode::S)
+            || keyboard_input.just_released(KeyCode::Down)
+        {
+            interactor.area = InteractionArea::from_sizes(8.0, 20.0);
+            interactor.side = InteractionSide::Bottom;
         }
     }
 }
