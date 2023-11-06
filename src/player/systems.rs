@@ -1,13 +1,15 @@
 use bevy::{
     prelude::{
         AssetServer, Assets, Commands, Input, KeyCode, Plugin, Query, Res, ResMut, Startup,
-        Transform, Update, Vec2, With, IntoSystemConfigs,
+        Transform, Update, Vec2, With, IntoSystemConfigs, BuildChildren,
     },
     sprite::{SpriteSheetBundle, TextureAtlas, TextureAtlasSprite},
     time::{Time, Timer},
     transform::TransformBundle,
 };
 use bevy_rapier2d::prelude::{Collider, GravityScale, LockedAxes, RigidBody, Velocity};
+
+use crate::core::{components::BodyYOffset, z_index::DEFAULT_OBJECT_Z};
 
 use super::{
     components::{MoveAnimationComponent, Player},
@@ -59,10 +61,15 @@ fn player_spawns(
         .insert(LockedAxes::ROTATION_LOCKED)
         .insert(GravityScale(0.0))
         .insert(TransformBundle::from(Transform::from_xyz(
-            60.0, -100.0, 30.0,
+            60.0, -100.0, DEFAULT_OBJECT_Z,
         )))
-        .insert(Collider::cuboid(10.0, 10.0))
-        .insert(Player { speed: 200.0 });
+        .insert(Player { speed: 200.0 })
+        .insert(BodyYOffset::create(20.0))
+        .with_children(|children| {
+            children
+            .spawn(Collider::cuboid(8.0, 4.0))
+            .insert(TransformBundle::from(Transform::from_xyz(0.0, -16.0, DEFAULT_OBJECT_Z)));
+        });
 }
 
 fn player_movement(
