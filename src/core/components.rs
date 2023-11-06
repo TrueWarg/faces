@@ -24,3 +24,8 @@ impl LevelYMax {
         return LevelYMax { value };
     }
 }
+
+#[derive(Component, Debug)]
+pub struct Description {
+    pub text: String,
+}
