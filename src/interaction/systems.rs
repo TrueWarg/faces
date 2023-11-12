@@ -1,14 +1,17 @@
-use bevy::prelude::{Input, KeyCode, Plugin, Query, Res, Transform, Update};
+use bevy::{
+    prelude::{Commands, Entity, Input, KeyCode, Plugin, Query, Res, Transform, Update, With},
+    transform::commands,
+};
 
 use crate::core::components::Description;
 
-use super::component::{ActiveInteractor, PassiveInteractor};
+use super::component::{ActiveInteractor, OneTimeInteractor, PassiveInteractor};
 
 pub struct BaseInteractionPlugin;
 
 impl Plugin for BaseInteractionPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.add_systems(Update, show_lookups);
+        app.add_systems(Update, (show_lookups, switch_object_one_time_state));
     }
 }
 
@@ -49,4 +52,20 @@ fn show_lookups(
     }
 }
 
-fn switch_object_one_off_state() {}
+fn switch_object_one_time_state(
+    mut commands: Commands,
+    keyboard: Res<Input<KeyCode>>,
+    active: Query<(&ActiveInteractor, &Transform)>,
+    interactors: Query<(Entity, &PassiveInteractor, &Transform), With<OneTimeInteractor>>,
+) {
+    if !keyboard.pressed(KeyCode::E) {
+        return;
+    }
+    for (entity, inteactor, transform) in interactors.iter() {
+        let is_interacting = detect_active_interaction(&active, (inteactor, transform));
+        if is_interacting {
+            commands.entity(entity).remove::<OneTimeInteractor>();
+            println!("!!! remove hehehehehe")
+        }
+    }
+}

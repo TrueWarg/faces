@@ -13,7 +13,9 @@ use crate::{
         components::{Description, LevelYMax},
         z_index::{calculate_z, FLOOR_Z, ON_WALL_OBJECT_Z, WALL_Z},
     },
-    interaction::component::{InteractionArea, InteractionSide, PassiveInteractor},
+    interaction::component::{
+        InteractionArea, InteractionSide, OneTimeInteractor, PassiveInteractor,
+    },
 };
 
 pub struct HousePlugin;
@@ -119,6 +121,7 @@ fn load(asset_server: Res<AssetServer>, mut commands: Commands) {
             area: InteractionArea::from_sizes(31.0, 18.0),
             side: InteractionSide::Bottom,
         })
+        .insert(OneTimeInteractor)
         .insert(Description {
             text: "Твой сундук. Сделан из титана, с замком 41-го типа. Правда, внутри пусто, т.к. кто-то всё же стащил оттуда деньги".to_string()
         });

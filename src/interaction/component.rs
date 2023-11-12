@@ -14,6 +14,9 @@ pub struct PassiveInteractor {
     pub side: InteractionSide,
 }
 
+#[derive(Component)]
+pub struct OneTimeInteractor;
+
 #[derive(Debug)]
 pub enum InteractionSide {
     Left,
