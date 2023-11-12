@@ -31,7 +31,7 @@ fn main() {
         .add_plugins((
             player::systems::PlayerPlugin,
             level::house::HousePlugin,
-            interaction::lookups::LookupsPlugin,
+            interaction::systems::BaseInteractionPlugin,
         ))
         .add_systems(Startup, startup::setup)
         .add_state::<core::states::GameState>()

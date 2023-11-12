@@ -91,10 +91,10 @@ fn player_movement(
     mut player_info: Query<(&Player, &mut Velocity)>,
 ) {
     for (player, mut velocity) in player_info.iter_mut() {
-        let up = keyboard.pressed(KeyCode::W) || keyboard.pressed(KeyCode::Up);
-        let down = keyboard.pressed(KeyCode::S) || keyboard.pressed(KeyCode::Down);
-        let left = keyboard.pressed(KeyCode::A) || keyboard.pressed(KeyCode::Left);
-        let right = keyboard.pressed(KeyCode::D) || keyboard.pressed(KeyCode::Right);
+        let up = keyboard.pressed(KeyCode::W);
+        let down = keyboard.pressed(KeyCode::S);
+        let left = keyboard.pressed(KeyCode::A);
+        let right = keyboard.pressed(KeyCode::D);
 
         let x_axis = -(left as i8) + right as i8;
         let y_axis = -(down as i8) + up as i8;
@@ -129,44 +129,30 @@ fn player_move_animation(
         let mut restart_animation = false;
 
         if rb_vels.linvel.x == 0.0 && rb_vels.linvel.y == 0.0 {
-            if keyboard_input.just_released(KeyCode::A)
-                || keyboard_input.just_released(KeyCode::Left)
-            {
+            if keyboard_input.just_released(KeyCode::A) {
                 character_animation.direction = MoveAnimationDirection::LeftIdle;
                 restart_animation = true;
-            } else if keyboard_input.just_released(KeyCode::D)
-                || keyboard_input.just_released(KeyCode::Right)
-            {
+            } else if keyboard_input.just_released(KeyCode::D) {
                 character_animation.direction = MoveAnimationDirection::RightIdle;
                 restart_animation = true;
-            } else if keyboard_input.just_released(KeyCode::W)
-                || keyboard_input.just_released(KeyCode::Up)
-            {
+            } else if keyboard_input.just_released(KeyCode::W) {
                 character_animation.direction = MoveAnimationDirection::BackwardIdle;
                 restart_animation = true;
-            } else if keyboard_input.just_released(KeyCode::S)
-                || keyboard_input.just_released(KeyCode::Down)
-            {
+            } else if keyboard_input.just_released(KeyCode::S) {
                 character_animation.direction = MoveAnimationDirection::ForwardIdle;
                 restart_animation = true;
             }
         }
-        if keyboard_input.just_pressed(KeyCode::A) || keyboard_input.just_pressed(KeyCode::Left) {
+        if keyboard_input.just_pressed(KeyCode::A) {
             character_animation.direction = MoveAnimationDirection::LeftMove;
             restart_animation = true;
-        } else if keyboard_input.just_pressed(KeyCode::D)
-            || keyboard_input.just_pressed(KeyCode::Right)
-        {
+        } else if keyboard_input.just_pressed(KeyCode::D) {
             character_animation.direction = MoveAnimationDirection::RightMove;
             restart_animation = true;
-        } else if keyboard_input.just_pressed(KeyCode::W)
-            || keyboard_input.just_pressed(KeyCode::Up)
-        {
+        } else if keyboard_input.just_pressed(KeyCode::W) {
             character_animation.direction = MoveAnimationDirection::BackwardMove;
             restart_animation = true;
-        } else if keyboard_input.just_pressed(KeyCode::S)
-            || keyboard_input.just_pressed(KeyCode::Down)
-        {
+        } else if keyboard_input.just_pressed(KeyCode::S) {
             character_animation.direction = MoveAnimationDirection::ForwardMove;
             restart_animation = true;
         }
@@ -185,22 +171,16 @@ fn change_interaction_area(
     mut player_query: Query<&mut ActiveInteractor, With<Player>>,
 ) {
     for mut interactor in player_query.iter_mut() {
-        if keyboard_input.just_released(KeyCode::A) || keyboard_input.just_released(KeyCode::Left) {
+         if keyboard_input.just_released(KeyCode::A) {
             interactor.area = InteractionArea::create(8.0, 20.0, -16.0, 0.0);
             interactor.side = InteractionSide::Left;
-        } else if keyboard_input.just_released(KeyCode::D)
-            || keyboard_input.just_released(KeyCode::Right)
-        {
+        } else if keyboard_input.just_released(KeyCode::D) {
             interactor.area = InteractionArea::create(8.0, 20.0, 16.0, 0.0);
             interactor.side = InteractionSide::Right;
-        } else if keyboard_input.just_released(KeyCode::W)
-            || keyboard_input.just_released(KeyCode::Up)
-        {
+        } else if keyboard_input.just_released(KeyCode::W) {
             interactor.area = InteractionArea::from_sizes(8.0, 20.0);
             interactor.side = InteractionSide::Top;
-        } else if keyboard_input.just_released(KeyCode::S)
-            || keyboard_input.just_released(KeyCode::Down)
-        {
+        } else if keyboard_input.just_released(KeyCode::S) {
             interactor.area = InteractionArea::from_sizes(8.0, 20.0);
             interactor.side = InteractionSide::Bottom;
         }
