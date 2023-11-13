@@ -1,17 +1,16 @@
-use bevy::{
-    prelude::{Commands, Entity, Input, KeyCode, Plugin, Query, Res, Transform, Update, With},
-    transform::commands,
+use bevy::prelude::{
+    Commands, Entity, Input, KeyCode, Plugin, Query, Res, Transform, Update, With,
 };
 
-use crate::core::components::Description;
+use crate::core::{components::Description, state_machines::FiniteLinearTransition};
 
-use super::component::{ActiveInteractor, OneTimeInteractor, PassiveInteractor};
+use super::component::{ActiveInteractor, Container, LimitedInteractor, PassiveInteractor};
 
 pub struct BaseInteractionPlugin;
 
 impl Plugin for BaseInteractionPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.add_systems(Update, (show_lookups, switch_object_one_time_state));
+        app.add_systems(Update, (show_lookups, transite_to_next_container_state));
     }
 }
 
@@ -52,20 +51,25 @@ fn show_lookups(
     }
 }
 
-fn switch_object_one_time_state(
+pub fn transite_to_next_container_state(
     mut commands: Commands,
     keyboard: Res<Input<KeyCode>>,
     active: Query<(&ActiveInteractor, &Transform)>,
-    interactors: Query<(Entity, &PassiveInteractor, &Transform), With<OneTimeInteractor>>,
+    mut interactors: Query<
+        (Entity, &PassiveInteractor, &Transform, &mut Container),
+        With<LimitedInteractor>,
+    >,
 ) {
-    if !keyboard.pressed(KeyCode::E) {
+    if !(keyboard.pressed(KeyCode::E) && keyboard.just_pressed(KeyCode::E)) {
         return;
     }
-    for (entity, inteactor, transform) in interactors.iter() {
+    for (entity, inteactor, transform, mut container) in interactors.iter_mut() {
         let is_interacting = detect_active_interaction(&active, (inteactor, transform));
         if is_interacting {
-            commands.entity(entity).remove::<OneTimeInteractor>();
-            println!("!!! remove hehehehehe")
+            container.state = container.state.transite();
+            if container.state.is_finished() {
+                commands.entity(entity).remove::<LimitedInteractor>();
+            }
         }
     }
 }
