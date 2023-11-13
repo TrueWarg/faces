@@ -1,6 +1,9 @@
 use bevy::prelude::Component;
 
-use crate::core::geometry::BBox;
+use crate::core::{
+    geometry::BBox,
+    state_machines::{CycleLinearTransition, FiniteLinearTransition, Transition},
+};
 
 #[derive(Component)]
 pub struct ActiveInteractor {
@@ -15,7 +18,58 @@ pub struct PassiveInteractor {
 }
 
 #[derive(Component)]
-pub struct OneTimeInteractor;
+pub struct LimitedInteractor;
+
+#[derive(Component)]
+pub struct Container {
+    pub state: ContainerState,
+}
+#[derive(PartialEq)]
+pub enum ContainerState {
+    Closed,
+    Full,
+    Empty,
+}
+
+impl FiniteLinearTransition for ContainerState {
+    fn transite(&self) -> Self {
+        match self {
+            ContainerState::Closed => ContainerState::Full,
+            _ => ContainerState::Empty,
+        }
+    }
+
+    fn initial_state() -> Self {
+        ContainerState::Closed
+    }
+
+    fn final_state() -> Self {
+        ContainerState::Empty
+    }
+
+    fn is_finished(&self) -> bool {
+        *self == Self::final_state()
+    }
+}
+
+#[derive(Component)]
+pub enum Switcher {
+    On,
+    Off,
+}
+
+impl CycleLinearTransition for Switcher {
+    fn transite(&self) -> Self {
+        match self {
+            Switcher::On => Self::Off,
+            Switcher::Off => Self::On,
+        }
+    }
+
+    fn initial_state() -> Self {
+        Self::Off
+    }
+}
 
 #[derive(Debug)]
 pub enum InteractionSide {
