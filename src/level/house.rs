@@ -1,10 +1,18 @@
 use bevy::{
-    ecs::{entity::Entity, query::With, schedule::IntoSystemConfigs, system::Query},
+    asset::Assets,
+    ecs::{
+        entity::Entity,
+        query::With,
+        schedule::IntoSystemConfigs,
+        system::{Query, ResMut},
+    },
     input::{keyboard::KeyCode, Input},
+    math::Vec2,
     prelude::{
         AssetServer, BuildChildren, Commands, Plugin, Res, Startup, Transform, Update, Vec3,
     },
-    sprite::SpriteBundle,
+    sprite::{SpriteBundle, SpriteSheetBundle, TextureAtlas, TextureAtlasSprite},
+    time::Timer,
     transform::TransformBundle,
 };
 use bevy_rapier2d::prelude::{Collider, RigidBody};
@@ -13,19 +21,22 @@ use crate::{
     core::{
         collisions::recalculate_z,
         components::{Description, LevelYMax},
-        state_machines::FiniteLinearTransition,
+        state_machines::{CycleLinearTransition, FiniteLinearTransition},
         z_index::{calculate_z, FLOOR_Z, ON_WALL_OBJECT_Z, WALL_Z},
     },
     interaction::{
         component::{
             Container, ContainerState, InteractionArea, InteractionSide, LimitedInteractor,
-            PassiveInteractor,
+            PassiveInteractor, Switcher, SwitcherState,
         },
-        systems::transite_to_next_container_state,
+        systems::{change_switcher_state, transite_to_next_container_state},
     },
 };
 
-use super::{component::WoodenChest, resources::WoodenChestSprites};
+use super::{
+    component::{LevelArm, WoodenChest},
+    resources::WoodenChestSprites,
+};
 
 pub struct HousePlugin;
 
@@ -37,12 +48,17 @@ impl Plugin for HousePlugin {
             (
                 recalculate_z,
                 draw_wooden_chest_states.after(transite_to_next_container_state),
+                draw_level_arm_states.after(change_switcher_state),
             ),
         );
     }
 }
 
-fn load(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn load(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut texture_atlases: ResMut<Assets<TextureAtlas>>,
+) {
     let y_max = LevelYMax::create(192.0);
     commands.spawn(y_max);
 
@@ -61,7 +77,54 @@ fn load(mut commands: Commands, asset_server: Res<AssetServer>) {
     spawn_vase_on_table(&mut commands, &asset_server, y_max);
     spawn_bed(&mut commands, &asset_server, y_max);
     spawn_dog_house(&mut commands, &asset_server, y_max);
+    spawn_level_arm(&mut commands, &asset_server, texture_atlases);
     spawn_test_chest(&mut commands, &asset_server, y_max);
+}
+
+fn draw_level_arm_states(
+    mut switchers: Query<(&mut TextureAtlasSprite, &Switcher), With<LevelArm>>,
+) {
+    for (mut sprite, swticher) in switchers.iter_mut() {
+        sprite.index = match swticher.state {
+            SwitcherState::Off => 0,
+            SwitcherState::On => 2,
+            _ => 1,
+        };
+    }
+}
+
+fn spawn_level_arm(
+    commands: &mut Commands,
+    asset_server: &Res<AssetServer>,
+    mut texture_atlases: ResMut<Assets<TextureAtlas>>,
+) {
+    let texture_handle = asset_server.load("house/tileset_level_arm.png");
+    let texture_atlas =
+        TextureAtlas::from_grid(texture_handle, Vec2::new(10.0, 34.0), 3, 1, None, None);
+    let texture_atlas_handle = texture_atlases.add(texture_atlas);
+
+    commands
+        .spawn(RigidBody::Fixed)
+        .insert(SpriteSheetBundle {
+            texture_atlas: texture_atlas_handle,
+            transform: Transform {
+                translation: Vec3::new(20.0, 215.0, ON_WALL_OBJECT_Z),
+                ..Default::default()
+            },
+            ..Default::default()
+        })
+        .insert(PassiveInteractor {
+            area: InteractionArea::from_sizes(5.0, 17.0),
+            side: InteractionSide::Bottom,
+        })
+        .insert(LevelArm)
+        .insert(Switcher {
+            timer: Timer::from_seconds(0.05, bevy::time::TimerMode::Once),
+            state: SwitcherState::initial_state(),
+        })
+        .insert(Description {
+            text: "Level arm".to_string(),
+        });
 }
 
 fn draw_wooden_chest_states(
