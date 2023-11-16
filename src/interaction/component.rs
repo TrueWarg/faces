@@ -1,8 +1,8 @@
-use bevy::prelude::Component;
+use bevy::{prelude::Component, time::Timer};
 
 use crate::core::{
     geometry::BBox,
-    state_machines::{CycleLinearTransition, FiniteLinearTransition, Transition},
+    state_machines::{CycleLinearTransition, FiniteLinearTransition},
 };
 
 #[derive(Component)]
@@ -53,16 +53,35 @@ impl FiniteLinearTransition for ContainerState {
 }
 
 #[derive(Component)]
-pub enum Switcher {
-    On,
-    Off,
+pub struct Switcher {
+    pub timer: Timer,
+    pub state: SwitcherState,
 }
 
-impl CycleLinearTransition for Switcher {
+pub enum SwitcherState {
+    On,
+    ToOff,
+    Off,
+    ToOn,
+}
+
+impl SwitcherState {
+    pub fn is_in_transition(&self) -> bool {
+        return match self {
+            SwitcherState::ToOff => true,
+            SwitcherState::ToOn => true,
+            _ => false,
+        };
+    }
+}
+
+impl CycleLinearTransition for SwitcherState {
     fn transite(&self) -> Self {
         match self {
-            Switcher::On => Self::Off,
-            Switcher::Off => Self::On,
+            SwitcherState::On => Self::ToOff,
+            SwitcherState::Off => Self::ToOn,
+            SwitcherState::ToOff => Self::Off,
+            SwitcherState::ToOn => Self::On,
         }
     }
 
