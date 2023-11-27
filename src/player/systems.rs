@@ -39,7 +39,7 @@ fn player_spawns(
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
 ) {
     let character_starting_animation = MoveAnimationDirection::ForwardIdle;
-    let texture_handle = asset_server.load("player_spritesheet.png");
+    let texture_handle = asset_server.load("npc/formidable_face.png");
     let texture_atlas =
         TextureAtlas::from_grid(texture_handle, Vec2::new(32.0, 46.0), 6, 8, None, None);
     let texture_atlas_handle = texture_atlases.add(texture_atlas);
