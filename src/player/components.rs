@@ -1,6 +1,6 @@
 use bevy::{prelude::Component, time::Timer};
 
-use super::types::MoveAnimationDirection;
+use super::types::MoveDirection;
 
 #[derive(Component, Debug)]
 pub struct Player {
@@ -10,5 +10,5 @@ pub struct Player {
 #[derive(Component)]
 pub struct MoveAnimationComponent {
     pub timer: Timer,
-    pub direction: MoveAnimationDirection,
+    pub direction: MoveDirection,
 }

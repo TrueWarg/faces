@@ -16,8 +16,8 @@ use crate::{
 
 use super::{
     components::{MoveAnimationComponent, Player},
-    resources::MoveAnimationResource,
-    types::MoveAnimationDirection,
+    resources::PlayerAnimations,
+    types::MoveDirection,
 };
 
 pub struct PlayerPlugin;
@@ -35,10 +35,10 @@ impl Plugin for PlayerPlugin {
 fn player_spawns(
     asset_server: Res<AssetServer>,
     mut commands: Commands,
-    character_animations: Res<MoveAnimationResource>,
+    character_animations: Res<PlayerAnimations>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
 ) {
-    let character_starting_animation = MoveAnimationDirection::ForwardIdle;
+    let character_starting_animation = MoveDirection::ForwardIdle;
     let texture_handle = asset_server.load("npc/formidable_face.png");
     let texture_atlas =
         TextureAtlas::from_grid(texture_handle, Vec2::new(32.0, 46.0), 6, 8, None, None);
@@ -50,14 +50,14 @@ fn player_spawns(
         .insert(SpriteSheetBundle {
             texture_atlas: texture_atlas_handle,
             sprite: TextureAtlasSprite {
-                index: character_animations.animations[&character_starting_animation].0 as usize,
+                index: character_animations.moves[&character_starting_animation].0 as usize,
                 ..Default::default()
             },
             ..Default::default()
         })
         .insert(MoveAnimationComponent {
             timer: Timer::from_seconds(
-                character_animations.animations[&character_starting_animation].2,
+                character_animations.moves[&character_starting_animation].2,
                 bevy::time::TimerMode::Repeating,
             ),
             direction: character_starting_animation.clone(),
@@ -116,7 +116,7 @@ fn player_movement(
 
 fn player_move_animation(
     keyboard_input: Res<Input<KeyCode>>,
-    character_animations: Res<MoveAnimationResource>,
+    character_animations: Res<PlayerAnimations>,
     mut player_query: Query<
         (
             &mut MoveAnimationComponent,
@@ -131,35 +131,35 @@ fn player_move_animation(
 
         if rb_vels.linvel.x == 0.0 && rb_vels.linvel.y == 0.0 {
             if keyboard_input.just_released(KeyCode::A) {
-                character_animation.direction = MoveAnimationDirection::LeftIdle;
+                character_animation.direction = MoveDirection::LeftIdle;
                 restart_animation = true;
             } else if keyboard_input.just_released(KeyCode::D) {
-                character_animation.direction = MoveAnimationDirection::RightIdle;
+                character_animation.direction = MoveDirection::RightIdle;
                 restart_animation = true;
             } else if keyboard_input.just_released(KeyCode::W) {
-                character_animation.direction = MoveAnimationDirection::BackwardIdle;
+                character_animation.direction = MoveDirection::BackwardIdle;
                 restart_animation = true;
             } else if keyboard_input.just_released(KeyCode::S) {
-                character_animation.direction = MoveAnimationDirection::ForwardIdle;
+                character_animation.direction = MoveDirection::ForwardIdle;
                 restart_animation = true;
             }
         }
         if keyboard_input.just_pressed(KeyCode::A) {
-            character_animation.direction = MoveAnimationDirection::LeftMove;
+            character_animation.direction = MoveDirection::LeftMove;
             restart_animation = true;
         } else if keyboard_input.just_pressed(KeyCode::D) {
-            character_animation.direction = MoveAnimationDirection::RightMove;
+            character_animation.direction = MoveDirection::RightMove;
             restart_animation = true;
         } else if keyboard_input.just_pressed(KeyCode::W) {
-            character_animation.direction = MoveAnimationDirection::BackwardMove;
+            character_animation.direction = MoveDirection::BackwardMove;
             restart_animation = true;
         } else if keyboard_input.just_pressed(KeyCode::S) {
-            character_animation.direction = MoveAnimationDirection::ForwardMove;
+            character_animation.direction = MoveDirection::ForwardMove;
             restart_animation = true;
         }
 
         if restart_animation {
-            let animation_data = character_animations.animations[&character_animation.direction];
+            let animation_data = character_animations.moves[&character_animation.direction];
             sprite.index = animation_data.0 as usize;
             character_animation.timer =
                 Timer::from_seconds(animation_data.2, bevy::time::TimerMode::Repeating);
@@ -190,14 +190,14 @@ fn change_interaction_area(
 
 fn basic_animation(
     time: Res<Time>,
-    character_animations: Res<MoveAnimationResource>,
+    character_animations: Res<PlayerAnimations>,
     mut animation_query: Query<(&mut MoveAnimationComponent, &mut TextureAtlasSprite)>,
 ) {
     for (mut character_animation, mut sprite) in animation_query.iter_mut() {
         character_animation.timer.tick(time.delta());
 
         if character_animation.timer.finished() {
-            let animation_idxs = character_animations.animations[&character_animation.direction];
+            let animation_idxs = character_animations.moves[&character_animation.direction];
             if sprite.index == animation_idxs.1 as usize {
                 sprite.index = animation_idxs.0 as usize;
             } else {

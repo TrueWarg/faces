@@ -4,8 +4,7 @@ use bevy::{
     DefaultPlugins,
 };
 use bevy_rapier2d::prelude::{NoUserData, RapierPhysicsPlugin};
-use player::resources::MoveAnimationResource;
-use ron::de::from_bytes;
+use player::resources::PlayerAnimations;
 
 mod core;
 mod interaction;
@@ -16,10 +15,7 @@ mod startup;
 
 fn main() {
     App::new()
-        .insert_resource(
-            from_bytes::<MoveAnimationResource>(include_bytes!("../data/character_animations.ron"))
-                .unwrap(),
-        )
+        .insert_resource(PlayerAnimations::default())
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {

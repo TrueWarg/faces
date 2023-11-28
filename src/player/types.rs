@@ -1,7 +1,7 @@
 use serde::Deserialize;
 
 #[derive(Hash, PartialEq, Eq, Clone, Deserialize)]
-pub enum MoveAnimationDirection {
+pub enum MoveDirection {
     ForwardIdle,
     LeftIdle,
     BackwardIdle,
@@ -12,14 +12,22 @@ pub enum MoveAnimationDirection {
     RightMove,
 }
 
-impl MoveAnimationDirection {
+impl MoveDirection {
     fn is_idle(&self) -> bool {
         matches!(
             self,
-            MoveAnimationDirection::ForwardIdle
-                | MoveAnimationDirection::BackwardIdle
-                | MoveAnimationDirection::LeftIdle
-                | MoveAnimationDirection::RightIdle
+            MoveDirection::ForwardIdle
+                | MoveDirection::BackwardIdle
+                | MoveDirection::LeftIdle
+                | MoveDirection::RightIdle
         )
     }
+}
+
+#[derive(Hash, PartialEq, Eq, Clone, Deserialize)]
+pub enum FightDirection {
+    Forward,
+    Left,
+    Backward,
+    Right,
 }

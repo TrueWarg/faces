@@ -8,7 +8,6 @@ bevy = { version = "0.11.3", default-features = true }
 winit = "0.28.7"
 bevy_rapier2d = "0.22.0"
 rand = "0.8.5"
-ron = "0.8.1"
 serde = "1.0.189"
 
 [profile.dev]
