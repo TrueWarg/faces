@@ -43,7 +43,8 @@ fn player_spawns(
     let texture_atlas =
         TextureAtlas::from_grid(texture_handle, Vec2::new(32.0, 46.0), 6, 8, None, None);
     let texture_atlas_handle = texture_atlases.add(texture_atlas);
-
+    // let fight_texture_handle = asset_server.load("npc/formidable_face_fight.png");
+    // let fight_texture_atlas = TextureAtlas::from_grid(fight_texture_handle, Vec2::new(64.0, 68.0), 6, 4, None, None);
     commands
         .spawn(RigidBody::Dynamic)
         .insert(SpriteSheetBundle {
