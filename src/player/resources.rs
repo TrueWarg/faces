@@ -33,10 +33,10 @@ impl PlayerAnimations {
 
     fn fight() -> HashMap<FightDirection, (u32, u32, f32)> {
         let mut fight = HashMap::with_capacity(4);
-        fight.insert(FightDirection::Forward, (0, 5, 0.4));
-        fight.insert(FightDirection::Left, (6, 11, 0.4));
-        fight.insert(FightDirection::Backward, (12, 17, 0.4));
-        fight.insert(FightDirection::Right, (18, 23, 0.4));
+        fight.insert(FightDirection::Forward, (0, 5, 0.1));
+        fight.insert(FightDirection::Left, (6, 11, 0.1));
+        fight.insert(FightDirection::Backward, (12, 17, 0.1));
+        fight.insert(FightDirection::Right, (18, 23, 0.1));
         return fight;
     }
 }
