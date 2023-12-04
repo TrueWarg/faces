@@ -12,6 +12,7 @@ mod level;
 mod player;
 mod resources;
 mod startup;
+mod movement;
 
 fn main() {
     App::new()
