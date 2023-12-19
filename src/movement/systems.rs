@@ -1,4 +1,8 @@
-use super::component::{Blocks, MoveAgent, Point2D, Square, Target};
+use crate::core::geometry::{
+    are_intercepted, nearest_to_line, nearest_to_point, Line2D, Point2D, Square,
+};
+
+use super::component::{Blocks, MoveAgent, Target};
 use bevy::{ecs::system::Query, utils::HashSet};
 use std::collections::{HashMap, VecDeque};
 
@@ -40,7 +44,7 @@ fn rebuild_route(start: &Square, target: &Square, blocks: &Blocks) -> Vec<Point2
 
         handle_points.remove(&current_point);
 
-        let near_points = extract_neighborhood(&start.center_position, blocks);
+        let near_points = extract_available_neighborhood(&start, blocks);
         let mut curent_route = points_to_route
             .entry(current_point)
             .or_insert(vec![current_point])
@@ -63,8 +67,23 @@ fn rebuild_route(start: &Square, target: &Square, blocks: &Blocks) -> Vec<Point2
     return points_to_route.remove(&current_point).unwrap_or_default();
 }
 
-fn extract_neighborhood(point: &Point2D, blocks: &Blocks) -> Vec<Point2D> {
+fn extract_available_neighborhood(sqaure: &Square, blocks: &Blocks) -> Vec<Point2D> {
     todo!()
+}
+
+fn extract_neighborhood(sqaure: &Square) -> Vec<Point2D> {
+    let Point2D { x, y } = sqaure.center_position;
+    let size = 2 * sqaure.half_size;
+    return vec![
+        Point2D::new(x - size, y + size),
+        Point2D::new(x - size, y),
+        Point2D::new(x - size, y - size),
+        Point2D::new(x, y - size),
+        Point2D::new(x + size, y - size),
+        Point2D::new(x + size, y),
+        Point2D::new(x + size, y + size),
+        Point2D::new(x, y + size),
+    ];
 }
 
 fn can_be_occupied(point: &Point2D, blocks: &Blocks) -> bool {
@@ -76,7 +95,24 @@ fn there_is_direct_route(start: &Point2D, target: &Point2D, blocks: &Blocks) -> 
 }
 
 fn build_direct_route(start: &Square, target: &Square) -> Vec<Point2D> {
-    todo!()
+    let mut current = *start;
+    let mut route: Vec<Point2D> = vec![];
+
+    loop {
+        if are_intercepted(&current, target) {
+            break;
+        }
+
+        let near = extract_neighborhood(&current);
+        let point = nearest_to_point(&near, &target.center_position);
+        route.push(point);
+        current = Square {
+            center_position: point,
+            ..current
+        };
+    }
+
+    return route;
 }
 
 // |*| - target
@@ -103,54 +139,76 @@ fn build_route_target_top_left_1() {
     let blocks = Blocks::from(vec![]);
 
     let result = rebuild_route(&start, &target, &blocks);
-    let expected = vec![
-        Point2D::new(2, -1),
-        Point2D::new(1, 0),
-        Point2D::new(0, 0),
-        Point2D::new(-1, 1),
-        Point2D::new(-2, 2),
-        Point2D::new(-3, 3),
-    ];
+    let expected = vec![Point2D::new(1, 0), Point2D::new(-1, 2), Point2D::new(-3, 4)];
 
     assert_eq!(result, expected);
 }
 
 //
-//            | * |
-//            | * |
-//  | ^ |
-//  | ^ |
+//            |*|
+//
+//  |^|
 //
 #[test]
 fn build_route_target_top_right_1() {
     let start = Square {
-        half_size: 2,
+        half_size: 1,
         center_position: Point2D::new(0, 0),
     };
 
     let target = Square {
-        half_size: 2,
+        half_size: 1,
         center_position: Point2D::new(4, 3),
     };
 
     let blocks = Blocks::from(vec![]);
 
     let result = rebuild_route(&start, &target, &blocks);
-    let expected = vec![Point2D::new(2, 2), Point2D::new(4, 3)];
+    let expected = vec![Point2D::new(2, 2), Point2D::new(4, 2)];
 
+    assert_eq!(result, expected);
+}
+
+//
+//            |**|
+//
+//  |^|
+//
+#[test]
+fn build_route_target_top_right_different_sizes_1() {
+    let start = Square {
+        half_size: 1,
+        center_position: Point2D::new(0, 0),
+    };
+
+    let target = Square {
+        half_size: 2,
+        center_position: Point2D::new(12, 6),
+    };
+
+    let blocks = Blocks::from(vec![]);
+
+    let result = rebuild_route(&start, &target, &blocks);
+    let expected = vec![
+        Point2D::new(2, 2),
+        Point2D::new(4, 4),
+        Point2D::new(6, 6),
+        Point2D::new(8, 6),
+        Point2D::new(10, 6),
+    ];
     assert_eq!(result, expected);
 }
 
 //
 //
 //
-//  | ^ |      | * |
-//  | ^ |
+//  |^|      |*|
+//
 //
 #[test]
-fn build_route_target_horizontal_different_sizes_1() {
+fn build_route_target_horizontal_1() {
     let start = Square {
-        half_size: 2,
+        half_size: 1,
         center_position: Point2D::new(1, 1),
     };
 
@@ -167,33 +225,28 @@ fn build_route_target_horizontal_different_sizes_1() {
     assert_eq!(result, expected);
 }
 
-//      | * |
-//      | * |
+//       |*|
+//
 //
 //       |^|
 //
 //
 #[test]
-fn build_route_target_vertical_different_sizes_1() {
+fn build_route_target_vertical_1() {
     let start = Square {
         half_size: 1,
         center_position: Point2D::new(0, 0),
     };
 
     let target = Square {
-        half_size: 2,
+        half_size: 1,
         center_position: Point2D::new(0, 5),
     };
 
     let blocks = Blocks::from(vec![]);
 
     let result = rebuild_route(&start, &target, &blocks);
-    let expected = vec![
-        Point2D::new(0, 1),
-        Point2D::new(0, 2),
-        Point2D::new(0, 3),
-        Point2D::new(0, 4),
-    ];
+    let expected = vec![Point2D::new(0, 2), Point2D::new(0, 4)];
 
     assert_eq!(result, expected);
 }
