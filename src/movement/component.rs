@@ -1,16 +1,6 @@
 use bevy::ecs::component::Component;
 
-#[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
-pub struct Point2D {
-    pub x: i32,
-    pub y: i32,
-}
-
-impl Point2D {
-    pub fn new(x: i32, y: i32) -> Point2D {
-        return Point2D { x, y };
-    }
-}
+use crate::core::geometry::{Point2D, Rectangle, Square};
 
 #[derive(Component)]
 pub struct MoveAgent {
@@ -21,24 +11,13 @@ pub struct MoveAgent {
 
 #[derive(Component)]
 pub struct Blocks {
-    pub blocks: Vec<Block>,
+    pub blocks: Vec<Rectangle>,
 }
 
 impl Blocks {
-    pub fn from(items: Vec<Block>) -> Self {
+    pub fn from(items: Vec<Rectangle>) -> Self {
         return Blocks { blocks: items };
     }
-}
-
-pub struct Block {
-    pub half_width: i32,
-    pub half_height: i32,
-    pub center_position: Point2D,
-}
-
-pub struct Square {
-    pub half_size: i32,
-    pub center_position: Point2D,
 }
 
 #[derive(Component)]

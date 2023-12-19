@@ -22,6 +22,123 @@ impl BBox {
     }
 }
 
+#[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
+pub struct Point2D {
+    pub x: i32,
+    pub y: i32,
+}
+
+impl Point2D {
+    pub fn new(x: i32, y: i32) -> Point2D {
+        return Point2D { x, y };
+    }
+
+    // d = sqrt((xb - xa)^2 + (yb - ya)^2)
+    pub fn distance_to(&self, other: &Point2D) -> f32 {
+        let sq_x = (other.x - self.x) * (other.x - self.x);
+        let sq_y = (other.y - self.y) * (other.y - self.y);
+        return ((sq_x + sq_y) as f32).sqrt();
+    }
+}
+
+#[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
+pub struct Square {
+    pub half_size: i32,
+    pub center_position: Point2D,
+}
+
+// Ax + Bc + C = 0
+#[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
+pub struct Line2D {
+    pub a: i32,
+    pub b: i32,
+    pub c: i32,
+}
+
+impl Line2D {
+    pub fn new(a: i32, b: i32, c: i32) -> Self {
+        return Line2D { a, b, c };
+    }
+
+    // x -  xa   y -  ya
+    // ------- = ------- -> Ax + By + C = 0
+    // xb - xa   yb - ya
+    pub fn from(point1: &Point2D, point2: &Point2D) -> Self {
+        return Line2D {
+            a: point2.y - point1.y,
+            b: point1.x - point1.x,
+            c: point1.y * point2.x - point1.x * point2.y,
+        };
+    }
+}
+
+pub struct Rectangle {
+    pub half_width: i32,
+    pub half_height: i32,
+    pub center_position: Point2D,
+}
+
+pub fn nearest_to_line(points: &Vec<Point2D>, line: &Line2D) -> Point2D {
+    let mut nearest = points.first().expect("points must be not empty");
+    let mut distance = f32::MAX;
+    for point in points {
+        let new_distance = distance_to_line(point, line);
+        if new_distance < distance {
+            nearest = point;
+            distance = new_distance;
+        }
+    }
+
+    return nearest.clone();
+}
+
+pub fn nearest_to_point(points: &Vec<Point2D>, target: &Point2D) -> Point2D {
+    let mut nearest = points.first().expect("points must be not empty");
+    let mut distance = f32::MAX;
+    for point in points {
+        let new_distance = point.distance_to(target);
+        if new_distance < distance {
+            nearest = point;
+            distance = new_distance;
+        }
+    }
+
+    return nearest.clone();
+}
+
+//      |Ax0 + By0 + C|
+//  d = ---------------
+//      sqrt(A^2 + B^2)
+pub fn distance_to_line(point: &Point2D, line: &Line2D) -> f32 {
+    let numerator = (line.a * point.x + line.b * point.y + line.c).abs() as f32;
+    let denominator = ((line.a * line.a + line.b * line.b) as f32).sqrt();
+    return numerator / denominator;
+}
+
+pub fn are_intercepted(square1: &Square, sqaure2: &Square) -> bool {
+    let Point2D { x, y } = square1.center_position;
+    let h_size = square1.half_size;
+    let bbox1 = BBox {
+        left: (x - h_size) as f32,
+        top: (y + h_size) as f32,
+        right: (x + h_size) as f32,
+        bottom: (y - h_size) as f32,
+    };
+
+    let Point2D { x, y } = sqaure2.center_position;
+    let h_size = sqaure2.half_size;
+    let bbox2 = BBox {
+        left: (x - h_size) as f32,
+        top: (y + h_size) as f32,
+        right: (x + h_size) as f32,
+        bottom: (y - h_size) as f32,
+    };
+
+    let kek = bbox1.intersection_with(&bbox2);
+
+    return bbox1.intersection_with(&bbox2) > 0;
+}
+
 //   *******
 //   |  1  |
 //   |  ******
