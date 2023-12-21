@@ -78,6 +78,32 @@ pub struct Rectangle {
     pub center_position: Point2D,
 }
 
+impl Rectangle {
+    pub fn new(h_width: i32, h_height: i32, point: Point2D) -> Self {
+        return Rectangle {
+            half_width: h_width,
+            half_height: h_height,
+            center_position: point,
+        };
+    }
+
+    pub fn sqaure(h_size: i32, point: Point2D) -> Self {
+        return Rectangle {
+            half_width: h_size,
+            half_height: h_size,
+            center_position: point,
+        };
+    }
+
+    pub fn unit(point: Point2D) -> Self {
+        return Rectangle {
+            half_width: 1,
+            half_height: 1,
+            center_position: point,
+        };
+    }
+}
+
 pub fn nearest_to_line(points: &Vec<Point2D>, line: &Line2D) -> Point2D {
     let mut nearest = points.first().expect("points must be not empty");
     let mut distance = f32::MAX;
