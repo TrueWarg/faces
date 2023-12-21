@@ -1,6 +1,4 @@
-use crate::core::geometry::{
-    are_intercepted, nearest_to_line, nearest_to_point, Line2D, Point2D, Square,
-};
+use crate::core::geometry::{are_intercepted, nearest_to_point, Point2D, Square, Rectangle};
 
 use super::component::{Blocks, MoveAgent, Target};
 use bevy::{ecs::system::Query, utils::HashSet};
@@ -15,7 +13,8 @@ pub fn route_build(
     let blocks = blocks.get_single().expect("Expected one blocks");
 
     for mut agent in agents.iter_mut() {
-        agent.route = rebuild_route(&agent.square, &target.square, blocks);
+        // todo: use rebuild_route instead of this when it complete
+        agent.route = build_direct_route(&agent.square, &target.square);
     }
 }
 
@@ -103,6 +102,7 @@ fn build_direct_route(start: &Square, target: &Square) -> Vec<Point2D> {
             break;
         }
 
+        // todo: use neihtboors restricted with blocks `extract_available_neighborhood``
         let near = extract_neighborhood(&current);
         let point = nearest_to_point(&near, &target.center_position);
         route.push(point);
@@ -247,6 +247,83 @@ fn build_route_target_vertical_1() {
 
     let result = rebuild_route(&start, &target, &blocks);
     let expected = vec![Point2D::new(0, 2), Point2D::new(0, 4)];
+
+    assert_eq!(result, expected);
+}
+
+//
+//           **
+//           **  |*|
+//           **
+//  |^|      **
+//
+#[test]
+fn build_route_with_simple_block_1() {
+    let start = Square {
+        half_size: 1,
+        center_position: Point2D::new(0, 0),
+    };
+
+    let target = Square {
+        half_size: 1,
+        center_position: Point2D::new(12, 9),
+    };
+
+    let blocks = Blocks::from(vec![Rectangle::new(2, 8, Point2D::new(7, 6))]);
+
+    let result = rebuild_route(&start, &target, &blocks);
+    let expected = vec![
+        Point2D::new(2, 0),
+        Point2D::new(4, 0),
+        Point2D::new(6, 0),
+        Point2D::new(8, 0),
+        Point2D::new(10, 2),
+        Point2D::new(10, 4),
+        Point2D::new(12, 6),
+        Point2D::new(12, 8),
+    ];
+
+    assert_eq!(result, expected);
+}
+
+//            ** |*|
+//            **
+// *********  **
+// *********
+//  |^|   **
+//        **
+//        **
+//
+#[test]
+fn build_route_with_complex_blocks_1() {
+    let start = Square {
+        half_size: 1,
+        center_position: Point2D::new(0, 0),
+    };
+
+    let target = Square {
+        half_size: 1,
+        center_position: Point2D::new(12, 7),
+    };
+
+    let blocks = Blocks::from(vec![
+        Rectangle::new(8, 2, Point2D::new(1, 3)),
+        Rectangle::new(2, 6, Point2D::new(0, 4)),
+        Rectangle::new(2, 4, Point2D::new(8, 6)),
+    ]);
+
+    let result = rebuild_route(&start, &target, &blocks);
+    let expected = vec![
+        Point2D::new(2, -2),
+        Point2D::new(2, -4),
+        Point2D::new(4, -6),
+        Point2D::new(6, -4),
+        Point2D::new(8, -2),
+        Point2D::new(10, 0),
+        Point2D::new(12, 2),
+        Point2D::new(12, 4),
+        Point2D::new(12, 6),
+    ];
 
     assert_eq!(result, expected);
 }
