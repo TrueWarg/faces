@@ -13,6 +13,8 @@ mod player;
 mod resources;
 mod startup;
 mod movement;
+mod npc;
+mod animation;
 
 fn main() {
     App::new()
