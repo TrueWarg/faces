@@ -1,6 +1,6 @@
 use bevy::{prelude::Component, time::Timer, asset::Handle, sprite::TextureAtlas};
 
-use super::types::{FightDirection, MoveDirection};
+use crate::animation::entities::{MoveDirection, FightDirection};
 
 #[derive(Component, Debug)]
 pub struct Player {
