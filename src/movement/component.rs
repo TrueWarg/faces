@@ -31,3 +31,15 @@ pub struct MoveArea {
     pub half_height: i32,
     pub center_position: Point2D,
 }
+
+pub enum MoveDirection {
+    Top,
+    LeftTop,
+    Left,
+    LeftBottom,
+    Bottom,
+    RightBottom,
+    Right,
+    RightTop,
+    Idle,
+}
