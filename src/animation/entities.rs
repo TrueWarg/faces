@@ -13,7 +13,7 @@ pub enum MoveDirection {
 }
 
 impl MoveDirection {
-    fn is_idle(&self) -> bool {
+    pub fn is_idle(&self) -> bool {
         matches!(
             self,
             MoveDirection::ForwardIdle
