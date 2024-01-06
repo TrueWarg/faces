@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use bevy::prelude::Resource;
 
-use super::types::{FightDirection, MoveDirection};
+use crate::animation::entities::{MoveDirection, FightDirection};
 
 #[derive(Resource)]
 pub struct PlayerAnimations {

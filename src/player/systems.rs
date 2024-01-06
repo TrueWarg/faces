@@ -11,6 +11,7 @@ use bevy::{
 use bevy_rapier2d::prelude::{Collider, GravityScale, LockedAxes, RigidBody, Velocity};
 
 use crate::{
+    animation::entities::{FightDirection, MoveDirection},
     core::{components::BodyYOffset, z_index::DEFAULT_OBJECT_Z},
     interaction::component::{ActiveInteractor, InteractionArea, InteractionSide},
 };
@@ -18,7 +19,6 @@ use crate::{
 use super::{
     components::{FightAnimation, MoveAnimation, Player},
     resources::PlayerAnimations,
-    types::{FightDirection, MoveDirection},
 };
 
 pub struct PlayerPlugin;
