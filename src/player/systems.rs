@@ -14,6 +14,7 @@ use crate::{
     animation::entities::{FightDirection, MoveDirection},
     core::{components::BodyYOffset, z_index::DEFAULT_OBJECT_Z},
     interaction::component::{ActiveInteractor, InteractionArea, InteractionSide},
+    movement::component::Target,
 };
 
 use super::{
@@ -105,7 +106,8 @@ fn player_spawns(
         .insert(ActiveInteractor {
             area: InteractionArea::from_sizes(8.0, 20.0),
             side: InteractionSide::Bottom,
-        });
+        })
+        .insert(Target { half_size: 16 });
 }
 
 fn player_movement(

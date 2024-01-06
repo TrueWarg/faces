@@ -31,6 +31,7 @@ fn main() {
             player::systems::PlayerPlugin,
             level::house::HousePlugin,
             interaction::systems::BaseInteractionPlugin,
+            npc::systems::MainNpcPlugin,
         ))
         .add_systems(Startup, startup::setup)
         .add_state::<core::states::GameState>()

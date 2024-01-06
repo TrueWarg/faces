@@ -1,20 +1,37 @@
-use crate::core::geometry::{are_intercepted, nearest_to_point, Point2D, Square, Rectangle};
+use crate::core::geometry::{are_intercepted, nearest_to_point, Point2D, Rectangle, Square};
 
 use super::component::{Blocks, MoveAgent, Target};
-use bevy::{ecs::system::Query, utils::HashSet};
+use bevy::{
+    ecs::system::Query,
+    transform::{self, components::Transform},
+    utils::HashSet,
+};
 use std::collections::{HashMap, VecDeque};
 
 pub fn route_build(
-    target: Query<&Target>,
+    target: Query<(&Target, &Transform)>,
     blocks: Query<&Blocks>,
-    mut agents: Query<&mut MoveAgent>,
+    mut agents: Query<(&mut MoveAgent, &Transform)>,
 ) {
-    let target = target.get_single().expect("Expected one target");
-    let blocks = blocks.get_single().expect("Expected one blocks");
+    let (target, target_transform) = target.get_single().expect("Expected one target");
+    // let blocks = blocks.get_single().expect("Expected one blocks");
 
-    for mut agent in agents.iter_mut() {
+    for (mut agent, transform) in agents.iter_mut() {
+        // todo: use transition coorditance directtly in route functions, avoind creating squares
+        let x = transform.translation.x as i32;
+        let y = transform.translation.y as i32;
+        let square = Square {
+            half_size: agent.half_size,
+            center_position: Point2D::new(x, y),
+        };
+        let target_x = target_transform.translation.x as i32;
+        let target_y = target_transform.translation.y as i32;
+        let target_square = Square {
+            half_size: target.half_size,
+            center_position: Point2D::new(target_x, target_y),
+        };
         // todo: use rebuild_route instead of this when it complete
-        agent.route = build_direct_route(&agent.square, &target.square);
+        agent.route = build_direct_route(&square, &target_square);
     }
 }
 
