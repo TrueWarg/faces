@@ -1,6 +1,6 @@
 use bevy::ecs::component::Component;
 
-use crate::core::geometry::{Point2D, Rectangle};
+use crate::core::geometry::{BBox, Point2D};
 
 #[derive(Component)]
 pub struct MoveAgent {
@@ -11,11 +11,11 @@ pub struct MoveAgent {
 
 #[derive(Component)]
 pub struct Blocks {
-    pub blocks: Vec<Rectangle>,
+    pub blocks: Vec<BBox>,
 }
 
 impl Blocks {
-    pub fn from(items: Vec<Rectangle>) -> Self {
+    pub fn from(items: Vec<BBox>) -> Self {
         return Blocks { blocks: items };
     }
 }
