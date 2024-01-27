@@ -1,11 +1,7 @@
-use crate::core::geometry::{are_intercepted, nearest_to_point, Point2D, Rectangle, Square};
+use crate::core::geometry::{nearest_to_point, BBox, Point2D};
 
 use super::component::{Blocks, MoveAgent, Target};
-use bevy::{
-    ecs::system::Query,
-    transform::{self, components::Transform},
-    utils::HashSet,
-};
+use bevy::{ecs::system::Query, transform::components::Transform, utils::HashSet};
 use std::collections::{HashMap, VecDeque};
 
 pub fn route_build(
@@ -17,33 +13,28 @@ pub fn route_build(
     // let blocks = blocks.get_single().expect("Expected one blocks");
 
     for (mut agent, transform) in agents.iter_mut() {
-        // todo: use transition coorditance directtly in route functions, avoind creating squares
-        let x = transform.translation.x as i32;
-        let y = transform.translation.y as i32;
-        let square = Square {
-            half_size: agent.half_size,
-            center_position: Point2D::new(x, y),
-        };
-        let target_x = target_transform.translation.x as i32;
-        let target_y = target_transform.translation.y as i32;
-        let target_square = Square {
-            half_size: target.half_size,
-            center_position: Point2D::new(target_x, target_y),
-        };
+        let x = transform.translation.x;
+        let y = transform.translation.y;
+        let square = BBox::from_square(x, y, agent.half_size as f32);
+
+        let target_x = target_transform.translation.x;
+        let target_y = target_transform.translation.y;
+        let target_square = BBox::from_square(target_x, target_y, target.half_size as f32);
         // todo: use rebuild_route instead of this when it complete
         agent.route = build_direct_route(&square, &target_square);
+        // rebuild_route(&square, &target_square, &blocks);
     }
 }
 
-fn rebuild_route(start: &Square, target: &Square, blocks: &Blocks) -> Vec<Point2D> {
+fn rebuild_route(start: &BBox, target: &BBox, blocks: &Blocks) -> Vec<Point2D> {
     let mut points_to_route: HashMap<Point2D, Vec<Point2D>> = HashMap::new();
     let mut points: VecDeque<Point2D> = VecDeque::new();
     let mut handle_points: HashSet<Point2D> = HashSet::new();
 
-    points.push_back(start.center_position);
-    handle_points.insert(start.center_position);
+    points.push_back(start.round_center());
+    handle_points.insert(start.round_center());
 
-    let mut current_point = start.center_position;
+    let mut current_point = start.round_center();
 
     loop {
         if points.is_empty() {
@@ -54,7 +45,7 @@ fn rebuild_route(start: &Square, target: &Square, blocks: &Blocks) -> Vec<Point2
             .pop_back()
             .expect("Unexpecred error: points is empty");
 
-        if there_is_direct_route(&current_point, &target.center_position, blocks) {
+        if there_is_direct_route(&current_point, &target.round_center(), blocks) {
             break;
         }
 
@@ -83,13 +74,26 @@ fn rebuild_route(start: &Square, target: &Square, blocks: &Blocks) -> Vec<Point2
     return points_to_route.remove(&current_point).unwrap_or_default();
 }
 
-fn extract_available_neighborhood(sqaure: &Square, blocks: &Blocks) -> Vec<Point2D> {
-    todo!()
+fn extract_available_neighborhood(square: &BBox, blocks: &Blocks) -> Vec<Point2D> {
+    // todo: optimize do not using copy
+    let mut result = Vec::with_capacity(8);
+    let candidates = extract_neighborhood(square);
+    for point in candidates {
+        // See NOTE_SQUARE
+        let rect = BBox::from_square(point.x as f32, point.y as f32, square.half_w());
+        if can_be_occupied(&rect, &blocks) {
+            result.push(point);
+        }
+    }
+    return result;
 }
 
-fn extract_neighborhood(sqaure: &Square) -> Vec<Point2D> {
-    let Point2D { x, y } = sqaure.center_position;
-    let size = 2 * sqaure.half_size;
+fn extract_neighborhood(square: &BBox) -> Vec<Point2D> {
+    let Point2D { x, y } = square.round_center();
+    // NOTE_SQUARE:
+    // bbox considered to be square
+    // todo: make it more typesafe
+    let size = 2 * square.half_w() as i32;
     return vec![
         Point2D::new(x - size, y + size),
         Point2D::new(x - size, y),
@@ -102,31 +106,35 @@ fn extract_neighborhood(sqaure: &Square) -> Vec<Point2D> {
     ];
 }
 
-fn can_be_occupied(point: &Point2D, blocks: &Blocks) -> bool {
-    return true;
+fn can_be_occupied(rect: &BBox, blocks: &Blocks) -> bool {
+    let result = true;
+    for block in &blocks.blocks {
+        if block.round_intersection_with(rect) > 0 {
+            return false;
+        }
+    }
+    return result;
 }
 
 fn there_is_direct_route(start: &Point2D, target: &Point2D, blocks: &Blocks) -> bool {
     todo!()
 }
 
-fn build_direct_route(start: &Square, target: &Square) -> Vec<Point2D> {
+fn build_direct_route(start: &BBox, target: &BBox) -> Vec<Point2D> {
     let mut current = *start;
     let mut route: Vec<Point2D> = vec![];
 
     loop {
-        if are_intercepted(&current, target) {
+        if current.round_intersection_with(target) > 0 {
             break;
         }
 
         // todo: use neihtboors restricted with blocks `extract_available_neighborhood``
         let near = extract_neighborhood(&current);
-        let point = nearest_to_point(&near, &target.center_position);
+        let point = nearest_to_point(&near, &target.round_center());
         route.push(point);
-        current = Square {
-            center_position: point,
-            ..current
-        };
+        // See NOTE_SQUARE
+        current = BBox::from_square(point.x as f32, point.y as f32, current.half_w());
     }
 
     return route;
@@ -143,15 +151,8 @@ fn build_direct_route(start: &Square, target: &Square) -> Vec<Point2D> {
 //
 #[test]
 fn build_route_target_top_left_1() {
-    let start = Square {
-        half_size: 1,
-        center_position: Point2D::new(3, -2),
-    };
-
-    let target = Square {
-        half_size: 1,
-        center_position: Point2D::new(-3, 3),
-    };
+    let start = BBox::from_square(3.0, -2.0, 1.0);
+    let target = BBox::from_square(-3.0, 3.0, 1.0);
 
     let blocks = Blocks::from(vec![]);
 
@@ -168,15 +169,8 @@ fn build_route_target_top_left_1() {
 //
 #[test]
 fn build_route_target_top_right_1() {
-    let start = Square {
-        half_size: 1,
-        center_position: Point2D::new(0, 0),
-    };
-
-    let target = Square {
-        half_size: 1,
-        center_position: Point2D::new(4, 3),
-    };
+    let start = BBox::from_square(0.0, 0.0, 1.0);
+    let target = BBox::from_square(4.0, 3.0, 1.0);
 
     let blocks = Blocks::from(vec![]);
 
@@ -193,15 +187,8 @@ fn build_route_target_top_right_1() {
 //
 #[test]
 fn build_route_target_top_right_different_sizes_1() {
-    let start = Square {
-        half_size: 1,
-        center_position: Point2D::new(0, 0),
-    };
-
-    let target = Square {
-        half_size: 2,
-        center_position: Point2D::new(12, 6),
-    };
+    let start = BBox::from_square(0.0, 0.0, 1.0);
+    let target = BBox::from_square(12.0, 6.0, 2.0);
 
     let blocks = Blocks::from(vec![]);
 
@@ -224,15 +211,8 @@ fn build_route_target_top_right_different_sizes_1() {
 //
 #[test]
 fn build_route_target_horizontal_1() {
-    let start = Square {
-        half_size: 1,
-        center_position: Point2D::new(1, 1),
-    };
-
-    let target = Square {
-        half_size: 1,
-        center_position: Point2D::new(6, 2),
-    };
+    let start = BBox::from_square(1.0, 1.0, 1.0);
+    let target = BBox::from_square(6.0, 2.0, 1.0);
 
     let blocks = Blocks::from(vec![]);
 
@@ -250,15 +230,8 @@ fn build_route_target_horizontal_1() {
 //
 #[test]
 fn build_route_target_vertical_1() {
-    let start = Square {
-        half_size: 1,
-        center_position: Point2D::new(0, 0),
-    };
-
-    let target = Square {
-        half_size: 1,
-        center_position: Point2D::new(0, 5),
-    };
+    let start = BBox::from_square(0.0, 0.0, 1.0);
+    let target = BBox::from_square(0.0, 5.0, 1.0);
 
     let blocks = Blocks::from(vec![]);
 
@@ -276,17 +249,10 @@ fn build_route_target_vertical_1() {
 //
 #[test]
 fn build_route_with_simple_block_1() {
-    let start = Square {
-        half_size: 1,
-        center_position: Point2D::new(0, 0),
-    };
+    let start = BBox::from_square(0.0, 0.0, 1.0);
+    let target = BBox::from_square(12.0, 9.0, 1.0);
 
-    let target = Square {
-        half_size: 1,
-        center_position: Point2D::new(12, 9),
-    };
-
-    let blocks = Blocks::from(vec![Rectangle::new(2, 8, Point2D::new(7, 6))]);
+    let blocks = Blocks::from(vec![BBox::from_rect(7.0, 6.0, 2.0, 8.0)]);
 
     let result = rebuild_route(&start, &target, &blocks);
     let expected = vec![
@@ -313,20 +279,13 @@ fn build_route_with_simple_block_1() {
 //
 #[test]
 fn build_route_with_complex_blocks_1() {
-    let start = Square {
-        half_size: 1,
-        center_position: Point2D::new(0, 0),
-    };
-
-    let target = Square {
-        half_size: 1,
-        center_position: Point2D::new(12, 7),
-    };
+    let start = BBox::from_square(0.0, 0.0, 1.0);
+    let target = BBox::from_square(12.0, 7.0, 1.0);
 
     let blocks = Blocks::from(vec![
-        Rectangle::new(8, 2, Point2D::new(1, 3)),
-        Rectangle::new(2, 6, Point2D::new(0, 4)),
-        Rectangle::new(2, 4, Point2D::new(8, 6)),
+        BBox::from_rect(1.0, 3.0, 8.0, 2.0),
+        BBox::from_rect(0.0, 4.0, 2.0, 6.0),
+        BBox::from_rect(8.0, 6.0, 2.0, 4.0),
     ]);
 
     let result = rebuild_route(&start, &target, &blocks);

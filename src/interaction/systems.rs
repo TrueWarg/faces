@@ -44,7 +44,7 @@ pub fn detect_active_interaction(
     let (interactor, passive_transform) = passive;
     let translation = passive_transform.translation;
     let area = interactor.area.to_box(translation.x, translation.y);
-    let intersection = active_area.intersection_with(&area);
+    let intersection = active_area.round_intersection_with(&area);
     return active_translation.z - translation.z >= delta && intersection > 0;
 }
 

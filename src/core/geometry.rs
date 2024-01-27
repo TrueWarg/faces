@@ -1,6 +1,6 @@
 use std::cmp::{max, min};
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct BBox {
     pub left: f32,
     pub top: f32,
@@ -9,7 +9,7 @@ pub struct BBox {
 }
 
 impl BBox {
-    pub fn intersection_with(&self, other: &BBox) -> i32 {
+    pub fn round_intersection_with(&self, other: &BBox) -> i32 {
         let x_overlap = max(
             0,
             min(self.right as i32, other.right as i32) - max(self.left as i32, other.left as i32),
@@ -19,6 +19,41 @@ impl BBox {
             min(self.top as i32, other.top as i32) - max(self.bottom as i32, other.bottom as i32),
         );
         return x_overlap * y_overlap;
+    }
+
+    pub fn half_w(&self) -> f32 {
+        return (self.right - self.left) / 2.0;
+    }
+
+    pub fn half_h(&self) -> f32 {
+        return (self.top - self.bottom) / 2.0;
+    }
+
+    pub fn from_square(center_x: f32, center_y: f32, half_size: f32) -> Self {
+        return BBox {
+            left: center_x - half_size,
+            top: center_y + half_size,
+            right: center_x + half_size,
+            bottom: center_y - half_size,
+        };
+    }
+
+    pub fn from_rect(center_x: f32, center_y: f32, half_w: f32, half_h: f32) -> Self {
+        return BBox {
+            left: center_x - half_w,
+            top: center_y + half_h,
+            right: center_x + half_w,
+            bottom: center_y - half_h,
+        };
+    }
+
+    pub fn round_center(&self) -> Point2D {
+        let half_w = self.half_w();
+        let half_h = self.half_h();
+        return Point2D {
+            x: (self.left + half_w) as i32,
+            y: (self.bottom + half_h) as i32,
+        };
     }
 }
 
@@ -41,14 +76,8 @@ impl Point2D {
     }
 }
 
-#[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
-pub struct Square {
-    pub half_size: i32,
-    pub center_position: Point2D,
-}
-
 // Ax + Bc + C = 0
-#[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct Line2D {
     pub a: i32,
     pub b: i32,
@@ -66,40 +95,8 @@ impl Line2D {
     pub fn from(point1: &Point2D, point2: &Point2D) -> Self {
         return Line2D {
             a: point2.y - point1.y,
-            b: point1.x - point1.x,
+            b: point1.x - point2.x,
             c: point1.y * point2.x - point1.x * point2.y,
-        };
-    }
-}
-
-pub struct Rectangle {
-    pub half_width: i32,
-    pub half_height: i32,
-    pub center_position: Point2D,
-}
-
-impl Rectangle {
-    pub fn new(h_width: i32, h_height: i32, point: Point2D) -> Self {
-        return Rectangle {
-            half_width: h_width,
-            half_height: h_height,
-            center_position: point,
-        };
-    }
-
-    pub fn sqaure(h_size: i32, point: Point2D) -> Self {
-        return Rectangle {
-            half_width: h_size,
-            half_height: h_size,
-            center_position: point,
-        };
-    }
-
-    pub fn unit(point: Point2D) -> Self {
-        return Rectangle {
-            half_width: 1,
-            half_height: 1,
-            center_position: point,
         };
     }
 }
@@ -141,28 +138,35 @@ pub fn distance_to_line(point: &Point2D, line: &Line2D) -> f32 {
     return numerator / denominator;
 }
 
-pub fn are_intercepted(square1: &Square, sqaure2: &Square) -> bool {
-    let Point2D { x, y } = square1.center_position;
-    let h_size = square1.half_size;
-    let bbox1 = BBox {
-        left: (x - h_size) as f32,
-        top: (y + h_size) as f32,
-        right: (x + h_size) as f32,
-        bottom: (y - h_size) as f32,
-    };
-
-    let Point2D { x, y } = sqaure2.center_position;
-    let h_size = sqaure2.half_size;
-    let bbox2 = BBox {
-        left: (x - h_size) as f32,
-        top: (y + h_size) as f32,
-        right: (x + h_size) as f32,
-        bottom: (y - h_size) as f32,
-    };
-
-    let kek = bbox1.intersection_with(&bbox2);
-
-    return bbox1.intersection_with(&bbox2) > 0;
+/// find lines intercection with solving equestions systems using Cramer's rule
+/// A1x + B1y = -C1
+/// A2x + B2y = -C2
+///     |A1 B1|
+/// d = |     | = A1 * B2 - A2 * B1;
+///     |A2 B2|
+///     |-C1 B1|
+/// dx =|      | = -C1 * B2 + C2 * B1
+///     |-C2 B2|
+///     |A1 -C1|
+/// dy =|      | = -A1 * C2 + A2 * C1;
+///     |A2 -C2|
+///     dx
+/// x = --
+///     d
+///     dy
+/// y = --
+///     d
+pub fn round_lines_intersection(line1: &Line2D, line2: &Line2D) -> Option<Point2D> {
+    let d = line1.a * line2.b - line1.b * line2.a;
+    if d == 0 {
+        return Option::None;
+    }
+    let dx = -line1.c * line2.b + line2.c * line1.b;
+    let dy = -line1.a * line2.c + line2.a * line1.c;
+    return Option::Some(Point2D {
+        x: dx / d,
+        y: dy / d,
+    });
 }
 
 //   *******
@@ -173,7 +177,7 @@ pub fn are_intercepted(square1: &Square, sqaure2: &Square) -> bool {
 //    **|*** |
 //       ****
 #[test]
-fn intersection_test_1() {
+fn bbox_round_intercection_test_1() {
     let first = BBox {
         left: 0.0,
         top: 4.0,
@@ -187,7 +191,7 @@ fn intersection_test_1() {
         right: 2.5,
         bottom: -1.0,
     };
-    assert_eq!(first.intersection_with(&second), 3)
+    assert_eq!(first.round_intersection_with(&second), 3)
 }
 
 //   *******
@@ -198,7 +202,7 @@ fn intersection_test_1() {
 //   ***|*** |
 //      ******
 #[test]
-fn intersection_test_all_2() {
+fn bbox_round_intercection_test_2() {
     let second = BBox {
         left: 0.0,
         top: 4.0,
@@ -212,7 +216,7 @@ fn intersection_test_all_2() {
         right: 2.5,
         bottom: -1.0,
     };
-    assert_eq!(first.intersection_with(&second), 3)
+    assert_eq!(first.round_intersection_with(&second), 3)
 }
 
 //      *******
@@ -224,7 +228,7 @@ fn intersection_test_all_2() {
 //   |      |
 //   ********
 #[test]
-fn intersection_test_3() {
+fn bbox_round_intercection_test_3() {
     let first = BBox {
         left: 0.0,
         top: 4.0,
@@ -238,7 +242,7 @@ fn intersection_test_3() {
         right: 2.5,
         bottom: 2.0,
     };
-    assert_eq!(first.intersection_with(&second), 2)
+    assert_eq!(first.round_intersection_with(&second), 2)
 }
 
 //   *************
@@ -248,7 +252,7 @@ fn intersection_test_3() {
 //   |           |
 //   *************
 #[test]
-fn intersection_test_4() {
+fn bbox_round_intercection_test_4() {
     let first = BBox {
         left: 0.0,
         top: 4.0,
@@ -256,7 +260,7 @@ fn intersection_test_4() {
         bottom: 0.0,
     };
     let area = (first.right as i32 - first.left as i32) * (first.top as i32 - first.bottom as i32);
-    assert_eq!(first.intersection_with(&first), area);
+    assert_eq!(first.round_intersection_with(&first), area);
 }
 
 //   *************
@@ -266,7 +270,7 @@ fn intersection_test_4() {
 //   |      1    |
 //   *************
 #[test]
-fn intersection_test_5() {
+fn bbox_round_intercection_test_5() {
     let first = BBox {
         left: 0.0,
         top: 4.0,
@@ -282,7 +286,7 @@ fn intersection_test_5() {
     };
     let area =
         (second.right as i32 - second.left as i32) * (second.top as i32 - second.bottom as i32);
-    assert_eq!(first.intersection_with(&second), area);
+    assert_eq!(first.round_intersection_with(&second), area);
 }
 
 //   *************
@@ -292,7 +296,7 @@ fn intersection_test_5() {
 //   |           |    |
 //   ******************
 #[test]
-fn intersection_test_6() {
+fn bbox_round_intercection_test_6() {
     let first = BBox {
         left: 0.0,
         top: 4.0,
@@ -306,7 +310,7 @@ fn intersection_test_6() {
         right: 6.0,
         bottom: 0.0,
     };
-    assert_eq!(first.intersection_with(&second), 0);
+    assert_eq!(first.round_intersection_with(&second), 0);
 }
 
 //   ********
@@ -318,7 +322,7 @@ fn intersection_test_6() {
 //             |     |
 //             *******
 #[test]
-fn intersection_test_7() {
+fn bbox_round_intercection_test_7() {
     let first = BBox {
         left: 0.0,
         top: 4.0,
@@ -332,7 +336,7 @@ fn intersection_test_7() {
         right: 6.0,
         bottom: -2.0,
     };
-    assert_eq!(first.intersection_with(&second), 0);
+    assert_eq!(first.round_intersection_with(&second), 0);
 }
 
 //   ********
@@ -344,7 +348,7 @@ fn intersection_test_7() {
 //             |     |
 //             *******
 #[test]
-fn intersection_test_8() {
+fn bbox_round_intercection_test_8() {
     let second = BBox {
         left: 0.0,
         top: 4.0,
@@ -358,5 +362,85 @@ fn intersection_test_8() {
         right: 6.0,
         bottom: -2.0,
     };
-    assert_eq!(first.intersection_with(&second), 0);
+    assert_eq!(first.round_intersection_with(&second), 0);
+}
+
+#[test]
+fn distance_to_line_test_1() {
+    let point = Point2D { x: 0, y: 0 };
+    let line = Line2D::from(&Point2D { x: 2, y: -2 }, &Point2D { x: 2, y: 2 });
+    assert_eq!(distance_to_line(&point, &line), 2.0);
+}
+
+#[test]
+fn distance_to_line_test_2() {
+    let point = Point2D { x: 0, y: 1 };
+    let line = Line2D::from(&Point2D { x: -2, y: -2 }, &Point2D { x: 2, y: -2 });
+    assert_eq!(distance_to_line(&point, &line), 3.0);
+}
+
+#[test]
+fn distance_to_line_test_3() {
+    let point = Point2D { x: 0, y: 0 };
+    let line = Line2D::from(&Point2D { x: 0, y: 6 }, &Point2D { x: 4, y: 0 });
+    let expected = "3.3282";
+    let result = format!("{:.4}", distance_to_line(&point, &line));
+    assert_eq!(result, expected);
+}
+
+#[test]
+fn distance_to_line_test_4() {
+    let point = Point2D { x: -2, y: 2 };
+    let line = Line2D::from(&Point2D { x: -3, y: 1 }, &Point2D { x: -2, y: 0 });
+    let expected = format!("{:.4}", (2.0 as f32).sqrt());
+    let result = format!("{:.4}", distance_to_line(&point, &line));
+    assert_eq!(result, expected);
+}
+
+#[test]
+fn round_lines_intersection_test_1() {
+    let line1 = Line2D::new(1, 1, 0);
+    let line2 = Line2D::new(2, 1, 0);
+    let result = round_lines_intersection(&line1, &line2);
+    assert_eq!(result, Option::Some(Point2D::new(0, 0)));
+}
+
+#[test]
+fn round_lines_intersection_test_2() {
+    let line1 = Line2D::new(3, 1, 2);
+    let line2 = Line2D::new(2, 7, -6);
+    let result = round_lines_intersection(&line1, &line2);
+    assert_eq!(result, Option::Some(Point2D::new(-1, 1)));
+}
+
+#[test]
+fn round_lines_intersection_test_3() {
+    let line1 = Line2D::new(0, 1, -12);
+    let line2 = Line2D::new(2, 1, 6);
+    let result = round_lines_intersection(&line1, &line2);
+    assert_eq!(result, Option::Some(Point2D::new(-9, 12)));
+}
+
+#[test]
+fn round_lines_intersection_test_4() {
+    let line1 = Line2D::new(2, 3, 0);
+    let line2 = Line2D::new(-3, 1, 1);
+    let result = round_lines_intersection(&line1, &line2);
+    assert_eq!(result, Option::Some(Point2D::new(0, 0)));
+}
+
+#[test]
+fn round_lines_intersection_test_parallel_5() {
+    let line1 = Line2D::new(1, -1, 0);
+    let line2 = Line2D::new(1, -1, -2);
+    let result = round_lines_intersection(&line1, &line2);
+    assert_eq!(result, Option::None);
+}
+
+#[test]
+fn round_lines_intersection_test_the_same_6() {
+    let line1 = Line2D::new(1, -1, -2);
+    let line2 = Line2D::new(1, -1, -2);
+    let result = round_lines_intersection(&line1, &line2);
+    assert_eq!(result, Option::None);
 }
