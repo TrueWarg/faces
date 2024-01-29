@@ -1,4 +1,4 @@
-use crate::core::geometry::{nearest_to_point, BBox, Point2D};
+use crate::core::geometry::{nearest_to_point, round_segments_intersection, BBox, Point2D};
 
 use super::component::{Blocks, MoveAgent, Target};
 use bevy::{ecs::system::Query, transform::components::Transform, utils::HashSet};
@@ -37,13 +37,18 @@ fn rebuild_route(start: &BBox, target: &BBox, blocks: &Blocks) -> Vec<Point2D> {
     let mut current_point = start.round_center();
 
     loop {
+        for point in &points {
+            println!("!!! point = {:?} ", point);
+        }
+            println!("--------------------------------------------------------");
+
         if points.is_empty() {
             break;
         }
 
         current_point = points
             .pop_back()
-            .expect("Unexpecred error: points is empty");
+            .expect("Unexpected error: points is empty");
 
         if there_is_direct_route(&current_point, &target.round_center(), blocks) {
             break;
@@ -70,7 +75,7 @@ fn rebuild_route(start: &BBox, target: &BBox, blocks: &Blocks) -> Vec<Point2D> {
             }
         }
     }
-
+    
     return points_to_route.remove(&current_point).unwrap_or_default();
 }
 
@@ -117,7 +122,32 @@ fn can_be_occupied(rect: &BBox, blocks: &Blocks) -> bool {
 }
 
 fn there_is_direct_route(start: &Point2D, target: &Point2D, blocks: &Blocks) -> bool {
-    todo!()
+    for block in &blocks.blocks {
+        if segment_is_intercect_rect(start, target, &block) {
+            return true;
+        }
+    }
+    return false;
+}
+
+fn segment_is_intercect_rect(start: &Point2D, target: &Point2D, rect: &BBox) -> bool {
+    let side_start = Point2D::new(rect.left as i32, rect.bottom as i32);
+    let side_end = Point2D::new(rect.left as i32, rect.top as i32);
+    let left = round_segments_intersection(start, target, &side_start, &side_end).is_none();
+
+    let side_start = Point2D::new(rect.left as i32, rect.top as i32);
+    let side_end = Point2D::new(rect.right as i32, rect.top as i32);
+    let top = round_segments_intersection(start, target, &side_start, &side_end).is_none();
+
+    let side_start = Point2D::new(rect.right as i32, rect.top as i32);
+    let side_end = Point2D::new(rect.right as i32, rect.bottom as i32);
+    let right = round_segments_intersection(start, target, &side_start, &side_end).is_none();
+
+    let side_start = Point2D::new(rect.right as i32, rect.bottom as i32);
+    let side_end = Point2D::new(rect.left as i32, rect.bottom as i32);
+    let bottom = round_segments_intersection(start, target, &side_start, &side_end).is_none();
+
+    return left && top && right && bottom;
 }
 
 fn build_direct_route(start: &BBox, target: &BBox) -> Vec<Point2D> {
