@@ -1,5 +1,7 @@
 use std::cmp::{max, min};
 
+use bevy_rapier2d::parry::query::point;
+
 #[derive(Clone, Copy, Debug)]
 pub struct BBox {
     pub left: f32,
@@ -167,6 +169,35 @@ pub fn round_lines_intersection(line1: &Line2D, line2: &Line2D) -> Option<Point2
         x: dx / d,
         y: dy / d,
     });
+}
+
+pub fn round_segments_intersection(
+    segment1_x: &Point2D,
+    segment1_y: &Point2D,
+    segment2_x: &Point2D,
+    segment2_y: &Point2D,
+) -> Option<Point2D> {
+    let line1 = Line2D::from(segment1_x, segment1_y);
+    let line2 = Line2D::from(segment2_x, segment2_y);
+
+    return round_lines_intersection(&line1, &line2).and_then(|point| {
+        let intersect_first = point_in_rectangle(&point, segment1_x, segment1_y);
+        let intersect_second = point_in_rectangle(&point, segment2_x, segment2_y);
+        if intersect_first && intersect_second {
+            Option::Some(point)
+        } else {
+            Option::None
+        }
+    });
+}
+
+fn point_in_rectangle(point: &Point2D, top_left: &Point2D, bottom_right: &Point2D) -> bool {
+    let min_x = min(top_left.x, bottom_right.x);
+    let max_x = max(top_left.x, bottom_right.x);
+    let min_y = min(top_left.y, bottom_right.y);
+    let max_y = max(top_left.y, bottom_right.y);
+
+    return min_x <= point.x && point.x <= max_x && min_y <= point.y && point.y <= max_y;
 }
 
 //   *******
@@ -443,4 +474,88 @@ fn round_lines_intersection_test_the_same_6() {
     let line2 = Line2D::new(1, -1, -2);
     let result = round_lines_intersection(&line1, &line2);
     assert_eq!(result, Option::None);
+}
+
+#[test]
+fn round_segments_intersection_parallel_1() {
+    let start1 = Point2D::new(0, 0);
+    let end1 = Point2D::new(0, 1);
+
+    let start2 = Point2D::new(1, 0);
+    let end2 = Point2D::new(1, 1);
+
+    let result = round_segments_intersection(&start1, &end1, &start2, &end2);
+    assert_eq!(result, Option::None);
+}
+
+#[test]
+fn round_segments_intersection_not_intersect_2() {
+    let start1 = Point2D::new(0, 0);
+    let end1 = Point2D::new(-1, 3);
+
+    let start2 = Point2D::new(2, 0);
+    let end2 = Point2D::new(3, 3);
+
+    let result = round_segments_intersection(&start1, &end1, &start2, &end2);
+    assert_eq!(result, Option::None);
+}
+
+#[test]
+fn round_segments_intersection_not_intersect_3() {
+    let start1 = Point2D::new(2, 1);
+    let end1 = Point2D::new(0, 0);
+
+    let start2 = Point2D::new(0, 3);
+    let end2 = Point2D::new(7, 0);
+
+    let result = round_segments_intersection(&start1, &end1, &start2, &end2);
+    assert_eq!(result, Option::None);
+}
+
+#[test]
+fn round_segments_intersection_4() {
+    let start1 = Point2D::new(6, 3);
+    let end1 = Point2D::new(0, 0);
+
+    let start2 = Point2D::new(0, 3);
+    let end2 = Point2D::new(7, 0);
+
+    let result = round_segments_intersection(&start1, &end1, &start2, &end2);
+    assert_eq!(result, Option::Some(Point2D::new(3, 1)));
+}
+
+#[test]
+fn round_segments_intersection_5() {
+    let start1 = Point2D::new(6, 4);
+    let end1 = Point2D::new(0, 0);
+
+    let start2 = Point2D::new(0, 4);
+    let end2 = Point2D::new(6, 0);
+
+    let result = round_segments_intersection(&start1, &end1, &start2, &end2);
+    assert_eq!(result, Option::Some(Point2D::new(3, 2)));
+}
+
+#[test]
+fn round_segments_intersection_6() {
+    let start1 = Point2D::new(0, 0);
+    let end1 = Point2D::new(4, 4);
+
+    let start2 = Point2D::new(2, 5);
+    let end2 = Point2D::new(2, -3);
+
+    let result = round_segments_intersection(&start1, &end1, &start2, &end2);
+    assert_eq!(result, Option::Some(Point2D::new(2, 2)));
+}
+
+#[test]
+fn round_segments_intersection_7() {
+    let start1 = Point2D::new(-3, 0);
+    let end1 = Point2D::new(5, 0);
+
+    let start2 = Point2D::new(0, 3);
+    let end2 = Point2D::new(0, -4);
+
+    let result = round_segments_intersection(&start1, &end1, &start2, &end2);
+    assert_eq!(result, Option::Some(Point2D::new(0, 0)));
 }
