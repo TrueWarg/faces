@@ -34,6 +34,6 @@ fn main() {
             npc::systems::MainNpcPlugin,
         ))
         .add_systems(Startup, startup::setup)
-        .add_state::<core::states::GameState>()
+        .init_state::<core::states::GameState>()
         .run();
 }

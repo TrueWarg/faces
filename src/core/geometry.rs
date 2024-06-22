@@ -1,6 +1,5 @@
 use std::cmp::{max, min};
 
-use bevy_rapier2d::parry::query::point;
 
 #[derive(Clone, Copy, Debug)]
 pub struct BBox {

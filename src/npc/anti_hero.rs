@@ -6,7 +6,7 @@ use bevy::{
     },
     hierarchy::BuildChildren,
     math::Vec2,
-    sprite::{SpriteSheetBundle, TextureAtlas, TextureAtlasSprite},
+    sprite::{SpriteSheetBundle, TextureAtlas, TextureAtlasLayout},
     time::{Time, Timer},
     transform::{components::Transform, TransformBundle},
 };
@@ -16,13 +16,10 @@ use bevy_rapier2d::{
 };
 
 use crate::{
-    animation::{self, entities::FightDirection},
+    animation::{self},
     core::{components::BodyYOffset, z_index::DEFAULT_OBJECT_Z},
     movement::component::{MoveAgent, MoveDirection},
-    player::{
-        components::{FightAnimation, MoveAnimation},
-        resources::PlayerAnimations,
-    },
+    player::{components::MoveAnimation, resources::PlayerAnimations},
 };
 
 use super::component::Npc;
@@ -31,29 +28,28 @@ pub fn spawn_anti_hero(
     asset_server: Res<AssetServer>,
     mut commands: Commands,
     character_animations: Res<PlayerAnimations>,
-    mut texture_atlases: ResMut<Assets<TextureAtlas>>,
+    mut layouts: ResMut<Assets<TextureAtlasLayout>>,
 ) {
     let start_move_direction = animation::entities::MoveDirection::ForwardIdle;
-    let start_fight_direction = FightDirection::Forward;
+    // let start_fight_direction = FightDirection::Forward;
 
     let moves_handle = asset_server.load("npc/formidable_face.png");
-    let move_atlas = TextureAtlas::from_grid(moves_handle, Vec2::new(32.0, 46.0), 6, 8, None, None);
+    let move_layout = TextureAtlasLayout::from_grid(Vec2::new(32.0, 46.0), 6, 8, None, None);
 
-    let fight_handle = asset_server.load("npc/formidable_face_fight.png");
-    let fight_atlas =
-        TextureAtlas::from_grid(fight_handle, Vec2::new(64.0, 68.0), 6, 4, None, None);
+    // let fight_handle = asset_server.load("npc/formidable_face_fight.png");
+    // let fight_atlas = TextureAtlasLayout::from_grid(Vec2::new(64.0, 68.0), 6, 4, None, None);
 
-    let move_atlas_handle = texture_atlases.add(move_atlas);
-    let fight_atlas_handle = texture_atlases.add(fight_atlas);
+    let move_layout_handle = layouts.add(move_layout);
+    // let fight_layout_handle = layouts.add(fight_atlas);
 
     commands
         .spawn(RigidBody::Dynamic)
         .insert(SpriteSheetBundle {
-            texture_atlas: move_atlas_handle.clone(),
-            sprite: TextureAtlasSprite {
-                index: character_animations.moves[&start_move_direction].0 as usize,
-                ..Default::default()
+            atlas: TextureAtlas {
+                layout: move_layout_handle.clone(),
+                index: 0,
             },
+            texture: moves_handle,
             ..Default::default()
         })
         .insert(MoveAnimation {
@@ -62,16 +58,16 @@ pub fn spawn_anti_hero(
                 bevy::time::TimerMode::Repeating,
             ),
             direction: start_move_direction,
-            sheet_handle: move_atlas_handle,
+            sheet_handle: move_layout_handle,
         })
-        .insert(FightAnimation {
-            timer: Timer::from_seconds(
-                character_animations.fight[&start_fight_direction].2,
-                bevy::time::TimerMode::Repeating,
-            ),
-            direction: start_fight_direction,
-            sheet_handle: fight_atlas_handle,
-        })
+        // .insert(FightAnimation {
+        //     timer: Timer::from_seconds(
+        //         character_animations.fight[&start_fight_direction].2,
+        //         bevy::time::TimerMode::Repeating,
+        //     ),
+        //     direction: start_fight_direction,
+        //     sheet_handle: fight_layout_handle,
+        // })
         .insert(Velocity::zero())
         .insert(LockedAxes::ROTATION_LOCKED)
         .insert(GravityScale(0.0))
@@ -104,7 +100,7 @@ pub fn spawn_anti_hero(
 
 pub fn anti_hero_animation(
     character_animations: Res<PlayerAnimations>,
-    mut player_query: Query<(&mut MoveAnimation, &mut TextureAtlasSprite, &Npc, &Velocity)>,
+    mut player_query: Query<(&mut MoveAnimation, &mut TextureAtlas, &Npc, &Velocity)>,
 ) {
     for (mut move_animation, mut sprite, npc, rb_vels) in player_query.iter_mut() {
         if rb_vels.linvel.x == 0.0 && rb_vels.linvel.y == 0.0 && move_animation.direction.is_idle()
@@ -144,7 +140,7 @@ pub fn anti_hero_animation(
 pub fn basic_animation(
     time: Res<Time>,
     character_animations: Res<PlayerAnimations>,
-    mut animation_query: Query<(&mut MoveAnimation, &mut TextureAtlasSprite), With<Npc>>,
+    mut animation_query: Query<(&mut MoveAnimation, &mut TextureAtlas), With<Npc>>,
 ) {
     for (mut move_animation, mut sprite) in animation_query.iter_mut() {
         move_animation.timer.tick(time.delta());
