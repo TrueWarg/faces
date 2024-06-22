@@ -1,6 +1,9 @@
-use bevy::{prelude::{Handle, Resource}, sprite::TextureAtlas};
+use bevy::{
+    prelude::{Handle, Resource},
+    sprite::TextureAtlasLayout,
+};
 
 #[derive(Resource)]
 pub struct AssetsPack {
-    pub atlas: Handle<TextureAtlas>,
+    pub atlas: Handle<TextureAtlasLayout>,
 }

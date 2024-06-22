@@ -4,11 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy = { version = "0.11.3", default-features = true }
+bevy = { version = "0.13.2", default-features = true }
 winit = "0.28.7"
-bevy_rapier2d = "0.22.0"
+bevy_rapier2d = "0.26.0"
 rand = "0.8.5"
-serde = "1.0.189"
+serde = "1.0.203"
 
 [profile.dev]
 opt-level = 1

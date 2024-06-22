@@ -1,10 +1,10 @@
 use bevy::{
     ecs::entity::Entity,
     prelude::{
-        AssetServer, Assets, BuildChildren, Commands, Input, IntoSystemConfigs, KeyCode, Plugin,
-        Query, Res, ResMut, Startup, Transform, Update, Vec2, With,
+        AssetServer, Assets, BuildChildren, ButtonInput, Commands, IntoSystemConfigs, KeyCode,
+        Plugin, Query, Res, ResMut, Startup, Transform, Update, Vec2, With,
     },
-    sprite::{SpriteSheetBundle, TextureAtlas, TextureAtlasSprite},
+    sprite::{SpriteSheetBundle, TextureAtlas, TextureAtlasLayout},
     time::{Time, Timer},
     transform::TransformBundle,
 };
@@ -27,8 +27,9 @@ pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         app.add_systems(Startup, player_spawns)
-            .add_systems(Update, player_fight)
-            .add_systems(Update, player_movement.after(player_fight))
+            // .add_systems(Update, player_fight)
+            // .add_systems(Update, player_movement.after(player_fight))
+            .add_systems(Update, player_movement)
             .add_systems(Update, player_animation.after(player_movement))
             .add_systems(Update, basic_animation.after(player_animation))
             .add_systems(Update, basic_fight_animation.after(player_animation))
@@ -40,29 +41,28 @@ fn player_spawns(
     asset_server: Res<AssetServer>,
     mut commands: Commands,
     character_animations: Res<PlayerAnimations>,
-    mut texture_atlases: ResMut<Assets<TextureAtlas>>,
+    mut layouts: ResMut<Assets<TextureAtlasLayout>>,
 ) {
     let start_move_direction = MoveDirection::ForwardIdle;
     let start_fight_direction = FightDirection::Forward;
 
     let moves_handle = asset_server.load("npc/formidable_face.png");
-    let move_atlas = TextureAtlas::from_grid(moves_handle, Vec2::new(32.0, 46.0), 6, 8, None, None);
+    let move_layout = TextureAtlasLayout::from_grid(Vec2::new(32.0, 46.0), 6, 8, None, None);
 
-    let fight_handle = asset_server.load("npc/formidable_face_fight.png");
-    let fight_atlas =
-        TextureAtlas::from_grid(fight_handle, Vec2::new(64.0, 68.0), 6, 4, None, None);
+    // let fight_handle = asset_server.load("npc/formidable_face_fight.png");
+    let fight_layout = TextureAtlasLayout::from_grid(Vec2::new(64.0, 68.0), 6, 4, None, None);
 
-    let move_atlas_handle = texture_atlases.add(move_atlas);
-    let fight_atlas_handle = texture_atlases.add(fight_atlas);
+    let move_layout_handle = layouts.add(move_layout);
+    let fight_layout_handle = layouts.add(fight_layout);
 
     commands
         .spawn(RigidBody::Dynamic)
         .insert(SpriteSheetBundle {
-            texture_atlas: move_atlas_handle.clone(),
-            sprite: TextureAtlasSprite {
-                index: character_animations.moves[&start_move_direction].0 as usize,
-                ..Default::default()
+            atlas: TextureAtlas {
+                layout: move_layout_handle.clone(),
+                index: 0,
             },
+            texture: moves_handle,
             ..Default::default()
         })
         .insert(MoveAnimation {
@@ -71,7 +71,7 @@ fn player_spawns(
                 bevy::time::TimerMode::Repeating,
             ),
             direction: start_move_direction,
-            sheet_handle: move_atlas_handle,
+            sheet_handle: move_layout_handle,
         })
         .insert(FightAnimation {
             timer: Timer::from_seconds(
@@ -79,7 +79,7 @@ fn player_spawns(
                 bevy::time::TimerMode::Repeating,
             ),
             direction: start_fight_direction,
-            sheet_handle: fight_atlas_handle,
+            sheet_handle: fight_layout_handle,
         })
         .insert(Velocity::zero())
         .insert(LockedAxes::ROTATION_LOCKED)
@@ -111,7 +111,7 @@ fn player_spawns(
 }
 
 fn player_movement(
-    keyboard: Res<Input<KeyCode>>,
+    keyboard: Res<ButtonInput<KeyCode>>,
     mut player_info: Query<(&Player, &mut Velocity)>,
 ) {
     for (player, mut velocity) in player_info.iter_mut() {
@@ -121,10 +121,10 @@ fn player_movement(
             return;
         }
 
-        let up = keyboard.pressed(KeyCode::W);
-        let down = keyboard.pressed(KeyCode::S);
-        let left = keyboard.pressed(KeyCode::A);
-        let right = keyboard.pressed(KeyCode::D);
+        let up = keyboard.pressed(KeyCode::KeyW);
+        let down = keyboard.pressed(KeyCode::KeyS);
+        let left = keyboard.pressed(KeyCode::KeyA);
+        let right = keyboard.pressed(KeyCode::KeyD);
 
         let x_axis = -(left as i8) + right as i8;
         let y_axis = -(down as i8) + up as i8;
@@ -145,43 +145,43 @@ fn player_movement(
 
 fn player_fight(
     mut commands: Commands,
-    keyboard: Res<Input<KeyCode>>,
+    keyboard: Res<ButtonInput<KeyCode>>,
     character_animations: Res<PlayerAnimations>,
     mut player_query: Query<(Entity, &MoveAnimation, &FightAnimation, &mut Player)>,
 ) {
-    for (entity, move_animation, fight_animation, mut player) in player_query.iter_mut() {
-        if keyboard.pressed(KeyCode::L) && keyboard.just_pressed(KeyCode::L) {
-            let sprite_part = character_animations.fight[&fight_animation.direction];
-            commands
-                .entity(entity)
-                .insert(fight_animation.sheet_handle.clone())
-                .insert(TextureAtlasSprite {
-                    index: sprite_part.0 as usize,
-                    ..Default::default()
-                });
-            player.is_fights = true;
-        } else if keyboard.just_released(KeyCode::L) {
-            let sprite_part = character_animations.moves[&move_animation.direction];
-            commands
-                .entity(entity)
-                .insert(move_animation.sheet_handle.clone())
-                .insert(TextureAtlasSprite {
-                    index: sprite_part.0 as usize,
-                    ..Default::default()
-                });
-            player.is_fights = false;
-        }
-    }
+    // for (entity, move_animation, fight_animation, mut player) in player_query.iter_mut() {
+    //     if keyboard.pressed(KeyCode::KeyL) && keyboard.just_pressed(KeyCode::KeyL) {
+    //         let sprite_part = character_animations.fight[&fight_animation.direction];
+    //         commands
+    //             .entity(entity)
+    //             .insert(fight_animation.sheet_handle.clone())
+    //             .insert(TextureAtlasSprite {
+    //                 index: sprite_part.0 as usize,
+    //                 ..Default::default()
+    //             });
+    //         player.is_fights = true;
+    //     } else if keyboard.just_released(KeyCode::KeyL) {
+    //         let sprite_part = character_animations.moves[&move_animation.direction];
+    //         commands
+    //             .entity(entity)
+    //             .insert(move_animation.sheet_handle.clone())
+    //             .insert(TextureAtlasSprite {
+    //                 index: sprite_part.0 as usize,
+    //                 ..Default::default()
+    //             });
+    //         player.is_fights = false;
+    //     }
+    // }
 }
 
 fn player_animation(
-    keyboard_input: Res<Input<KeyCode>>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
     character_animations: Res<PlayerAnimations>,
     mut player_query: Query<
         (
             &mut MoveAnimation,
             &mut FightAnimation,
-            &mut TextureAtlasSprite,
+            &mut TextureAtlas,
             &Velocity,
             &Player,
         ),
@@ -193,42 +193,42 @@ fn player_animation(
     {
         let mut restart_animation = false;
         if rb_vels.linvel.x == 0.0 && rb_vels.linvel.y == 0.0 {
-            if keyboard_input.just_released(KeyCode::A) {
+            if keyboard_input.just_released(KeyCode::KeyA) {
                 move_animation.direction = MoveDirection::LeftIdle;
                 restart_animation = true;
-            } else if keyboard_input.just_released(KeyCode::D) {
+            } else if keyboard_input.just_released(KeyCode::KeyD) {
                 move_animation.direction = MoveDirection::RightIdle;
                 restart_animation = true;
-            } else if keyboard_input.just_released(KeyCode::W) {
+            } else if keyboard_input.just_released(KeyCode::KeyW) {
                 move_animation.direction = MoveDirection::BackwardIdle;
                 restart_animation = true;
-            } else if keyboard_input.just_released(KeyCode::S) {
+            } else if keyboard_input.just_released(KeyCode::KeyS) {
                 move_animation.direction = MoveDirection::ForwardIdle;
                 restart_animation = true;
             }
         }
 
-        if keyboard_input.just_pressed(KeyCode::A) {
+        if keyboard_input.just_pressed(KeyCode::KeyA) {
             move_animation.direction = MoveDirection::LeftMove;
             restart_animation = true;
-        } else if keyboard_input.just_pressed(KeyCode::D) {
+        } else if keyboard_input.just_pressed(KeyCode::KeyD) {
             move_animation.direction = MoveDirection::RightMove;
             restart_animation = true;
-        } else if keyboard_input.just_pressed(KeyCode::W) {
+        } else if keyboard_input.just_pressed(KeyCode::KeyW) {
             move_animation.direction = MoveDirection::BackwardMove;
             restart_animation = true;
-        } else if keyboard_input.just_pressed(KeyCode::S) {
+        } else if keyboard_input.just_pressed(KeyCode::KeyS) {
             move_animation.direction = MoveDirection::ForwardMove;
             restart_animation = true;
         }
 
-        if keyboard_input.just_pressed(KeyCode::A) {
+        if keyboard_input.just_pressed(KeyCode::KeyA) {
             fight_animation.direction = FightDirection::Left;
-        } else if keyboard_input.just_pressed(KeyCode::D) {
+        } else if keyboard_input.just_pressed(KeyCode::KeyD) {
             fight_animation.direction = FightDirection::Right;
-        } else if keyboard_input.just_pressed(KeyCode::W) {
+        } else if keyboard_input.just_pressed(KeyCode::KeyW) {
             fight_animation.direction = FightDirection::Backward;
-        } else if keyboard_input.just_pressed(KeyCode::S) {
+        } else if keyboard_input.just_pressed(KeyCode::KeyS) {
             fight_animation.direction = FightDirection::Forward;
         }
 
@@ -248,20 +248,20 @@ fn player_animation(
 }
 
 fn change_interaction_area(
-    keyboard_input: Res<Input<KeyCode>>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
     mut player_query: Query<&mut ActiveInteractor, With<Player>>,
 ) {
     for mut interactor in player_query.iter_mut() {
-        if keyboard_input.just_released(KeyCode::A) {
+        if keyboard_input.just_released(KeyCode::KeyA) {
             interactor.area = InteractionArea::create(8.0, 20.0, -16.0, 0.0);
             interactor.side = InteractionSide::Left;
-        } else if keyboard_input.just_released(KeyCode::D) {
+        } else if keyboard_input.just_released(KeyCode::KeyD) {
             interactor.area = InteractionArea::create(8.0, 20.0, 16.0, 0.0);
             interactor.side = InteractionSide::Right;
-        } else if keyboard_input.just_released(KeyCode::W) {
+        } else if keyboard_input.just_released(KeyCode::KeyW) {
             interactor.area = InteractionArea::from_sizes(8.0, 20.0);
             interactor.side = InteractionSide::Top;
-        } else if keyboard_input.just_released(KeyCode::S) {
+        } else if keyboard_input.just_released(KeyCode::KeyS) {
             interactor.area = InteractionArea::from_sizes(8.0, 20.0);
             interactor.side = InteractionSide::Bottom;
         }
@@ -271,7 +271,7 @@ fn change_interaction_area(
 fn basic_animation(
     time: Res<Time>,
     character_animations: Res<PlayerAnimations>,
-    mut animation_query: Query<(&mut MoveAnimation, &mut TextureAtlasSprite, &Player)>,
+    mut animation_query: Query<(&mut MoveAnimation, &mut TextureAtlas, &Player)>,
 ) {
     for (mut move_animation, mut sprite, player) in animation_query.iter_mut() {
         if player.is_fights {
@@ -293,7 +293,7 @@ fn basic_animation(
 fn basic_fight_animation(
     time: Res<Time>,
     character_animations: Res<PlayerAnimations>,
-    mut animation_query: Query<(&mut FightAnimation, &mut TextureAtlasSprite, &Player)>,
+    mut animation_query: Query<(&mut FightAnimation, &mut TextureAtlas, &Player)>,
 ) {
     for (mut fight_animation, mut sprite, player) in animation_query.iter_mut() {
         if !player.is_fights {

@@ -1,5 +1,6 @@
 use bevy::{
-    prelude::{Commands, Entity, Input, KeyCode, Plugin, Query, Res, Transform, Update, With},
+    input::ButtonInput,
+    prelude::{Commands, Entity, KeyCode, Plugin, Query, Res, Transform, Update, With},
     time::Time,
 };
 
@@ -49,11 +50,11 @@ pub fn detect_active_interaction(
 }
 
 fn show_lookups(
-    keyboard: Res<Input<KeyCode>>,
+    keyboard: Res<ButtonInput<KeyCode>>,
     active: Query<(&ActiveInteractor, &Transform)>,
     interactors: Query<(&PassiveInteractor, &Transform, &Description)>,
 ) {
-    if !(keyboard.pressed(KeyCode::F) && keyboard.just_pressed(KeyCode::F)) {
+    if !(keyboard.pressed(KeyCode::KeyF) && keyboard.just_pressed(KeyCode::KeyF)) {
         return;
     }
     for (inteactor, transform, description) in interactors.iter() {
@@ -66,14 +67,14 @@ fn show_lookups(
 
 pub fn transite_to_next_container_state(
     mut commands: Commands,
-    keyboard: Res<Input<KeyCode>>,
+    keyboard: Res<ButtonInput<KeyCode>>,
     active: Query<(&ActiveInteractor, &Transform)>,
     mut interactors: Query<
         (Entity, &PassiveInteractor, &Transform, &mut Container),
         With<LimitedInteractor>,
     >,
 ) {
-    if !(keyboard.pressed(KeyCode::E) && keyboard.just_pressed(KeyCode::E)) {
+    if !(keyboard.pressed(KeyCode::KeyE) && keyboard.just_pressed(KeyCode::KeyE)) {
         return;
     }
     for (entity, inteactor, transform, mut container) in interactors.iter_mut() {
@@ -89,7 +90,7 @@ pub fn transite_to_next_container_state(
 
 pub fn change_switcher_state(
     time: Res<Time>,
-    keyboard: Res<Input<KeyCode>>,
+    keyboard: Res<ButtonInput<KeyCode>>,
     active: Query<(&ActiveInteractor, &Transform)>,
     mut interactors: Query<(&PassiveInteractor, &Transform, &mut Switcher)>,
 ) {
@@ -100,8 +101,8 @@ pub fn change_switcher_state(
                 switcher.state = switcher.state.transite();
             }
         } else {
-            let is_pressed = keyboard.pressed(KeyCode::E) && keyboard.just_pressed(KeyCode::E);
-            if is_pressed && detect_active_interaction(&active, (inteactor, transform)){
+            let is_pressed = keyboard.pressed(KeyCode::KeyE) && keyboard.just_pressed(KeyCode::KeyE);
+            if is_pressed && detect_active_interaction(&active, (inteactor, transform)) {
                 switcher.timer.reset();
                 switcher.state = switcher.state.transite();
             }

@@ -6,12 +6,12 @@ use bevy::{
         schedule::IntoSystemConfigs,
         system::{Query, ResMut},
     },
-    input::{keyboard::KeyCode, Input},
+    input::{keyboard::KeyCode, ButtonInput},
     math::Vec2,
     prelude::{
         AssetServer, BuildChildren, Commands, Plugin, Res, Startup, Transform, Update, Vec3,
     },
-    sprite::{SpriteBundle, SpriteSheetBundle, TextureAtlas, TextureAtlasSprite},
+    sprite::{SpriteBundle, SpriteSheetBundle, TextureAtlas, TextureAtlasLayout},
     time::Timer,
     transform::TransformBundle,
 };
@@ -57,7 +57,7 @@ impl Plugin for HousePlugin {
 fn load(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
-    mut texture_atlases: ResMut<Assets<TextureAtlas>>,
+    texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
 ) {
     let y_max = LevelYMax::create(192.0);
     commands.spawn(y_max);
@@ -81,9 +81,7 @@ fn load(
     spawn_test_chest(&mut commands, &asset_server, y_max);
 }
 
-fn draw_level_arm_states(
-    mut switchers: Query<(&mut TextureAtlasSprite, &Switcher), With<LevelArm>>,
-) {
+fn draw_level_arm_states(mut switchers: Query<(&mut TextureAtlas, &Switcher), With<LevelArm>>) {
     for (mut sprite, swticher) in switchers.iter_mut() {
         sprite.index = match swticher.state {
             SwitcherState::Off => 0,
@@ -96,21 +94,24 @@ fn draw_level_arm_states(
 fn spawn_level_arm(
     commands: &mut Commands,
     asset_server: &Res<AssetServer>,
-    mut texture_atlases: ResMut<Assets<TextureAtlas>>,
+    mut layouts: ResMut<Assets<TextureAtlasLayout>>,
 ) {
     let texture_handle = asset_server.load("house/tileset_level_arm.png");
-    let texture_atlas =
-        TextureAtlas::from_grid(texture_handle, Vec2::new(10.0, 34.0), 3, 1, None, None);
-    let texture_atlas_handle = texture_atlases.add(texture_atlas);
+    let layout = TextureAtlasLayout::from_grid(Vec2::new(10.0, 34.0), 3, 1, None, None);
+    let layout_handle = layouts.add(layout);
 
     commands
         .spawn(RigidBody::Fixed)
         .insert(SpriteSheetBundle {
-            texture_atlas: texture_atlas_handle,
+            atlas: TextureAtlas {
+                layout: layout_handle,
+                index: 0,
+            },
             transform: Transform {
                 translation: Vec3::new(20.0, 215.0, ON_WALL_OBJECT_Z),
                 ..Default::default()
             },
+            texture: texture_handle,
             ..Default::default()
         })
         .insert(PassiveInteractor {
@@ -129,11 +130,11 @@ fn spawn_level_arm(
 
 fn draw_wooden_chest_states(
     mut commands: Commands,
-    keyboard: Res<Input<KeyCode>>,
+    keyboard: Res<ButtonInput<KeyCode>>,
     sprites: Res<WoodenChestSprites>,
     chests: Query<(Entity, &Container), With<WoodenChest>>,
 ) {
-    if !(keyboard.pressed(KeyCode::E) && keyboard.just_pressed(KeyCode::E)) {
+    if !(keyboard.pressed(KeyCode::KeyE) && keyboard.just_pressed(KeyCode::KeyE)) {
         return;
     }
     for (entity, container) in chests.iter() {
