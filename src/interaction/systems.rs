@@ -3,11 +3,13 @@ use bevy::{
     prelude::{Commands, Entity, KeyCode, Plugin, Query, Res, Transform, Update, With},
     time::Time,
 };
+use bevy::prelude::{NextState, ResMut};
 
 use crate::core::{
     components::Description,
     state_machines::{CycleLinearTransition, FiniteLinearTransition},
 };
+use crate::level::states::Level;
 
 use super::component::{
     ActiveInteractor, Container, LimitedInteractor, PassiveInteractor, Switcher,
@@ -21,6 +23,7 @@ impl Plugin for BaseInteractionPlugin {
             Update,
             (
                 show_lookups,
+                navigate_to_test_level,
                 transite_to_next_container_state,
                 change_switcher_state,
             ),
@@ -61,6 +64,24 @@ fn show_lookups(
         let is_interacting = detect_active_interaction(&active, (inteactor, transform));
         if is_interacting {
             println!("{:?}", description.text);
+        }
+    }
+}
+
+fn navigate_to_test_level(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    active: Query<(&ActiveInteractor, &Transform)>,
+    interactors: Query<(&PassiveInteractor, &Transform)>,
+    mut next_state: ResMut<NextState<Level>>,
+) {
+    if !(keyboard.pressed(KeyCode::KeyG) && keyboard.just_pressed(KeyCode::KeyG)) {
+        return;
+    }
+    for (inteactor, transform) in interactors.iter() {
+        let is_interacting = detect_active_interaction(&active, (inteactor, transform));
+        if is_interacting {
+            println!("!!!!");
+            next_state.set(Level::House)
         }
     }
 }

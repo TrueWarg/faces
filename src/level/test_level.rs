@@ -2,34 +2,33 @@ use bevy::{
     asset::Assets,
     ecs::{
         entity::Entity,
-        query::With,
-        schedule::IntoSystemConfigs,
+        query::With
+        ,
         system::{Query, ResMut},
     },
-    input::{keyboard::KeyCode, ButtonInput},
+    input::{ButtonInput, keyboard::KeyCode},
     math::Vec2,
     prelude::{
-        AssetServer, BuildChildren, Commands, Plugin, Res, Startup, Transform, Update, Vec3,
+        AssetServer, Commands, Plugin, Res, Startup, Transform, Update, Vec3,
     },
     sprite::{SpriteBundle, SpriteSheetBundle, TextureAtlas, TextureAtlasLayout},
-    time::Timer,
-    transform::TransformBundle,
+    time::Timer
+    ,
 };
+
+use bevy::prelude::{in_state, IntoSystemConfigs, OnEnter, OnExit, States};
 use bevy_rapier2d::prelude::{Collider, RigidBody};
 
 use crate::{
     core::{
         collisions::recalculate_z,
         components::{Description, LevelYMax},
-        state_machines::{CycleLinearTransition, FiniteLinearTransition},
-        z_index::{calculate_z, FLOOR_Z, ON_WALL_OBJECT_Z, WALL_Z},
+        state_machines::CycleLinearTransition,
+        z_index::{FLOOR_Z, ON_WALL_OBJECT_Z, WALL_Z},
     },
-    interaction::{
-        component::{
-            Container, ContainerState, InteractionArea, InteractionSide, LimitedInteractor,
-            PassiveInteractor, Switcher, SwitcherState,
-        },
-        systems::{change_switcher_state, transite_to_next_container_state},
+    interaction::component::{
+        Container, ContainerState, InteractionArea, InteractionSide,
+        PassiveInteractor, Switcher, SwitcherState,
     },
 };
 
@@ -38,19 +37,19 @@ use super::{
     resources::WoodenChestSprites,
 };
 
-pub struct HousePlugin;
+pub struct TestLevel<S: States> {
+    pub state: S,
+}
 
-impl Plugin for HousePlugin {
+impl<S: States> Plugin for TestLevel<S> {
     fn build(&self, app: &mut bevy::prelude::App) {
-        // currently it loaded on Startup for testing
-        app.add_systems(Startup, load).add_systems(
-            Update,
-            (
-                recalculate_z,
-                draw_wooden_chest_states.after(transite_to_next_container_state),
-                draw_level_arm_states.after(change_switcher_state),
-            ),
-        );
+        app
+            .add_systems(OnEnter(self.state.clone()), load)
+            .add_systems(OnExit(self.state.clone()), unload)
+            .add_systems(
+                Update,
+                (recalculate_z).run_if(in_state(self.state.clone())),
+            );
     }
 }
 
@@ -73,13 +72,10 @@ fn load(
     spawn_floor(&mut commands, &asset_server);
     spawn_walls(&mut commands, &asset_server);
     spawn_door(&mut commands, &asset_server);
-    spawn_chest(&mut commands, &asset_server, y_max);
-    spawn_vase_on_table(&mut commands, &asset_server, y_max);
-    spawn_bed(&mut commands, &asset_server, y_max);
-    spawn_dog_house(&mut commands, &asset_server, y_max);
     spawn_level_arm(&mut commands, &asset_server, texture_atlases);
-    spawn_test_chest(&mut commands, &asset_server, y_max);
 }
+
+fn unload() {}
 
 fn draw_level_arm_states(mut switchers: Query<(&mut TextureAtlas, &Switcher), With<LevelArm>>) {
     for (mut sprite, swticher) in switchers.iter_mut() {
@@ -145,147 +141,6 @@ fn draw_wooden_chest_states(
         };
         commands.entity(entity).insert(new_sprite);
     }
-}
-
-fn spawn_test_chest(commands: &mut Commands, asset_server: &Res<AssetServer>, y_max: LevelYMax) {
-    let chest_y = 112.0;
-    let chest_z = calculate_z(chest_y, y_max.value);
-    commands
-        .spawn(RigidBody::Fixed)
-        .insert(SpriteBundle {
-            texture: asset_server.load("chest/wooden.png"),
-            transform: Transform {
-                translation: Vec3::new(-145.0, 105.0, chest_z),
-                ..Default::default()
-            },
-            ..Default::default()
-        })
-        .with_children(|children| {
-            children
-                .spawn(Collider::cuboid(16.0, 11.0))
-                .insert(TransformBundle::from(Transform::from_xyz(
-                    0.0, -2.0, chest_z,
-                )));
-        })
-        .insert(PassiveInteractor {
-            area: InteractionArea::from_sizes(16.0, 11.0),
-            side: InteractionSide::Bottom,
-        })
-        .insert(LimitedInteractor)
-        .insert(WoodenChest)
-        .insert(Container {
-            state: ContainerState::initial_state(),
-        })
-        .insert(Description {
-            text: "Closed chest".to_string(),
-        });
-}
-
-fn spawn_dog_house(commands: &mut Commands, asset_server: &Res<AssetServer>, y_max: LevelYMax) {
-    let doghouse_y = -136.0;
-    let doghouse_z = calculate_z(doghouse_y, y_max.value);
-    commands
-        .spawn(RigidBody::Fixed)
-        .insert(SpriteBundle {
-            texture: asset_server.load("house/doghouse.png"),
-            transform: Transform {
-                translation: Vec3::new(145.0, -100.0, doghouse_z),
-                ..Default::default()
-            },
-            ..Default::default()
-        })
-        .with_children(|children| {
-            children
-                .spawn(Collider::cuboid(36.0, 20.0))
-                .insert(TransformBundle::from(Transform::from_xyz(
-                    0.0, -16.0, doghouse_z,
-                )));
-        })
-        .insert(PassiveInteractor {
-            area: InteractionArea::from_sizes(36.0, 20.0),
-            side: InteractionSide::Bottom,
-        })
-        .insert(Description {
-            text: "Будка Грозного Пса. Нужно каждый раз проверять нет ли миски молока".to_string(),
-        });
-}
-
-fn spawn_bed(commands: &mut Commands, asset_server: &Res<AssetServer>, y_max: LevelYMax) {
-    let bed_y = -168.0;
-    let bed_z = calculate_z(bed_y, y_max.value);
-    commands
-        .spawn(RigidBody::Fixed)
-        .insert(SpriteBundle {
-            texture: asset_server.load("house/bed.png"),
-            transform: Transform {
-                translation: Vec3::new(-145.0, -120.0, bed_z),
-                ..Default::default()
-            },
-            ..Default::default()
-        })
-        .with_children(|children| {
-            children
-                .spawn(Collider::cuboid(33.0, 40.0))
-                .insert(TransformBundle::from(Transform::from_xyz(0.0, -8.0, bed_z)));
-        });
-}
-
-fn spawn_vase_on_table(commands: &mut Commands, asset_server: &Res<AssetServer>, y_max: LevelYMax) {
-    let vase_y = 132.0;
-    let vase_z = calculate_z(vase_y, y_max.value);
-    commands
-        .spawn(RigidBody::Fixed)
-        .insert(SpriteBundle {
-            texture: asset_server.load("house/vase_on_table.png"),
-            transform: Transform {
-                translation: Vec3::new(-55.0, 175.0, vase_z),
-                ..Default::default()
-            },
-            ..Default::default()
-        })
-        .with_children(|children| {
-            children
-                .spawn(Collider::cuboid(31.0, 12.0))
-                .insert(TransformBundle::from(Transform::from_xyz(
-                    0.0, -35.0, vase_z,
-                )));
-        })
-        .insert(PassiveInteractor {
-            area: InteractionArea::create(31.0, 8.0, 0.0, -25.0),
-            side: InteractionSide::Bottom,
-        })
-        .insert(Description {
-            text: "Ваза с трещинами, много раз склеенная".to_string(),
-        });
-}
-
-fn spawn_chest(commands: &mut Commands, asset_server: &Res<AssetServer>, y_max: LevelYMax) {
-    let chest_y = 131.0;
-    let chest_z = calculate_z(chest_y, y_max.value);
-    commands
-        .spawn(RigidBody::Fixed)
-        .insert(SpriteBundle {
-            texture: asset_server.load("house/chest.png"),
-            transform: Transform {
-                translation: Vec3::new(-145.0, 155.0, chest_z),
-                ..Default::default()
-            },
-            ..Default::default()
-        })
-        .with_children(|children| {
-            children
-                .spawn(Collider::cuboid(31.0, 18.0))
-                .insert(TransformBundle::from(Transform::from_xyz(
-                    0.0, -6.0, chest_z,
-                )));
-        })
-        .insert(PassiveInteractor {
-            area: InteractionArea::from_sizes(31.0, 18.0),
-            side: InteractionSide::Bottom,
-        })
-        .insert(Description {
-            text: "Твой сундук. Сделан из титана, с замком 41-го типа. Правда, внутри пусто, т.к. кто-то всё же стащил оттуда деньги".to_string()
-        });
 }
 
 fn spawn_door(commands: &mut Commands, asset_server: &Res<AssetServer>) {

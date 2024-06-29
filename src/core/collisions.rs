@@ -10,7 +10,9 @@ pub fn recalculate_z(
     level_y_max: Query<&LevelYMax>,
     mut bodies: Query<(&mut Transform, &RigidBody, &BodyYOffset)>,
 ) {
-    let y_max = level_y_max.get_single().expect("no level max found");
+    // let y_max = level_y_max.get_single().expect("no level max found");
+    let kek = LevelYMax::create(192.0);
+    let y_max = level_y_max.get_single().unwrap_or(&kek);
     for (mut transform, body, y_offset) in bodies.iter_mut() {
         match body {
             RigidBody::Dynamic => {

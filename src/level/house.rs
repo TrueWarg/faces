@@ -15,6 +15,7 @@ use bevy::{
     time::Timer,
     transform::TransformBundle,
 };
+use bevy::prelude::{in_state, OnEnter, OnExit, States};
 use bevy_rapier2d::prelude::{Collider, RigidBody};
 
 use crate::{
@@ -38,19 +39,23 @@ use super::{
     resources::WoodenChestSprites,
 };
 
-pub struct HousePlugin;
+pub struct HousePlugin<S: States> {
+    pub state: S,
+}
 
-impl Plugin for HousePlugin {
+impl<S: States> Plugin for HousePlugin<S> {
     fn build(&self, app: &mut bevy::prelude::App) {
-        // currently it loaded on Startup for testing
-        app.add_systems(Startup, load).add_systems(
-            Update,
-            (
-                recalculate_z,
-                draw_wooden_chest_states.after(transite_to_next_container_state),
-                draw_level_arm_states.after(change_switcher_state),
-            ),
-        );
+        app
+            .add_systems(OnEnter(self.state.clone()), load)
+            .add_systems(OnExit(self.state.clone()), unload)
+            .add_systems(
+                Update,
+                (
+                    recalculate_z,
+                    draw_wooden_chest_states.after(transite_to_next_container_state),
+                    draw_level_arm_states.after(change_switcher_state),
+                ).run_if(in_state(self.state.clone())),
+            );
     }
 }
 
@@ -79,6 +84,16 @@ fn load(
     spawn_dog_house(&mut commands, &asset_server, y_max);
     spawn_level_arm(&mut commands, &asset_server, texture_atlases);
     spawn_test_chest(&mut commands, &asset_server, y_max);
+}
+
+fn unload(
+    mut commands: Commands,
+    query: Query<Entity>,
+) {
+    // for entity in query.iter() {
+    //     println!("!!!! kek");
+    //     commands.entity(entity).despawn();
+    // }
 }
 
 fn draw_level_arm_states(mut switchers: Query<(&mut TextureAtlas, &Switcher), With<LevelArm>>) {
