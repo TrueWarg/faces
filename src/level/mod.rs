@@ -1,5 +1,6 @@
-use bevy::app::{App, Plugin};
-use bevy::prelude::{NextState, ResMut, Startup};
+use bevy::app::{App, Plugin, Update};
+use bevy::prelude::{DetectChanges, NextState, Res, ResMut, Startup, State};
+use crate::core::states::GameState;
 use crate::level::house::HousePlugin;
 use crate::level::states::Level;
 use crate::level::test_level::TestLevel;
@@ -15,7 +16,7 @@ pub struct LevelNavPlugin;
 impl Plugin for LevelNavPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_systems(Startup, load_level)
+            .add_systems(Update, load_level)
             .add_plugins((
                 HousePlugin { state: Level::House },
                 TestLevel { state: Level::Test },
@@ -26,7 +27,12 @@ impl Plugin for LevelNavPlugin {
 }
 
 fn load_level(
+    game_state: Res<State<GameState>>,
     mut next_state: ResMut<NextState<Level>>,
 ) {
-    next_state.set(Level::Test);
+    if game_state.get() == &GameState::Exporation {
+        if game_state.is_changed() {
+            next_state.set(Level::House);
+        }
+    }
 }

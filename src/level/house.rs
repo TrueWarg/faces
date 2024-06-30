@@ -33,6 +33,7 @@ use crate::{
         systems::{change_switcher_state, transite_to_next_container_state},
     },
 };
+use crate::core::states::GameState;
 
 use super::{
     component::{LevelArm, WoodenChest},
@@ -48,6 +49,7 @@ impl<S: States> Plugin for HousePlugin<S> {
         app
             .add_systems(OnEnter(self.state.clone()), load)
             .add_systems(OnExit(self.state.clone()), unload)
+            .add_systems(OnExit(GameState::Exporation), unload)
             .add_systems(
                 Update,
                 (

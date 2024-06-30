@@ -15,6 +15,7 @@ mod startup;
 mod movement;
 mod npc;
 mod animation;
+mod menu;
 
 fn main() {
     App::new()
@@ -28,7 +29,8 @@ fn main() {
             ..Default::default()
         }))
         .add_plugins((
-            player::systems::PlayerPlugin,
+            menu::systems::MainMenuPlugin,
+            // player::systems::PlayerPlugin,
             level::LevelNavPlugin,
             interaction::systems::BaseInteractionPlugin,
             // npc::systems::MainNpcPlugin,
