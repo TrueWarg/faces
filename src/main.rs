@@ -16,6 +16,8 @@ mod movement;
 mod npc;
 mod animation;
 mod menu;
+mod fight;
+mod gui;
 
 fn main() {
     App::new()
