@@ -5,6 +5,7 @@ use bevy::{
 };
 use bevy_rapier2d::prelude::{NoUserData, RapierPhysicsPlugin};
 use player::resources::PlayerAnimations;
+use crate::dev::DevSettingsPlugin;
 
 mod core;
 mod interaction;
@@ -18,6 +19,7 @@ mod animation;
 mod menu;
 mod fight;
 mod gui;
+mod dev;
 
 fn main() {
     App::new()
@@ -32,6 +34,7 @@ fn main() {
         }))
         .add_plugins((
             menu::systems::MainMenuPlugin,
+            DevSettingsPlugin,
             // player::systems::PlayerPlugin,
             level::LevelNavPlugin,
             interaction::systems::BaseInteractionPlugin,
