@@ -1,7 +1,6 @@
 use bevy::prelude::*;
+use crate::gui::Container;
 
-#[derive(Component)]
-pub struct RootMarker;
 
 pub struct Root {
     bundle: NodeBundle,
@@ -32,10 +31,25 @@ impl Root {
         self
     }
 
-    pub fn spawn(self, commands: &mut Commands, spawn_children: impl FnOnce(&mut ChildBuilder)) {
+    pub fn justify_between(&mut self) -> &mut Root {
+        self.bundle.style.justify_content = JustifyContent::SpaceBetween;
+        self
+    }
+
+    pub fn justify_around(&mut self) -> &mut Root {
+        self.bundle.style.justify_content = JustifyContent::SpaceAround;
+        self
+    }
+
+    pub fn spawn(
+        self, commands:
+        &mut Commands,
+        id: impl Component,
+        spawn_children: impl FnOnce(&mut ChildBuilder),
+    ) {
         commands
             .spawn(self.bundle)
             .with_children(spawn_children)
-            .insert(RootMarker);
+            .insert(id);
     }
 }

@@ -8,7 +8,7 @@ pub struct Button {
     text: SimpleText,
 }
 
-#[derive(Component, Default)]
+#[derive(Component, Default, PartialEq, Copy, Clone)]
 pub struct ButtonId {
     pub value: usize,
 }
@@ -51,12 +51,12 @@ impl Button {
         button
     }
 
-    pub fn color(&mut self, color: Color) -> &mut Button {
+    pub fn text_color(&mut self, color: Color) -> &mut Button {
         self.text.color(color);
         self
     }
 
-    pub fn selected_color(&mut self, color: Color) -> &mut Button {
+    pub fn background_color(&mut self, color: Color) -> &mut Button {
         self.bundle.background_color = color.into();
         self
     }
@@ -71,8 +71,8 @@ impl Button {
         self
     }
 
-    pub fn id(&mut self, id: usize) -> &mut Button {
-        self.id.value = id;
+    pub fn id(&mut self, id: ButtonId) -> &mut Button {
+        self.id = id;
         self
     }
 

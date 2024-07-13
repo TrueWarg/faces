@@ -39,7 +39,6 @@ use bevy::ui::BackgroundColor;
 use crate::core::states::GameState;
 use crate::core::z_index::FLOOR_Z;
 use crate::gui::ScrollableContent;
-use crate::gui::RootMarker;
 use crate::gui::Root;
 use crate::gui::Container;
 use crate::gui::ButtonId;
@@ -178,6 +177,9 @@ fn despawn_menu(mut commands: Commands, root_query: Query<Entity, With<RootMarke
 #[derive(Component)]
 struct SelectorLabel;
 
+#[derive(Component)]
+struct RootMarker;
+
 fn show_selector(
     mut commands: Commands,
     mut query: Query<(&mut ShowSelector)>,
@@ -255,7 +257,7 @@ fn spawn_fight_menu(
 
     // let mut enemies = Container::size_percentage(100.0, 75.0);
 
-    root.spawn(&mut commands, |parent| {
+    root.spawn(&mut commands, RootMarker, |parent| {
         main_container.spawn(parent, |parent| {
             fight_menu.spawn(parent, |parent| {
                 character_menu.spawn(parent, |parent| {
@@ -303,7 +305,7 @@ fn handle_mouse_input(
                 *background_color = Color::TURQUOISE.into();
             }
             Interaction::Pressed => {
-                if button_id.value == KEK {
+                if *button_id == KEK {
                     let mut selector = show_selector_query.single_mut();
                     selector.display = true;
                 }
@@ -312,5 +314,5 @@ fn handle_mouse_input(
     }
 }
 
-static KEK: usize = 2;
+static KEK: ButtonId = ButtonId { value: 1 };
 
