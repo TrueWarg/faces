@@ -5,7 +5,9 @@ use bevy::{
 };
 use bevy_rapier2d::prelude::{NoUserData, RapierPhysicsPlugin};
 use player::resources::PlayerAnimations;
+use crate::core::states::GameState;
 use crate::dev::DevSettingsPlugin;
+use crate::fight::FightingScene;
 
 mod core;
 mod interaction;
@@ -38,6 +40,7 @@ fn main() {
             // player::systems::PlayerPlugin,
             level::LevelNavPlugin,
             interaction::systems::BaseInteractionPlugin,
+            FightingScene { state: GameState::Fighting }
             // npc::systems::MainNpcPlugin,
         ))
         .add_systems(Startup, startup::setup)

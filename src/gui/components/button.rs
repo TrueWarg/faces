@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use crate::gui::Container;
 
 use super::text::{SimpleText, Text};
 
@@ -41,6 +42,22 @@ impl Button {
             text: SimpleText::medium(value, font),
             ..default()
         }
+    }
+
+    pub fn size_percentage(&mut self, width: f32, height: f32) -> &mut Button {
+        self.bundle.style.width = Val::Percent(width);
+        self.bundle.style.height = Val::Percent(height);
+        self
+    }
+
+    pub fn margin(&mut self, margin: f32) -> &mut Button {
+        self.bundle.style.margin = UiRect {
+            left: Val::Px(margin),
+            right: Val::Px(margin),
+            top: Val::Px(margin),
+            bottom: Val::Px(margin),
+        };
+        self
     }
 
     pub fn square<S: Into<String> + Clone>(value: S, font: &Handle<Font>) -> Button {

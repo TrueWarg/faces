@@ -44,12 +44,12 @@ impl Root {
     pub fn spawn(
         self, commands:
         &mut Commands,
-        id: impl Component,
+        marker: impl Component,
         spawn_children: impl FnOnce(&mut ChildBuilder),
     ) {
         commands
             .spawn(self.bundle)
             .with_children(spawn_children)
-            .insert(id);
+            .insert(marker);
     }
 }

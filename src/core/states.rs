@@ -13,5 +13,5 @@ pub enum GameState {
     CatScene,
     GameOver,
     #[default]
-    DevSetting
+    DevSetting,
 }

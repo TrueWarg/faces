@@ -18,13 +18,13 @@ use crate::gui::{Button, ButtonId, Root};
 pub struct DevSettingsPlugin;
 
 #[derive(Component)]
-pub struct DevSettingsScreenId;
+struct DevSettingsScreen;
 
 #[derive(Component)]
-struct FightsListId;
+struct FightsList;
 
 #[derive(Component)]
-struct LevelsListId;
+struct LevelsList;
 
 #[derive(Component)]
 struct FontHandle {
@@ -54,6 +54,7 @@ impl Plugin for DevSettingsPlugin {
 }
 
 fn mouse_input_handle(
+    mut next_game_state: ResMut<NextState<GameState>>,
     mut next_state: ResMut<NextState<ScreenState>>,
     mut query: Query<
         (&ButtonId, &Interaction, &mut BackgroundColor),
@@ -71,9 +72,14 @@ fn mouse_input_handle(
             Interaction::Pressed => {
                 if *button_id == FIGHT_SAMPLES_BUTTON_ID {
                     next_state.set(ScreenState::FightsList);
+                    return;
                 }
 
-                if *button_id == LEVEL_SAMPLES_BUTTON_ID {}
+                if *button_id == LEVEL_SAMPLES_BUTTON_ID {
+                    return;
+                }
+
+                next_game_state.set(GameState::Fighting)
             }
         }
     }
@@ -104,19 +110,17 @@ fn spawn_main(
 
     let mut fights_button = Button::new("Fights samples", &font);
     fights_button.id(FIGHT_SAMPLES_BUTTON_ID)
-        .background_color(Color::SILVER)
         .text_color(Color::DARK_GRAY);
 
     let mut levels_button = Button::new("Level samples", &font);
     levels_button.id(LEVEL_SAMPLES_BUTTON_ID)
-        .background_color(Color::SILVER)
         .text_color(Color::DARK_GRAY);
 
     commands
         .spawn_empty()
         .insert(FontHandle { font });
 
-    root.spawn(&mut commands, DevSettingsScreenId, |parent| {
+    root.spawn(&mut commands, DevSettingsScreen, |parent| {
         fights_button.spawn(parent);
         levels_button.spawn(parent);
     })
@@ -125,7 +129,7 @@ fn spawn_main(
 fn despawn_main(
     mut next_state: ResMut<NextState<ScreenState>>,
     mut commands: Commands,
-    query: Query<Entity, With<DevSettingsScreenId>>,
+    query: Query<Entity, With<DevSettingsScreen>>,
 ) {
     let entity = query.single();
     commands.entity(entity).despawn_recursive();
@@ -143,6 +147,7 @@ fn spawn_fights_list(
 
     let mut fight_1 = Button::new("Fight_1", font);
     fight_1
+        .id(ButtonId { value: 333 })
         .background_color(Color::SILVER)
         .text_color(Color::DARK_GRAY);
 
@@ -161,7 +166,7 @@ fn spawn_fights_list(
         .background_color(Color::SILVER)
         .text_color(Color::DARK_GRAY);
 
-    root.spawn(&mut commands, FightsListId, |parent| {
+    root.spawn(&mut commands, FightsList, |parent| {
         fight_1.spawn(parent);
         fight_2.spawn(parent);
         fight_3.spawn(parent);
@@ -171,7 +176,7 @@ fn spawn_fights_list(
 
 fn despawn_fignts_list(
     mut commands: Commands,
-    query: Query<Entity, With<FightsListId>>,
+    query: Query<Entity, With<FightsList>>,
 ) {
     let entity = query.single();
     commands.entity(entity).despawn_recursive();
