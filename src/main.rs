@@ -25,6 +25,8 @@ mod menu;
 mod fight;
 mod gui;
 mod dev;
+mod rpg;
+mod party;
 
 fn main() {
     App::new()
