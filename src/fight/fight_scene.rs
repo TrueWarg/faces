@@ -1,8 +1,11 @@
 use bevy::app::Update;
 use bevy::asset::{AssetServer, Handle};
+use bevy::color::palettes::css::ANTIQUE_WHITE;
+use bevy::color::palettes::css::DIM_GREY;
+use bevy::color::palettes::css::OLIVE;
+use bevy::color::palettes::css::SILVER;
 use bevy::hierarchy::DespawnRecursiveExt;
-use bevy::prelude::{BackgroundColor, Changed, ChildBuilder, Color, Commands, Component, Entity, Font, in_state, Interaction, IntoSystemConfigs, NextState, OnEnter, OnExit, Plugin, Query, Res, ResMut, SpriteBundle, States, With};
-use crate::core::states::GameState;
+use bevy::prelude::{AppExtStates, BackgroundColor, Changed, ChildBuilder, Color, Commands, Component, Entity, Font, in_state, Interaction, IntoSystemConfigs, NextState, OnEnter, OnExit, Plugin, Query, Res, ResMut, SpriteBundle, States, With};
 
 use crate::gui::{Button, ButtonId, Container, Root};
 
@@ -99,7 +102,7 @@ fn mouse_input_handle(
     for (button_id, interaction, mut background_color) in &mut query {
         match *interaction {
             Interaction::None => {
-                *background_color = Color::DARK_GRAY.into();
+                *background_color = DIM_GREY.into();
             }
             Interaction::Hovered => {
                 *background_color = HOVER_BUTTON_COLOR.into();
@@ -156,7 +159,7 @@ fn spawn_enemy_item(
 ) {
     let mut main_container = Container::size_percentage(20.0, 80.0);
     main_container
-        .background_color(Color::OLIVE)
+        .background_color(Color::from(OLIVE))
         .margin(25.0);
     main_container.spawn(parent, |parent| {});
 }
@@ -174,13 +177,13 @@ fn spawn_player_menu(
 
     let mut allies_container = Container::size_percentage(75.0, 100.0);
     allies_container.row()
-        .background_color(Color::DARK_GRAY)
+        .background_color(Color::from(DIM_GREY))
         .align_start()
         .justify_start();
 
     let mut actions_container = Container::size_percentage(25.0, 100.0);
     actions_container
-        .background_color(Color::SILVER)
+        .background_color(Color::from(SILVER))
         .justify_between();
 
     main_container.spawn(parent, |parent| {
@@ -202,7 +205,7 @@ fn spawn_ally_item(
 ) {
     let mut main_container = Container::size_percentage(20.0, 80.0);
     main_container
-        .background_color(Color::ANTIQUE_WHITE)
+        .background_color(Color::from(ANTIQUE_WHITE))
         .margin(25.0);
     main_container.spawn(parent, |parent| {});
 }
@@ -217,25 +220,25 @@ fn spawn_actions(
     attacks_button.id(ATTACKS_BUTTON_ID)
         .size_percentage(95.0, 20.0)
         .margin(4.0)
-        .text_color(Color::SILVER);
+        .text_color(Color::from(SILVER));
 
     let mut protect_button = Button::new("Protect", &font);
     protect_button.id(PROTECT_BUTTON_ID)
         .size_percentage(95.0, 20.0)
         .margin(4.0)
-        .text_color(Color::SILVER);
+        .text_color(Color::from(SILVER));
 
     let mut abilities_button = Button::new("Abilities", &font);
     abilities_button.id(ABILITIES_BUTTON_ID)
         .size_percentage(95.0, 20.0)
         .margin(4.0)
-        .text_color(Color::SILVER);
+        .text_color(Color::from(SILVER));
 
     let mut items_button = Button::new("Items", &font);
     items_button.id(ITEMS_BUTTON_ID)
         .size_percentage(95.0, 20.0)
         .margin(4.0)
-        .text_color(Color::SILVER);
+        .text_color(Color::from(SILVER));
 
     attacks_button.spawn(parent);
     protect_button.spawn(parent);
@@ -291,4 +294,4 @@ const ABILITIES_BUTTON_ID: ButtonId = ButtonId { value: 2 };
 const ITEMS_BUTTON_ID: ButtonId = ButtonId { value: 3 };
 
 /// <div style="background-color:rgb(30%, 30%, 30%); width: 10px; padding: 10px; border: 1px solid;"></div>
-const HOVER_BUTTON_COLOR: Color = Color::rgb(0.30, 0.30, 0.30);
+const HOVER_BUTTON_COLOR: Color = Color::srgb(0.50, 0.50, 0.50);

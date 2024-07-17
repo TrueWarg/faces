@@ -7,5 +7,4 @@ pub enum Level {
     House,
     NearCourt,
     Court,
-    Test,
 }

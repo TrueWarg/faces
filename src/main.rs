@@ -1,10 +1,13 @@
 use bevy::{
+    DefaultPlugins,
     prelude::{App, PluginGroup, Startup},
     window::{Window, WindowPlugin},
-    DefaultPlugins,
 };
+use bevy::prelude::AppExtStates;
 use bevy_rapier2d::prelude::{NoUserData, RapierPhysicsPlugin};
+
 use player::resources::PlayerAnimations;
+
 use crate::core::states::GameState;
 use crate::dev::DevSettingsPlugin;
 use crate::fight::FightingScene;
@@ -44,6 +47,6 @@ fn main() {
             // npc::systems::MainNpcPlugin,
         ))
         .add_systems(Startup, startup::setup)
-        .init_state::<core::states::GameState>()
+        .init_state::<GameState>()
         .run();
 }

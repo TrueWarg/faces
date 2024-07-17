@@ -4,9 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy = { version = "0.13.2", default-features = true }
-winit = "0.28.7"
-bevy_rapier2d = "0.26.0"
+bevy = { version = "0.14.0", default-features = true }
+winit = "0.30.4"
+bevy_rapier2d = "0.27.0"
 rand = "0.8.5"
 serde = "1.0.203"
 

@@ -1,13 +1,15 @@
 use bevy::{
     ecs::entity::Entity,
     prelude::{
-        AssetServer, Assets, BuildChildren, ButtonInput, Commands, IntoSystemConfigs, KeyCode,
-        Plugin, Query, Res, ResMut, Startup, Transform, Update, Vec2, With,
+        Assets, AssetServer, BuildChildren, ButtonInput, Commands, IntoSystemConfigs, KeyCode,
+        Plugin, Query, Res, ResMut, Startup, Transform, Update, With,
     },
-    sprite::{SpriteSheetBundle, TextureAtlas, TextureAtlasLayout},
+    sprite::{TextureAtlas, TextureAtlasLayout},
     time::{Time, Timer},
-    transform::TransformBundle,
 };
+use bevy::math::UVec2;
+use bevy::prelude::TransformBundle;
+use bevy::sprite::SpriteBundle;
 use bevy_rapier2d::prelude::{Collider, GravityScale, LockedAxes, RigidBody, Velocity};
 
 use crate::{
@@ -47,24 +49,27 @@ fn player_spawns(
     let start_fight_direction = FightDirection::Forward;
 
     let moves_handle = asset_server.load("npc/formidable_face.png");
-    let move_layout = TextureAtlasLayout::from_grid(Vec2::new(32.0, 46.0), 6, 8, None, None);
+    let move_layout = TextureAtlasLayout::from_grid(UVec2::new(32, 46), 6, 8, None, None);
 
     // let fight_handle = asset_server.load("npc/formidable_face_fight.png");
-    let fight_layout = TextureAtlasLayout::from_grid(Vec2::new(64.0, 68.0), 6, 4, None, None);
+    let fight_layout = TextureAtlasLayout::from_grid(UVec2::new(64, 68), 6, 4, None, None);
 
     let move_layout_handle = layouts.add(move_layout);
     let fight_layout_handle = layouts.add(fight_layout);
 
+
     commands
         .spawn(RigidBody::Dynamic)
-        .insert(SpriteSheetBundle {
-            atlas: TextureAtlas {
+        .insert((
+            SpriteBundle {
+                texture: moves_handle,
+                ..Default::default()
+            },
+            TextureAtlas {
                 layout: move_layout_handle.clone(),
                 index: 0,
             },
-            texture: moves_handle,
-            ..Default::default()
-        })
+        ))
         .insert(MoveAnimation {
             timer: Timer::from_seconds(
                 character_animations.moves[&start_move_direction].2,

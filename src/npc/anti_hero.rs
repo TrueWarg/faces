@@ -1,15 +1,15 @@
 use bevy::{
-    asset::{AssetServer, Assets},
+    asset::{Assets, AssetServer},
     ecs::{
         query::With,
         system::{Commands, Query, Res, ResMut},
     },
     hierarchy::BuildChildren,
-    math::Vec2,
-    sprite::{SpriteSheetBundle, TextureAtlas, TextureAtlasLayout},
+    sprite::{TextureAtlas, TextureAtlasLayout},
     time::{Time, Timer},
-    transform::{components::Transform, TransformBundle},
+    transform::components::Transform,
 };
+use bevy::prelude::{SpriteBundle, TransformBundle, UVec2};
 use bevy_rapier2d::{
     dynamics::{AdditionalMassProperties, GravityScale, LockedAxes, RigidBody, Velocity},
     geometry::Collider,
@@ -34,7 +34,7 @@ pub fn spawn_anti_hero(
     // let start_fight_direction = FightDirection::Forward;
 
     let moves_handle = asset_server.load("npc/formidable_face.png");
-    let move_layout = TextureAtlasLayout::from_grid(Vec2::new(32.0, 46.0), 6, 8, None, None);
+    let move_layout = TextureAtlasLayout::from_grid(UVec2::new(32, 46), 6, 8, None, None);
 
     // let fight_handle = asset_server.load("npc/formidable_face_fight.png");
     // let fight_atlas = TextureAtlasLayout::from_grid(Vec2::new(64.0, 68.0), 6, 4, None, None);
@@ -42,16 +42,19 @@ pub fn spawn_anti_hero(
     let move_layout_handle = layouts.add(move_layout);
     // let fight_layout_handle = layouts.add(fight_atlas);
 
-    commands
-        .spawn(RigidBody::Dynamic)
-        .insert(SpriteSheetBundle {
-            atlas: TextureAtlas {
-                layout: move_layout_handle.clone(),
-                index: 0,
-            },
+    let bandle = (
+        SpriteBundle {
             texture: moves_handle,
             ..Default::default()
-        })
+        },
+        TextureAtlas {
+            layout: move_layout_handle.clone(),
+            index: 0,
+        },
+    );
+    commands
+        .spawn(RigidBody::Dynamic)
+        .insert(bandle)
         .insert(MoveAnimation {
             timer: Timer::from_seconds(
                 character_animations.moves[&start_move_direction].2,

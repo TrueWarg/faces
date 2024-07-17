@@ -6,16 +6,16 @@ use bevy::{
         schedule::IntoSystemConfigs,
         system::{Query, ResMut},
     },
-    input::{keyboard::KeyCode, ButtonInput},
-    math::Vec2,
+    input::{ButtonInput, keyboard::KeyCode}
+    ,
     prelude::{
-        AssetServer, BuildChildren, Commands, Plugin, Res, Startup, Transform, Update, Vec3,
+        AssetServer, BuildChildren, Commands, Plugin, Res, Transform, Update, Vec3,
     },
-    sprite::{SpriteBundle, SpriteSheetBundle, TextureAtlas, TextureAtlasLayout},
+    sprite::{SpriteBundle, TextureAtlas, TextureAtlasLayout},
     time::Timer,
-    transform::TransformBundle,
 };
-use bevy::prelude::{in_state, OnEnter, OnExit, States};
+use bevy::math::UVec2;
+use bevy::prelude::{in_state, OnEnter, OnExit, States, TransformBundle};
 use bevy_rapier2d::prelude::{Collider, RigidBody};
 
 use crate::{
@@ -114,23 +114,26 @@ fn spawn_level_arm(
     mut layouts: ResMut<Assets<TextureAtlasLayout>>,
 ) {
     let texture_handle = asset_server.load("house/tileset_level_arm.png");
-    let layout = TextureAtlasLayout::from_grid(Vec2::new(10.0, 34.0), 3, 1, None, None);
+    let layout = TextureAtlasLayout::from_grid(UVec2::new(10, 34), 3, 1, None, None);
     let layout_handle = layouts.add(layout);
 
-    commands
-        .spawn(RigidBody::Fixed)
-        .insert(SpriteSheetBundle {
-            atlas: TextureAtlas {
-                layout: layout_handle,
-                index: 0,
-            },
+    let bundle = (
+        SpriteBundle {
             transform: Transform {
                 translation: Vec3::new(20.0, 215.0, ON_WALL_OBJECT_Z),
                 ..Default::default()
             },
             texture: texture_handle,
             ..Default::default()
-        })
+        },
+        TextureAtlas {
+            layout: layout_handle,
+            index: 0,
+        });
+
+    commands
+        .spawn(RigidBody::Fixed)
+        .insert(bundle)
         .insert(PassiveInteractor {
             area: InteractionArea::from_sizes(5.0, 17.0),
             side: InteractionSide::Bottom,

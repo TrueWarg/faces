@@ -1,15 +1,14 @@
 use bevy::app::{App, Plugin, Update};
-use bevy::prelude::{DetectChanges, NextState, Res, ResMut, Startup, State};
+use bevy::prelude::{AppExtStates, DetectChanges, NextState, Res, ResMut, State};
+
 use crate::core::states::GameState;
 use crate::level::house::HousePlugin;
 use crate::level::states::Level;
-use crate::level::test_level::TestLevel;
 
 pub mod house;
 pub mod component;
 pub mod resources;
 pub(crate) mod states;
-mod test_level;
 
 pub struct LevelNavPlugin;
 
@@ -19,7 +18,6 @@ impl Plugin for LevelNavPlugin {
             .add_systems(Update, load_level)
             .add_plugins((
                 HousePlugin { state: Level::House },
-                TestLevel { state: Level::Test },
             )
             )
             .init_state::<Level>();
