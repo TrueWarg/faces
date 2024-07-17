@@ -1,0 +1,3 @@
+struct PartyStateStorage;
+
+impl PartyStateStorage {}
