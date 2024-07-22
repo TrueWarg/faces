@@ -2,9 +2,10 @@ use bevy::app::{App, Plugin, Update};
 use bevy::asset::AssetServer;
 use bevy::color::palettes::css::DIM_GREY;
 use bevy::color::palettes::css::SILVER;
+use bevy::ecs::query::QuerySingleError;
 use bevy::hierarchy::DespawnRecursiveExt;
 use bevy::input::ButtonInput;
-use bevy::prelude::{AppExtStates, BackgroundColor, Changed, Color, Font, Handle, in_state, Interaction, IntoSystemConfigs, KeyCode, NextState, ResMut, State, States};
+use bevy::prelude::{AppExtStates, BackgroundColor, Changed, Color, DetectChangesMut, Font, Handle, in_state, Interaction, IntoSystemConfigs, KeyCode, Mut, NextState, ResMut, State, States};
 use bevy::prelude::Commands;
 use bevy::prelude::Component;
 use bevy::prelude::Entity;
@@ -15,6 +16,7 @@ use bevy::prelude::Res;
 use bevy::prelude::With;
 
 use crate::core::states::GameState;
+use crate::fight::{FightId, FightStorage};
 use crate::gui::{Button, ButtonId, Root};
 
 pub struct DevSettingsPlugin;
@@ -56,6 +58,8 @@ impl Plugin for DevSettingsPlugin {
 }
 
 fn mouse_input_handle(
+    mut commands: Commands,
+    mut fight_id_query: Query<(&mut FightId)>,
     mut next_game_state: ResMut<NextState<GameState>>,
     mut next_state: ResMut<NextState<ScreenState>>,
     mut query: Query<
@@ -79,6 +83,13 @@ fn mouse_input_handle(
 
                 if *button_id == LEVEL_SAMPLES_BUTTON_ID {
                     return;
+                }
+
+                match fight_id_query.get_single_mut() {
+                    Ok(mut fight_id) => fight_id.0 = (*button_id).value,
+                    Err(_) => {
+                        commands.spawn(FightId((*button_id).value));
+                    }
                 }
 
                 next_game_state.set(GameState::Fighting)
@@ -140,6 +151,7 @@ fn despawn_main(
 
 fn spawn_fights_list(
     mut commands: Commands,
+    fight_storage: Res<FightStorage>,
     query: Query<&FontHandle>,
 ) {
     let font = &query.single().font;
@@ -147,32 +159,15 @@ fn spawn_fights_list(
     root.background_color(Color::from(DIM_GREY))
         .justify_around();
 
-    let mut fight_1 = Button::new("Fight_1", font);
-    fight_1
-        .id(ButtonId { value: 333 })
-        .background_color(Color::from(SILVER))
-        .text_color(Color::from(DIM_GREY));
-
-    let mut fight_2 = Button::new("Fight_2", font);
-    fight_2
-        .background_color(Color::from(SILVER))
-        .text_color(Color::from(DIM_GREY));
-
-    let mut fight_3 = Button::new("Fight_3", font);
-    fight_3
-        .background_color(Color::from(SILVER))
-        .text_color(Color::from(DIM_GREY));
-
-    let mut fight_4 = Button::new("Fight_4", font);
-    fight_4
-        .background_color(Color::from(SILVER))
-        .text_color(Color::from(DIM_GREY));
-
     root.spawn(&mut commands, FightsList, |parent| {
-        fight_1.spawn(parent);
-        fight_2.spawn(parent);
-        fight_3.spawn(parent);
-        fight_4.spawn(parent);
+        for fight in fight_storage.get_all() {
+            let mut button = Button::new(&format!("Fight {}", fight.id), font);
+            button
+                .id(ButtonId { value: fight.id })
+                .background_color(Color::from(SILVER))
+                .text_color(Color::from(DIM_GREY));
+            button.spawn(parent)
+        }
     })
 }
 

@@ -1,25 +1,20 @@
+use bevy::prelude::Component;
 use crate::rpg::{DirectionalAction, TargetProps};
 
+#[derive(Component)]
+pub enum ConsumableItem {
+    Dumplings(Dumplings),
+    Venison(Venison),
+}
+
+#[derive(Component)]
 pub struct Dumplings {
     pub health: i32,
     pub energy: i32,
 }
 
-impl DirectionalAction for Dumplings {
-    fn apply(&self, target: &mut TargetProps) {
-        target.health.increase(self.health);
-        target.energy.increase(self.health);
-    }
-}
-
+#[derive(Component)]
 pub struct Venison {
     pub health: i32,
     pub energy: i32,
-}
-
-impl DirectionalAction for Venison {
-    fn apply(&self, target: &mut TargetProps) {
-        target.health.increase(self.health);
-        target.energy.decrease(self.health);
-    }
 }

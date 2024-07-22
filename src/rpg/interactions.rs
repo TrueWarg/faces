@@ -1,5 +1,6 @@
 use std::cmp::{max, min};
 
+#[derive(Clone)]
 pub struct TargetProps {
     pub health: RangedProp,
     pub energy: RangedProp,
@@ -7,6 +8,7 @@ pub struct TargetProps {
     pub evasion: i32,
 }
 
+#[derive(Clone)]
 pub struct RangedProp {
     pub min: i32,
     pub current: i32,

@@ -1,11 +1,11 @@
-use crate::rpg::{DirectionalAction, TargetProps};
+use crate::rpg::{Ability, DirectionalAttack, TargetProps};
 
 pub struct PartyMember {
     pub id: usize,
     pub name: String,
     pub asset_path: String,
     pub target: TargetProps,
-    pub attacks: Vec<Box<dyn DirectionalAction>>,
-    pub abilities: Vec<Box<dyn DirectionalAction>>,
+    pub attacks: Vec<DirectionalAttack>,
+    pub abilities: Vec<Ability>,
 }
 

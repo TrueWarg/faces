@@ -1,21 +1,26 @@
+use bevy::prelude::Component;
 use crate::rpg::{DirectionalAction, TargetProps};
 
-pub struct InevitableDamage {
-    pub damage: i32,
+#[derive(Component)]
+pub enum DirectionalAttack {
+    InevitableDamage {
+        damage: i32,
+    },
+
+    Punch {
+        damage: i32,
+    },
 }
 
-pub struct Punch {
-    pub damage: i32,
-}
-
-impl DirectionalAction for InevitableDamage {
+impl DirectionalAction for DirectionalAttack {
     fn apply(&self, target: &mut TargetProps) {
-        target.health.decrease(self.damage);
-    }
-}
-
-impl DirectionalAction for Punch {
-    fn apply(&self, target: &mut TargetProps) {
-        target.health.decrease(self.damage);
+        match self {
+            DirectionalAttack::InevitableDamage { damage } => {
+                target.health.decrease(*damage);
+            }
+            DirectionalAttack::Punch { damage } => {
+                target.health.decrease(*damage);
+            }
+        }
     }
 }

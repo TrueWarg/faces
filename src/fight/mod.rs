@@ -1,7 +1,9 @@
-mod fight_scene;
-mod fight_storages;
-mod fight_entities;
+mod scene;
+mod storages;
+mod entities;
+mod plugin;
 
-pub use fight_scene::*;
-pub use fight_storages::*;
-pub use fight_entities::*;
+pub use scene::*;
+pub use storages::*;
+pub use entities::*;
+pub use plugin::FightPlugin;

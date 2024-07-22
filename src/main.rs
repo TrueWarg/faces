@@ -10,7 +10,8 @@ use player::resources::PlayerAnimations;
 
 use crate::core::states::GameState;
 use crate::dev::DevSettingsPlugin;
-use crate::fight::FightingScene;
+use crate::fight::{FightingScene, FightPlugin};
+use crate::party::PartyPlugin;
 
 mod core;
 mod interaction;
@@ -45,7 +46,9 @@ fn main() {
             // player::systems::PlayerPlugin,
             level::LevelNavPlugin,
             interaction::systems::BaseInteractionPlugin,
-            FightingScene { state: GameState::Fighting }
+            FightPlugin,
+            PartyPlugin,
+            FightingScene { state: GameState::Fighting },
             // npc::systems::MainNpcPlugin,
         ))
         .add_systems(Startup, startup::setup)

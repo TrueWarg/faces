@@ -6,8 +6,10 @@ use bevy::color::palettes::css::OLIVE;
 use bevy::color::palettes::css::SILVER;
 use bevy::hierarchy::DespawnRecursiveExt;
 use bevy::prelude::{AppExtStates, BackgroundColor, Changed, ChildBuilder, Color, Commands, Component, Entity, Font, in_state, Interaction, IntoSystemConfigs, NextState, OnEnter, OnExit, Plugin, Query, Res, ResMut, SpriteBundle, States, With};
+use crate::fight::{Enemy, FightId, FightStorage};
 
 use crate::gui::{Button, ButtonId, Container, Root};
+use crate::party::{PartyMember, PartyStateStorage};
 
 pub struct FightingScene<S: States> {
     pub state: S,
@@ -45,22 +47,14 @@ struct Environment {
     id: String,
 }
 
-struct Enemy {
-    id: String,
-}
-
 #[derive(Component)]
 struct Enemies {
     items: Vec<Enemy>,
 }
 
-struct Ally {
-    id: String,
-}
-
 #[derive(Component)]
 struct Allies {
-    items: Vec<Ally>,
+    items: Vec<PartyMember>,
 }
 
 struct Attack {
@@ -81,7 +75,7 @@ impl<S: States> Plugin for FightingScene<S> {
             .init_state::<ScreenState>()
             .add_systems(OnEnter(self.state.clone()),
                          (load_alias,
-                          load_enemies,
+                          load_fight,
                          ).before(spawn_main),
             )
             .add_systems(OnEnter(self.state.clone()), spawn_main)
@@ -120,10 +114,10 @@ fn spawn_main(
 ) {
     let mut root = Root::default();
 
-    commands.spawn(SpriteBundle {
-        texture: asset_server.load("background/test_bg.png"),
-        ..Default::default()
-    });
+    // commands.spawn(SpriteBundle {
+    //     texture: asset_server.load("background/test_bg.png"),
+    //     ..Default::default()
+    // });
 
     let mut main_container = Container::default();
     main_container.align_start();
@@ -144,7 +138,7 @@ fn spawn_fight_area(
 ) {
     let mut main_container = Container::size_percentage(100.0, height_percent);
     main_container.row()
-        .justify_between();
+        .justify_around();
     main_container.spawn(parent, |parent| {
         for enemy in &enemies.items {
             spawn_enemy_item(parent, asset_server, enemy);
@@ -201,13 +195,15 @@ fn spawn_player_menu(
 fn spawn_ally_item(
     parent: &mut ChildBuilder,
     asset_server: &Res<AssetServer>,
-    enemy: &Ally,
+    enemy: &PartyMember,
 ) {
     let mut main_container = Container::size_percentage(20.0, 80.0);
     main_container
         .background_color(Color::from(ANTIQUE_WHITE))
         .margin(25.0);
-    main_container.spawn(parent, |parent| {});
+    main_container.spawn(parent, |parent| {
+
+    });
 }
 
 fn spawn_actions(
@@ -254,37 +250,38 @@ fn unspawn_main(
     commands.entity(entity).despawn_recursive();
 }
 
-fn load_enemies(
-    mut commands: Commands
+fn load_fight(
+    mut commands: Commands,
+    query: Query<(&FightId)>,
+    fight_storage: Res<FightStorage>,
+    asset_server: Res<AssetServer>,
 ) {
+    let fight_id = query.single().0;
+    let fight = fight_storage.load(fight_id).expect("");
+
+    commands.spawn(SpriteBundle {
+        texture: asset_server.load(&fight.arena_bg_path),
+        ..Default::default()
+    });
+
     commands.spawn_empty()
         .insert(FightingMainScreen)
         .insert(
             Enemies {
-                items: vec![
-                    Enemy { id: "1".to_string() },
-                    Enemy { id: "2".to_string() },
-                    Enemy { id: "3".to_string() },
-                    Enemy { id: "4".to_string() },
-                ]
+                items: fight.enemies,
             },
         );
 }
 
 fn load_alias(
-    mut commands: Commands
+    mut commands: Commands,
+    party_storage: Res<PartyStateStorage>,
 ) {
+    let members = party_storage.get_fight_party_members();
     commands.spawn_empty()
         .insert(FightingMainScreen)
         .insert(
-            Allies {
-                items: vec![
-                    Ally { id: "1".to_string() },
-                    Ally { id: "2".to_string() },
-                    Ally { id: "3".to_string() },
-                    Ally { id: "4".to_string() },
-                ]
-            },
+            Allies { items: members },
         );
 }
 
