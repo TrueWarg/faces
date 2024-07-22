@@ -1,8 +1,8 @@
 use crate::rpg::{DirectionalAction, TargetProps};
 
 pub struct Dumplings {
-    health: i32,
-    energy: i32,
+    pub health: i32,
+    pub energy: i32,
 }
 
 impl DirectionalAction for Dumplings {
@@ -13,8 +13,8 @@ impl DirectionalAction for Dumplings {
 }
 
 pub struct Venison {
-    health: i32,
-    energy: i32,
+    pub health: i32,
+    pub energy: i32,
 }
 
 impl DirectionalAction for Venison {

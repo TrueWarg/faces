@@ -10,3 +10,4 @@ pub use abilities::*;
 pub use stats::*;
 pub use attacks::*;
 pub use interactions::*;
+pub use classes::*;
