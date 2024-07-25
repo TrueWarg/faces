@@ -70,6 +70,8 @@ pub trait Text: Default {
 
     fn spawn(self, parent: &mut ChildBuilder);
 
+    fn spawn_with_payload(self, parent: &mut ChildBuilder, payload: impl Bundle);
+
     const SIZE_SMALL: f32 = 18.0;
     const SIZE_MEDIUM: f32 = 36.0;
     const SIZE_LARGE: f32 = 90.0;
