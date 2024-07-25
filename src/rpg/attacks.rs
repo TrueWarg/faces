@@ -1,7 +1,7 @@
 use bevy::prelude::Component;
 use crate::rpg::{DirectionalAction, TargetProps};
 
-#[derive(Component)]
+#[derive(Component, PartialEq, Clone)]
 pub enum DirectionalAttack {
     InevitableDamage {
         damage: i32,

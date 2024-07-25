@@ -1,6 +1,7 @@
 use std::cmp::{max, min};
+use bevy::prelude::Component;
 
-#[derive(Clone)]
+#[derive(Component, Clone, PartialEq)]
 pub struct TargetProps {
     pub health: RangedProp,
     pub energy: RangedProp,
@@ -8,7 +9,7 @@ pub struct TargetProps {
     pub evasion: i32,
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct RangedProp {
     pub min: i32,
     pub current: i32,

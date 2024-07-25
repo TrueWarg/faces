@@ -13,7 +13,7 @@ impl PartyStateStorage {
     pub fn get_fight_party_members(&self) -> Vec<PartyMember> {
         return vec![
             PartyMember {
-                id: 0,
+                id: "0".to_string(),
                 name: "".to_string(),
                 asset_path: "".to_string(),
                 target: TargetProps {
@@ -38,7 +38,7 @@ impl PartyStateStorage {
                 abilities: vec![],
             },
             PartyMember {
-                id: 1,
+                id: "1".to_string(),
                 name: "".to_string(),
                 asset_path: "".to_string(),
                 target: TargetProps {
@@ -72,7 +72,7 @@ impl PartyStateStorage {
         ];
     }
 
-    pub fn get_items(&self) -> Vec<ConsumableItem> {
+    pub fn get_consumables(&self) -> Vec<ConsumableItem> {
         return vec![
             ConsumableItem::Dumplings(Dumplings { health: 10, energy: 10 }),
             ConsumableItem::Dumplings(Dumplings { health: 10, energy: 10 }),

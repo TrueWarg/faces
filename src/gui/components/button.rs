@@ -99,4 +99,17 @@ impl Button {
             .with_children(|parent| self.text.spawn(parent))
             .insert(self.id);
     }
+
+    // todo: refactor buttons: make more general
+    pub fn spawn_with_children(
+        self,
+        parent: &mut ChildBuilder,
+        payload: impl Bundle,
+        spawn_children: impl FnOnce(&mut ChildBuilder),
+    ) {
+        parent
+            .spawn(self.bundle)
+            .with_children(spawn_children)
+            .insert(payload);
+    }
 }

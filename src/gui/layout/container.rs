@@ -132,4 +132,16 @@ impl Container {
     pub fn spawn_empty(self, parent: &mut ChildBuilder) {
         self.spawn(parent, |_| {});
     }
+
+    pub fn spawn_with_payload(
+        self,
+        parent: &mut ChildBuilder,
+        payload: impl Bundle,
+        spawn_children: impl FnOnce(&mut ChildBuilder),
+    ) {
+        parent
+            .spawn(self.bundle)
+            .with_children(spawn_children)
+            .insert(payload);
+    }
 }

@@ -9,6 +9,7 @@ winit = "0.30.4"
 bevy_rapier2d = "0.27.0"
 rand = "0.8.5"
 serde = "1.0.203"
+hashlink = "0.9.1"
 
 [profile.dev]
 opt-level = 1

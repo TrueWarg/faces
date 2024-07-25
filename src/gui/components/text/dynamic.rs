@@ -38,6 +38,10 @@ impl Text for DynamicText {
     fn spawn(self, parent: &mut ChildBuilder) {
         parent.spawn(self.bundle).insert(self.id);
     }
+
+    fn spawn_with_payload(self, parent: &mut ChildBuilder, payload: impl Bundle) {
+        parent.spawn(self.bundle).insert(payload);
+    }
 }
 
 impl DynamicText {
