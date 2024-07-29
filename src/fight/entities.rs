@@ -4,7 +4,7 @@ use crate::rpg::{DirectionalAttack, TargetProps};
 
 #[derive(Component)]
 pub struct Fight {
-    pub id: usize,
+    pub id: FightId,
     pub arena_bg_path: String,
     pub enemies: Vec<Enemy>,
 }

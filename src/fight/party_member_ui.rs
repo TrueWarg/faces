@@ -24,7 +24,7 @@ impl PartyMemberItem {
     }
 
     pub fn spawn(self, parent: &mut ChildBuilder, font: &Handle<Font>) {
-        let mut border = Button::new("", font);
+        let mut border = Button::default();
         border
             .size_percentage(100.0, 100.0)
             .background_color(Color::from(ANTIQUE_WHITE));
@@ -37,7 +37,7 @@ impl PartyMemberItem {
         health_status.background_color(Color::from(GREEN));
         let mut energy_status = Container::size_percentage(100.0, 10.0);
         energy_status.background_color(Color::from(YELLOW));
-        border.spawn_with_children(parent, self.id, |parent| {
+        border.spawn(parent, self.id, |parent| {
             frame.spawn(parent, |parent| {
                 avatar.spawn_empty(parent);
                 health_status.spawn_with_payload(parent, Health, |parent| {});

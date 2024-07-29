@@ -40,8 +40,8 @@ impl Root {
     }
 
     pub fn spawn(
-        self, commands:
-        &mut Commands,
+        self,
+        commands: &mut Commands,
         marker: impl Component,
         spawn_children: impl FnOnce(&mut ChildBuilder),
     ) {

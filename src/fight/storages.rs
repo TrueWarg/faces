@@ -1,17 +1,16 @@
-use std::collections::hash_map::{IntoIter, IntoValues};
 use bevy::prelude::Resource;
 use bevy::utils::HashMap;
 
-use crate::fight::{Enemy, Fight};
+use crate::fight::{Enemy, Fight, FightId};
 use crate::rpg::{RangedProp, TargetProps};
 
 #[derive(Resource)]
 pub struct FightStorage;
 
 impl FightStorage {
-    pub fn load(&self, id: usize) -> Option<Fight> {
+    pub fn load(&self, id: &usize) -> Option<Fight> {
         let mut fights = test_fights();
-        return fights.remove(&id)
+        return fights.remove(id)
 
     }
 
@@ -28,7 +27,7 @@ impl FightStorage {
 pub fn test_fights() -> HashMap<usize, Fight> {
     let mut test_fights = HashMap::new();
     test_fights.insert(
-        TEST_FIGHT_ID_0,
+        TEST_FIGHT_ID_0.0,
         Fight {
             id: TEST_FIGHT_ID_0,
             arena_bg_path: "background/test_bg.png".to_string(),
@@ -117,7 +116,7 @@ pub fn test_fights() -> HashMap<usize, Fight> {
         },
     );
     test_fights.insert(
-        TEST_FIGHT_ID_1,
+        TEST_FIGHT_ID_1.0,
         Fight {
             id: TEST_FIGHT_ID_1,
             arena_bg_path: "background/test_bg2.png".to_string(),
@@ -149,5 +148,5 @@ pub fn test_fights() -> HashMap<usize, Fight> {
     return test_fights;
 }
 
-pub const TEST_FIGHT_ID_0: usize = 10;
-pub const TEST_FIGHT_ID_1: usize = 20;
+pub const TEST_FIGHT_ID_0: FightId = FightId(10);
+pub const TEST_FIGHT_ID_1: FightId = FightId(20);

@@ -3,6 +3,7 @@ mod storages;
 mod entities;
 mod plugin;
 mod party_member_ui;
+mod actions_ui;
 
 pub use scene::*;
 pub use storages::*;

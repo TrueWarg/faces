@@ -1,17 +1,7 @@
 use bevy::prelude::*;
-use crate::gui::Container;
-
-use super::text::{SimpleText, Text};
 
 pub struct Button {
-    id: ButtonId,
     bundle: ButtonBundle,
-    text: SimpleText,
-}
-
-#[derive(Component, Default, PartialEq, Copy, Clone)]
-pub struct ButtonId {
-    pub value: usize,
 }
 
 impl Default for Button {
@@ -30,20 +20,11 @@ impl Default for Button {
                 style,
                 ..default()
             },
-            text: SimpleText::default(),
-            id: ButtonId::default(),
         }
     }
 }
 
 impl Button {
-    pub fn new<S: Into<String> + Clone>(value: S, font: &Handle<Font>) -> Button {
-        Button {
-            text: SimpleText::medium(value, font),
-            ..default()
-        }
-    }
-
     pub fn size_percentage(&mut self, width: f32, height: f32) -> &mut Button {
         self.bundle.style.width = Val::Percent(width);
         self.bundle.style.height = Val::Percent(height);
@@ -57,19 +38,6 @@ impl Button {
             top: Val::Px(margin),
             bottom: Val::Px(margin),
         };
-        self
-    }
-
-    pub fn square<S: Into<String> + Clone>(value: S, font: &Handle<Font>) -> Button {
-        let mut button = Self::default();
-        button.bundle.style.width = Val::Px(60.0);
-        button.bundle.style.height = Val::Px(60.0);
-        button.text = SimpleText::medium(value, font);
-        button
-    }
-
-    pub fn text_color(&mut self, color: Color) -> &mut Button {
-        self.text.color(color);
         self
     }
 
@@ -88,20 +56,7 @@ impl Button {
         self
     }
 
-    pub fn id(&mut self, id: ButtonId) -> &mut Button {
-        self.id = id;
-        self
-    }
-
-    pub fn spawn(self, parent: &mut ChildBuilder) {
-        parent
-            .spawn(self.bundle)
-            .with_children(|parent| self.text.spawn(parent))
-            .insert(self.id);
-    }
-
-    // todo: refactor buttons: make more general
-    pub fn spawn_with_children(
+    pub fn spawn(
         self,
         parent: &mut ChildBuilder,
         payload: impl Bundle,

@@ -34,9 +34,9 @@ use bevy::color::palettes::basic::YELLOW;
 use hashlink::LinkedHashMap;
 
 use crate::fight::{Enemy, FightId, FightStorage};
+use crate::fight::actions_ui::{ActionId, ActionItem};
 use crate::fight::party_member_ui::{Health, MemberId, PartyMemberItem};
-use crate::gui::{Button, ButtonId, Container, Root};
-use crate::gui::Text as TextFactory;
+use crate::gui::{Container, Root};
 use crate::party::{PartyMember, PartyStateStorage};
 use crate::rpg::{Ability, ConsumableItem, DirectionalAttack, TargetProps};
 
@@ -111,8 +111,8 @@ fn actions_menu_input_handle(
     mut next_state: ResMut<NextState<ScreenState>>,
     mut query_kek: Query<(&mut PartyMember)>,
     mut query: Query<
-        (&ButtonId, &Interaction, &mut BackgroundColor),
-        (Changed<Interaction>, With<ButtonId>),
+        (&ActionId, &Interaction, &mut BackgroundColor),
+        (Changed<Interaction>, With<ActionId>),
     >,
 ) {
     for (button_id, interaction, mut background_color) in &mut query {
@@ -129,7 +129,7 @@ fn actions_menu_input_handle(
 }
 
 fn party_member_selection_input_handle(
-     query: Query<
+    query: Query<
         (&MemberId, &Interaction),
         (Changed<Interaction>, With<MemberId>),
     >,
@@ -188,8 +188,8 @@ fn spawn_main(
 ) {
     let mut root = Root::default();
 
-    let fight_id = query.single().0;
-    let fight = fight_storage.load(fight_id).expect("");
+    let fight_id = query.single();
+    let fight = fight_storage.load(&fight_id.0).expect("");
     let members = party_storage.get_fight_party_members();
     let items = party_storage.get_consumables();
 
@@ -301,28 +301,28 @@ fn spawn_actions(
     parent: &mut ChildBuilder,
     asset_server: &Res<AssetServer>,
 ) {
-    let font = asset_server.load("fonts/quattrocentoSans-Bold.ttf");
+    let font = &asset_server.load("fonts/quattrocentoSans-Bold.ttf");
 
-    let mut attacks_button = Button::new("Attack", &font);
-    attacks_button.id(ATTACKS_BUTTON_ID)
+    let mut attacks_button = ActionItem::new(ATTACKS_BUTTON_ID, "Attacks", font);
+    attacks_button
         .size_percentage(95.0, 20.0)
         .margin(4.0)
         .text_color(Color::from(SILVER));
 
-    let mut protect_button = Button::new("Protect", &font);
-    protect_button.id(PROTECT_BUTTON_ID)
+    let mut protect_button = ActionItem::new(PROTECT_BUTTON_ID, "Protect", font);
+    protect_button
         .size_percentage(95.0, 20.0)
         .margin(4.0)
         .text_color(Color::from(SILVER));
 
-    let mut abilities_button = Button::new("Abilities", &font);
-    abilities_button.id(ABILITIES_BUTTON_ID)
+    let mut abilities_button = ActionItem::new(ABILITIES_BUTTON_ID, "Abilities", font);
+    abilities_button
         .size_percentage(95.0, 20.0)
         .margin(4.0)
         .text_color(Color::from(SILVER));
 
-    let mut items_button = Button::new("Items", &font);
-    items_button.id(ITEMS_BUTTON_ID)
+    let mut items_button = ActionItem::new(ITEMS_BUTTON_ID, "Items", font);
+    items_button
         .size_percentage(95.0, 20.0)
         .margin(4.0)
         .text_color(Color::from(SILVER));
@@ -342,10 +342,10 @@ fn unspawn_main(
     }
 }
 
-const ATTACKS_BUTTON_ID: ButtonId = ButtonId { value: 0 };
-const PROTECT_BUTTON_ID: ButtonId = ButtonId { value: 1 };
-const ABILITIES_BUTTON_ID: ButtonId = ButtonId { value: 2 };
-const ITEMS_BUTTON_ID: ButtonId = ButtonId { value: 3 };
+const ATTACKS_BUTTON_ID: ActionId = ActionId(0);
+const PROTECT_BUTTON_ID: ActionId = ActionId(1);
+const ABILITIES_BUTTON_ID: ActionId = ActionId(2);
+const ITEMS_BUTTON_ID: ActionId = ActionId(3);
 
 /// <div style="background-color:rgb(30%, 30%, 30%); width: 10px; padding: 10px; border: 1px solid;"></div>
 const HOVER_BUTTON_COLOR: Color = Color::srgb(0.50, 0.50, 0.50);

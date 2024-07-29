@@ -1,6 +1,6 @@
 mod button;
-mod text;
 mod scroll;
+mod text;
 
 pub use button::*;
 pub use text::*;
