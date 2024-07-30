@@ -31,28 +31,28 @@ use bevy::{
     text::Text,
 };
 use bevy::color::palettes::basic::YELLOW;
+use bevy::input::ButtonInput;
+use bevy::prelude::{KeyCode, State};
 use hashlink::LinkedHashMap;
 
+use crate::core::states::GameState;
 use crate::fight::{Enemy, FightId, FightStorage};
 use crate::fight::actions_ui::{ActionId, ActionItem};
 use crate::fight::party_member_ui::{Health, MemberId, PartyMemberItem};
+use crate::fight::selector_ui::{Selector, SelectorItem};
 use crate::gui::{Container, Root};
 use crate::party::{PartyMember, PartyStateStorage};
 use crate::rpg::{Ability, ConsumableItem, DirectionalAttack, TargetProps};
 
-pub struct FightingScene<S: States> {
-    pub state: S,
-}
+pub struct FightingScene;
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
 enum ScreenState {
     #[default]
     Main,
-    AttackList,
+    AttacksList,
     AbilitiesList,
     ItemsList,
-    Selection,
-    MoveApply,
 }
 
 #[derive(Component)]
@@ -90,26 +90,39 @@ struct Consumables {
     items: Vec<ConsumableItem>,
 }
 
-impl<S: States> Plugin for FightingScene<S> {
+impl Plugin for FightingScene {
     fn build(&self, app: &mut bevy::prelude::App) {
         app
             .init_state::<ScreenState>()
-            .add_systems(OnEnter(self.state.clone()), spawn_main)
-            .add_systems(OnExit(self.state.clone()), unspawn_main)
-            .add_systems(Update, (party_state_changes, actions_menu_input_handle, party_member_selection_input_handle)
-                .run_if(in_state(self.state.clone())),
-            )
+
+            .add_systems(OnEnter(GameState::Fighting), spawn_main)
+            .add_systems(OnExit(GameState::Fighting), unspawn::<FightingMainScreen>)
+            .add_systems(Update, keyboard_input_handle.run_if(in_state(GameState::Fighting)))
+
             .add_systems(Update,
-                         party_member_selection_state_changes
-                             .after(party_member_selection_input_handle)
-                             .run_if(in_state(self.state.clone())),
-            );
+                         (party_state_changes,
+                          actions_menu_input_handle,
+                          party_member_selection_input_handle,
+                          party_member_selection_state_changes,
+                         ).run_if(in_state(ScreenState::Main)),
+            )
+
+            .add_systems(OnEnter(ScreenState::AttacksList), spawn_attacks_list)
+            .add_systems(OnExit(ScreenState::AttacksList), unspawn::<AttacksScreen>)
+            .add_systems(Update, attacks_inputs.run_if(in_state(ScreenState::AttacksList)))
+
+            .add_systems(OnEnter(ScreenState::AbilitiesList), spawn_abilities_list)
+            .add_systems(OnExit(ScreenState::AbilitiesList), unspawn::<AbilitiesScreen>)
+            .add_systems(Update, abilities_inputs.run_if(in_state(ScreenState::AbilitiesList)))
+
+            .add_systems(OnEnter(ScreenState::ItemsList), spawn_items_list)
+            .add_systems(OnExit(ScreenState::ItemsList), unspawn::<ItemsScreen>)
+            .add_systems(Update, items_inputs.run_if(in_state(ScreenState::ItemsList)));
     }
 }
 
 fn actions_menu_input_handle(
     mut next_state: ResMut<NextState<ScreenState>>,
-    mut query_kek: Query<(&mut PartyMember)>,
     mut query: Query<
         (&ActionId, &Interaction, &mut BackgroundColor),
         (Changed<Interaction>, With<ActionId>),
@@ -123,8 +136,39 @@ fn actions_menu_input_handle(
             Interaction::Hovered => {
                 *background_color = HOVER_BUTTON_COLOR.into();
             }
-            Interaction::Pressed => {}
+            Interaction::Pressed => {
+                if button_id.0 == ATTACKS_BUTTON_ID.0 {
+                    next_state.set(ScreenState::AttacksList);
+                }
+
+
+                if button_id.0 == PROTECT_BUTTON_ID.0 {}
+
+
+                if button_id.0 == ABILITIES_BUTTON_ID.0 {
+                    next_state.set(ScreenState::AbilitiesList);
+                }
+
+
+                if button_id.0 == ITEMS_BUTTON_ID.0 {
+                    next_state.set(ScreenState::ItemsList);
+                }
+            }
         }
+    }
+}
+
+fn keyboard_input_handle(
+    current_state: Res<State<ScreenState>>,
+    mut next_state: ResMut<NextState<ScreenState>>,
+    keyboard: Res<ButtonInput<KeyCode>>,
+) {
+    if *current_state.get() == ScreenState::Main {
+        return;
+    }
+
+    if keyboard.pressed(KeyCode::Escape) && keyboard.just_pressed(KeyCode::Escape) {
+        next_state.set(ScreenState::Main);
     }
 }
 
@@ -178,6 +222,79 @@ fn party_state_changes(
         }
     }
 }
+
+fn spawn_attacks_list(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    selected_member_query: Query<(&SelectedMemberId)>,
+    attacks_query: Query<(&Attacks)>,
+) {
+    let font = asset_server.load("fonts/quattrocentoSans-Bold.ttf");
+
+    let mut selector = Selector;
+    selector.spawn(&mut commands, AttacksScreen, &font, vec![
+        SelectorItem {
+            name: "Name 1".to_string(),
+            description: "".to_string(),
+        },
+        SelectorItem {
+            name: "Name 2".to_string(),
+            description: "".to_string(),
+        },
+        SelectorItem {
+            name: "Name 3".to_string(),
+            description: "".to_string(),
+        },
+        SelectorItem {
+            name: "Name 4".to_string(),
+            description: "".to_string(),
+        },
+        SelectorItem {
+            name: "Name 5".to_string(),
+            description: "".to_string(),
+        },
+        SelectorItem {
+            name: "Name 6".to_string(),
+            description: "".to_string(),
+        },
+        SelectorItem {
+            name: "Name 7".to_string(),
+            description: "".to_string(),
+        },
+        SelectorItem {
+            name: "Name 8".to_string(),
+            description: "".to_string(),
+        },
+        SelectorItem {
+            name: "Name 9".to_string(),
+            description: "".to_string(),
+        },
+    ]);
+}
+
+fn attacks_inputs() {}
+
+fn spawn_abilities_list(
+    mut commands: Commands,
+    selected_member_query: Query<(&SelectedMemberId)>,
+    attacks_query: Query<(&Attacks)>,
+) {
+    let mut selector = Selector;
+    // selector.spawn(&mut commands, AbilitiesScreen);
+}
+
+fn abilities_inputs() {}
+
+fn spawn_items_list(
+    mut commands: Commands,
+    selected_member_query: Query<(&SelectedMemberId)>,
+    attacks_query: Query<(&Attacks)>,
+) {
+    let mut selector = Selector;
+    // selector.spawn(&mut commands, ItemsScreen);
+}
+
+fn items_inputs() {}
 
 fn spawn_main(
     mut commands: Commands,
@@ -333,14 +450,15 @@ fn spawn_actions(
     items_button.spawn(parent);
 }
 
-fn unspawn_main(
+fn unspawn<M: Component>(
     mut commands: Commands,
-    query: Query<Entity, With<FightingMainScreen>>,
+    query: Query<Entity, With<M>>,
 ) {
     for entity in query.iter() {
         commands.entity(entity).despawn_recursive();
     }
 }
+
 
 const ATTACKS_BUTTON_ID: ActionId = ActionId(0);
 const PROTECT_BUTTON_ID: ActionId = ActionId(1);
