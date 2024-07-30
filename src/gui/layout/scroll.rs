@@ -1,4 +1,5 @@
 use bevy::app::{App, Plugin};
+use bevy::ecs::query::QueryEntityError;
 use bevy::hierarchy::{BuildChildren, Children};
 use bevy::input::mouse::{MouseMotion, MouseWheel};
 use bevy::prelude::Added;
@@ -29,7 +30,7 @@ pub struct VerticalScrollPlugin;
 
 impl Plugin for VerticalScrollPlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<ScrollView>()
+        app.register_type::<Scroll>()
             .register_type::<ScrollableContent>()
             .add_systems(
                 Update,
@@ -47,14 +48,21 @@ impl Plugin for VerticalScrollPlugin {
 
 
 #[derive(Component, Reflect)]
-pub struct ScrollView {
-    pub scroll_speed: f32,
+pub struct Scroll {
+    pub speed: f32,
 }
 
-impl Default for ScrollView {
+/// NOTE_INTERACTABLE_CHILDREN_HACK
+/// Now children intercept interaction and brake scroll.
+/// Use it for hack to detect that any of children has interaction and allow scrolling.
+/// TODO: Made some relation between [Scroll] and [InScroll] using id.
+#[derive(Component)]
+pub struct InScroll;
+
+impl Default for Scroll {
     fn default() -> Self {
         Self {
-            scroll_speed: 400.0,
+            speed: 400.0,
         }
     }
 }
@@ -66,7 +74,7 @@ pub struct ScrollableContent {
 
 fn scroll_view_spawns(
     mut commands: Commands,
-    mut query: Query<(Entity, &mut Style), Added<ScrollView>>,
+    mut query: Query<(Entity, &mut Style), Added<Scroll>>,
 ) {
     for (entity, mut style) in query.iter_mut() {
         style.overflow = Overflow::clip();
@@ -79,7 +87,7 @@ fn scroll_view_spawns(
 
 fn mouse_pressed_move_input(
     mut motion_event_reader: EventReader<MouseMotion>,
-    mut query: Query<(&Children, &Interaction, &Node), With<ScrollView>>,
+    mut query: Query<(&Children, &Interaction, &Node), With<Scroll>>,
     mut content_query: Query<(&mut ScrollableContent, &Node)>,
 ) {
     for motion in motion_event_reader.read() {
@@ -89,7 +97,7 @@ fn mouse_pressed_move_input(
 
 fn touch_pressed_move_input(
     touches: Res<Touches>,
-    mut query: Query<(&Children, &Interaction, &Node), With<ScrollView>>,
+    mut query: Query<(&Children, &Interaction, &Node), With<Scroll>>,
     mut content_query: Query<(&mut ScrollableContent, &Node)>,
 ) {
     for touch in touches.iter() {
@@ -101,7 +109,7 @@ fn touch_pressed_move_input(
 }
 
 fn update_positions(
-    query: &mut Query<(&Children, &Interaction, &Node), With<ScrollView>>,
+    query: &mut Query<(&Children, &Interaction, &Node), With<Scroll>>,
     content_query: &mut Query<(&mut ScrollableContent, &Node)>,
     delta_y: f32,
 ) {
@@ -122,7 +130,9 @@ fn update_positions(
 
 fn mouse_wheel_input(
     mut motion_event_reader: EventReader<MouseWheel>,
-    mut query: Query<(&Children, &Interaction, &ScrollView, &Node), With<ScrollView>>,
+    mut query: Query<(&Children, &Interaction, &Scroll, &Node), With<Scroll>>,
+    // See NOTE_INTERACTABLE_CHILDREN_HACK
+    interactions_query: Query<(&Interaction), With<InScroll>>,
     mut content_query: Query<(&mut ScrollableContent, &Node)>,
     time: Res<Time>,
 ) {
@@ -131,17 +141,22 @@ fn mouse_wheel_input(
         for (children, &interaction, scroll_view, container) in query.iter_mut() {
             let y = match motion.unit {
                 MouseScrollUnit::Line => {
-                    motion.y * time.delta().as_secs_f32() * scroll_view.scroll_speed
+                    motion.y * time.delta().as_secs_f32() * scroll_view.speed
                 }
                 MouseScrollUnit::Pixel => motion.y,
             };
-            if interaction != Interaction::Hovered {
+
+            let is_any_children_hovered = interactions_query.iter().find(|interaction| {
+                **interaction == Interaction::Hovered
+            });
+
+            if interaction != Interaction::Hovered && is_any_children_hovered.is_none() {
                 continue;
             }
             let container_height = container.size().y;
             for &child in children.iter() {
                 if let Ok((mut content, node)) = content_query.get_mut(child) {
-                    let y = y * time.delta().as_secs_f32() * scroll_view.scroll_speed;
+                    let y = y * time.delta().as_secs_f32() * scroll_view.speed;
                     let max_scroll = (node.size().y - container_height).max(0.0);
                     content.y += y;
                     content.y = content.y.clamp(-max_scroll, 0.);

@@ -4,6 +4,7 @@ mod entities;
 mod plugin;
 mod party_member_ui;
 mod actions_ui;
+mod selector_ui;
 
 pub use scene::*;
 pub use storages::*;

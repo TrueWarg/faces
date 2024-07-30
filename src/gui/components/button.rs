@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use crate::gui::Container;
 
 pub struct Button {
     bundle: ButtonBundle,
@@ -37,6 +38,16 @@ impl Button {
             right: Val::Px(margin),
             top: Val::Px(margin),
             bottom: Val::Px(margin),
+        };
+        self
+    }
+
+    pub fn border_radius(&mut self, radius: f32) -> &mut Button {
+        self.bundle.border_radius = BorderRadius {
+            top_left: Val::Px(radius),
+            top_right: Val::Px(radius),
+            bottom_left: Val::Px(radius),
+            bottom_right: Val::Px(radius),
         };
         self
     }
