@@ -1,9 +1,7 @@
 use bevy::asset::Handle;
 use bevy::color::{Color, Srgba};
-use bevy::color::palettes::css::{BLUE, GRAY, RED};
-use bevy::hierarchy::BuildChildren;
-use bevy::prelude::{Commands, Component, default, Font, JustifyText, NodeBundle, Style, TextBundle, TextStyle, UiRect, Val};
-
+use bevy::color::palettes::css::{DIM_GREY, GRAY};
+use bevy::prelude::{BackgroundColor, Changed, Commands, Component, Font, Interaction, NextState, Query, ResMut, With};
 use crate::gui::{Button, Container, InScroll, Root, Scrollable, Text};
 
 pub struct Selector;
@@ -15,7 +13,34 @@ pub struct SelectorItem {
 }
 
 #[derive(Component)]
-pub struct SelectedItemPos(pub usize);
+pub struct ItemPos(pub usize);
+
+#[derive(Component)]
+pub struct SelectedItemPosHolder {
+    value: Option<usize>,
+}
+
+impl SelectedItemPosHolder {
+    pub fn new() -> Self {
+        return SelectedItemPosHolder { value: None };
+    }
+
+    fn store(&mut self, value: usize) {
+        self.value = Some(value);
+    }
+
+    pub fn take_away_unsafe(&mut self) -> usize {
+        let value = self.value.expect("Value was not be stored");
+        self.value = None;
+        return value;
+    }
+
+    pub fn take_away(&mut self) -> Option<usize> {
+        let value = self.value;
+        self.value = None;
+        return value;
+    }
+}
 
 impl Selector {
     pub fn spawn(
@@ -46,7 +71,7 @@ impl Selector {
                             button
                                 .width(600.0)
                                 .height(100.0);
-                            button.spawn(parent, (InScroll, SelectedItemPos(pos)), |parent| {
+                            button.spawn(parent, (InScroll, ItemPos(pos)), |parent| {
                                 let mut name = Container::default();
                                 name.row().justify_start();
                                 name.spawn(parent, |parent| {
@@ -61,3 +86,29 @@ impl Selector {
         });
     }
 }
+
+pub fn pick_item_handle<S>(
+    mut query: Query<
+        (&ItemPos, &Interaction, &mut BackgroundColor),
+        (Changed<Interaction>, With<ItemPos>),
+    >,
+    mut holder_query: Query<(&mut SelectedItemPosHolder)>,
+) {
+    for (button_id, interaction, mut background_color) in &mut query {
+        match *interaction {
+            Interaction::None => {
+                *background_color = DIM_GREY.into();
+            }
+            Interaction::Hovered => {
+                *background_color = HOVER_BUTTON_COLOR.into();
+            }
+            Interaction::Pressed => {
+                let mut holder = holder_query.single_mut();
+                holder.store(button_id.0);
+            }
+        }
+    }
+}
+
+/// <div style="background-color:rgb(30%, 30%, 30%); width: 10px; padding: 10px; border: 1px solid;"></div>
+const HOVER_BUTTON_COLOR: Color = Color::srgba(0.50, 0.50, 0.50, 0.7);

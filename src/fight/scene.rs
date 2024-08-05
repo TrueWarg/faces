@@ -39,7 +39,7 @@ use crate::core::states::GameState;
 use crate::fight::{Enemy, FightId, FightStorage};
 use crate::fight::actions_ui::{ActionId, ActionItem};
 use crate::fight::party_member_ui::{Health, MemberId, PartyMemberItem};
-use crate::fight::selector_ui::{Selector, SelectorItem};
+use crate::fight::selector_ui::{pick_item_handle, SelectedItemPosHolder, Selector, SelectorItem};
 use crate::gui::{Container, Root};
 use crate::party::{PartyMember, PartyStateStorage};
 use crate::rpg::{Ability, ConsumableItem, DirectionalAttack, TargetProps};
@@ -109,15 +109,16 @@ impl Plugin for FightingScene {
 
             .add_systems(OnEnter(ScreenState::AttacksList), spawn_attacks_list)
             .add_systems(OnExit(ScreenState::AttacksList), unspawn::<AttacksScreen>)
-            .add_systems(Update, attacks_inputs.run_if(in_state(ScreenState::AttacksList)))
+            .add_systems(Update, (selected_attacks_handle, pick_item_handle::<AttacksScreen>)
+                .run_if(in_state(ScreenState::AttacksList)))
 
             .add_systems(OnEnter(ScreenState::AbilitiesList), spawn_abilities_list)
             .add_systems(OnExit(ScreenState::AbilitiesList), unspawn::<AbilitiesScreen>)
-            .add_systems(Update, abilities_inputs.run_if(in_state(ScreenState::AbilitiesList)))
+            .add_systems(Update, pick_item_handle::<AbilitiesScreen>.run_if(in_state(ScreenState::AttacksList)))
 
             .add_systems(OnEnter(ScreenState::ItemsList), spawn_items_list)
             .add_systems(OnExit(ScreenState::ItemsList), unspawn::<ItemsScreen>)
-            .add_systems(Update, items_inputs.run_if(in_state(ScreenState::ItemsList)));
+            .add_systems(Update, pick_item_handle::<ItemsScreen>.run_if(in_state(ScreenState::AttacksList)));
     }
 }
 
@@ -141,14 +142,11 @@ fn actions_menu_input_handle(
                     next_state.set(ScreenState::AttacksList);
                 }
 
-
                 if button_id.0 == PROTECT_BUTTON_ID.0 {}
-
 
                 if button_id.0 == ABILITIES_BUTTON_ID.0 {
                     next_state.set(ScreenState::AbilitiesList);
                 }
-
 
                 if button_id.0 == ITEMS_BUTTON_ID.0 {
                     next_state.set(ScreenState::ItemsList);
@@ -272,7 +270,20 @@ fn spawn_attacks_list(
     ]);
 }
 
-fn attacks_inputs() {}
+fn selected_attacks_handle(
+    mut next_state: ResMut<NextState<ScreenState>>,
+    mut holder_query: Query<(&mut SelectedItemPosHolder), Changed<SelectedItemPosHolder>>,
+) {
+    for mut holder in holder_query.iter_mut() {
+        match holder.take_away() {
+            None => {}
+            Some(value) => {
+                println!("!!! value {value}");
+                next_state.set(ScreenState::Main);
+            }
+        }
+    }
+}
 
 fn spawn_abilities_list(
     mut commands: Commands,
@@ -283,8 +294,6 @@ fn spawn_abilities_list(
     // selector.spawn(&mut commands, AbilitiesScreen);
 }
 
-fn abilities_inputs() {}
-
 fn spawn_items_list(
     mut commands: Commands,
     selected_member_query: Query<(&SelectedMemberId)>,
@@ -293,8 +302,6 @@ fn spawn_items_list(
     let mut selector = Selector;
     // selector.spawn(&mut commands, ItemsScreen);
 }
-
-fn items_inputs() {}
 
 fn spawn_main(
     mut commands: Commands,
@@ -320,9 +327,11 @@ fn spawn_main(
         .insert(FightingMainScreen);
 
     root.spawn(&mut commands, FightingMainScreen, |parent| {
-        let default_selected = members.first().expect("").id.clone();
+        let default_selected = members.first().expect("Members should not be empty").id.clone();
         parent.spawn(SelectedMemberId(default_selected));
         parent.spawn(Consumables { items });
+        parent.spawn(SelectedItemPosHolder::new());
+
         main_container.spawn(parent, |parent| {
             spawn_fight_area(parent, 70.0, &asset_server, fight.enemies);
             spawn_player_menu(parent, 30.0, &asset_server, members);
