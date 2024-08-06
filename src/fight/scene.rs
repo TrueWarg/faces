@@ -210,7 +210,7 @@ fn party_state_changes(
     parent_query: Query<(&PartyMember, &Children),
         (Changed<PartyMember>),
     >,
-    mut children_query: Query<(&mut Text), (With<Health>),
+    mut children_query: Query<(&mut Text), With<Health>,
     >,
 ) {
     for (member, mut children) in parent_query.iter() {
@@ -233,15 +233,15 @@ fn spawn_attacks_list(
     selector.spawn(&mut commands, AttacksScreen, &font, vec![
         SelectorItem {
             name: "Name 1".to_string(),
-            description: "".to_string(),
+            description: "Name 1Name 1Name 1Name 1Name 1Name 1Name 1Name 1Name 1Name 1Name 1Name 1Name 1Name 1".to_string(),
         },
         SelectorItem {
             name: "Name 2".to_string(),
-            description: "".to_string(),
+            description: "SDfsdf sdfsd dsfsldfjasljfasld, sdkf;sdfjsdkfm sdlkfjsadjflsdjf, sdlfjsldjflsdflalf".to_string(),
         },
         SelectorItem {
             name: "Name 3".to_string(),
-            description: "".to_string(),
+            description: "EwefwEWEFwfwEFWEf WEfwef. WEFWEFWEFWEFEWWWWWWWW WWWWWWWWWWWWWWWW WWWWWWWWefWEFWEFWEFWEFWEF".to_string(),
         },
         SelectorItem {
             name: "Name 4".to_string(),

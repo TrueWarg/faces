@@ -1,7 +1,9 @@
 use bevy::asset::Handle;
 use bevy::color::Color;
 use bevy::hierarchy::ChildBuilder;
-use bevy::prelude::{Bundle, Font, JustifyText, TextBundle, TextSection, TextStyle};
+use bevy::prelude::{Bundle, Font, JustifyText, TextBundle, TextSection, TextStyle, UiRect, Val};
+use bevy::ui::AlignContent;
+use crate::gui::{Button, Container};
 
 pub struct Text {
     bundle: TextBundle,
@@ -57,6 +59,33 @@ impl Text {
 
     pub fn set_color(&mut self, color: Color) -> &mut Self {
         self.for_each_section(|section| section.style.color = color);
+        self
+    }
+
+    pub fn size_percentage(&mut self, width: f32, height: f32) -> &mut Self {
+        self.bundle.style.width = Val::Percent(width);
+        self.bundle.style.height = Val::Percent(height);
+        self
+    }
+
+    pub fn width_percentage(&mut self, width: f32) -> &mut Self {
+        self.bundle.style.width = Val::Percent(width);
+        self
+    }
+
+    pub fn justify_start(mut self) -> Self {
+        let new_bundle = self.bundle.with_text_justify(JustifyText::Left);
+        self.bundle = new_bundle;
+        self
+    }
+
+    pub fn margin(&mut self, margin: f32) -> &mut Self {
+        self.bundle.style.margin = UiRect {
+            left: Val::Px(margin),
+            right: Val::Px(margin),
+            top: Val::Px(margin),
+            bottom: Val::Px(margin),
+        };
         self
     }
 
