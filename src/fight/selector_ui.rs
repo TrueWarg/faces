@@ -65,14 +65,14 @@ impl Selector {
                 scrollable.spawn(parent, |parent| {
                     for (pos, item) in items.iter().enumerate() {
                         let mut wrapper = Container::auto();
-                        wrapper.margin(10.0);
                         wrapper.spawn(parent, |parent| {
                             let mut button = Button::default();
                             button
-                                .width(600.0)
+                                .width_percentage(100.0)
                                 .height(100.0);
                             button.spawn(parent, (InScroll, ItemPos(pos)), |parent| {
                                 let mut name = Container::default();
+                                name.margin(10.0);
                                 name.row().justify_start();
                                 name.spawn(parent, |parent| {
                                     let text = Text::medium(&item.name, font);
@@ -97,7 +97,7 @@ pub fn pick_item_handle<S>(
     for (button_id, interaction, mut background_color) in &mut query {
         match *interaction {
             Interaction::None => {
-                *background_color = DIM_GREY.into();
+                *background_color = Color::NONE.into();
             }
             Interaction::Hovered => {
                 *background_color = HOVER_BUTTON_COLOR.into();

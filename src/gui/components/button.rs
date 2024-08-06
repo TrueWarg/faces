@@ -32,6 +32,11 @@ impl Button {
         self
     }
 
+    pub fn width_percentage(&mut self, width: f32) -> &mut Button {
+        self.bundle.style.width = Val::Percent(width);
+        self
+    }
+
     pub fn margin(&mut self, margin: f32) -> &mut Button {
         self.bundle.style.margin = UiRect {
             left: Val::Px(margin),
