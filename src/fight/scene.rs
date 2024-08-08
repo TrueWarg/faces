@@ -39,7 +39,9 @@ use crate::core::states::GameState;
 use crate::fight::{Enemy, FightId, FightStorage};
 use crate::fight::actions_ui::{ActionId, ActionItem};
 use crate::fight::party_member_ui::{Health, MemberId, PartyMemberItem};
-use crate::fight::selector_ui::{pick_item_handle, SelectedItemPosHolder, Selector, SelectorItem};
+use crate::fight::selector_ui::{pick_item_handle, SelectedItemPosHolder, Selector};
+use crate::fight::mappers::AsSelectorItem;
+use crate::fight::scene::ScreenState::AbilitiesList;
 use crate::gui::{Container, Root};
 use crate::party::{PartyMember, PartyStateStorage};
 use crate::rpg::{Ability, ConsumableItem, DirectionalAttack, TargetProps};
@@ -109,16 +111,18 @@ impl Plugin for FightingScene {
 
             .add_systems(OnEnter(ScreenState::AttacksList), spawn_attacks_list)
             .add_systems(OnExit(ScreenState::AttacksList), unspawn::<AttacksScreen>)
-            .add_systems(Update, (selected_attacks_handle, pick_item_handle::<AttacksScreen>)
+            .add_systems(Update, (selected_item_handle::<AttacksScreen>, pick_item_handle::<AttacksScreen>)
                 .run_if(in_state(ScreenState::AttacksList)))
 
             .add_systems(OnEnter(ScreenState::AbilitiesList), spawn_abilities_list)
             .add_systems(OnExit(ScreenState::AbilitiesList), unspawn::<AbilitiesScreen>)
-            .add_systems(Update, pick_item_handle::<AbilitiesScreen>.run_if(in_state(ScreenState::AttacksList)))
+            .add_systems(Update, (selected_item_handle::<AttacksScreen>, pick_item_handle::<AbilitiesScreen>)
+                .run_if(in_state(ScreenState::AbilitiesList)))
 
             .add_systems(OnEnter(ScreenState::ItemsList), spawn_items_list)
             .add_systems(OnExit(ScreenState::ItemsList), unspawn::<ItemsScreen>)
-            .add_systems(Update, pick_item_handle::<ItemsScreen>.run_if(in_state(ScreenState::AttacksList)));
+            .add_systems(Update, (selected_item_handle::<AttacksScreen>, pick_item_handle::<ItemsScreen>)
+                .run_if(in_state(ScreenState::ItemsList)));
     }
 }
 
@@ -228,49 +232,15 @@ fn spawn_attacks_list(
     attacks_query: Query<(&Attacks)>,
 ) {
     let font = asset_server.load("fonts/quattrocentoSans-Bold.ttf");
-
+    let selected_member = selected_member_query.single();
+    let attacks = &attacks_query.single().items[&selected_member.0];
+    let items = attacks.iter().map(|attack| { attack.as_selector_item() }).collect();
     let mut selector = Selector;
-    selector.spawn(&mut commands, AttacksScreen, &font, vec![
-        SelectorItem {
-            name: "Name 1".to_string(),
-            description: "Name 1Name 1Name 1Name 1Name 1Name 1Name 1Name 1Name 1Name 1Name 1Name 1Name 1Name 1".to_string(),
-        },
-        SelectorItem {
-            name: "Name 2".to_string(),
-            description: "SDfsdf sdfsd dsfsldfjasljfasld, sdkf;sdfjsdkfm sdlkfjsadjflsdjf, sdlfjsldjflsdflalf".to_string(),
-        },
-        SelectorItem {
-            name: "Name 3".to_string(),
-            description: "EwefwEWEFwfwEFWEf WEfwef. WEFWEFWEFWEFEWWWWWWWW WWWWWWWWWWWWWWWW WWWWWWWWefWEFWEFWEFWEFWEF".to_string(),
-        },
-        SelectorItem {
-            name: "Name 4".to_string(),
-            description: "".to_string(),
-        },
-        SelectorItem {
-            name: "Name 5".to_string(),
-            description: "".to_string(),
-        },
-        SelectorItem {
-            name: "Name 6".to_string(),
-            description: "".to_string(),
-        },
-        SelectorItem {
-            name: "Name 7".to_string(),
-            description: "".to_string(),
-        },
-        SelectorItem {
-            name: "Name 8".to_string(),
-            description: "".to_string(),
-        },
-        SelectorItem {
-            name: "Name 9".to_string(),
-            description: "".to_string(),
-        },
-    ]);
+    selector.spawn(&mut commands, AttacksScreen, &font, items);
 }
 
-fn selected_attacks_handle(
+fn selected_item_handle<S>(
+    current_state: Res<State<ScreenState>>,
     mut next_state: ResMut<NextState<ScreenState>>,
     mut holder_query: Query<(&mut SelectedItemPosHolder), Changed<SelectedItemPosHolder>>,
 ) {
@@ -278,7 +248,8 @@ fn selected_attacks_handle(
         match holder.take_away() {
             None => {}
             Some(value) => {
-                println!("!!! value {value}");
+                let screen = current_state.get();
+                println!("!!! [{:?}] value {value}", screen);
                 next_state.set(ScreenState::Main);
             }
         }
@@ -287,20 +258,28 @@ fn selected_attacks_handle(
 
 fn spawn_abilities_list(
     mut commands: Commands,
+    asset_server: Res<AssetServer>,
     selected_member_query: Query<(&SelectedMemberId)>,
-    attacks_query: Query<(&Attacks)>,
+    abilities_query: Query<(&Abilities)>,
 ) {
+    let font = asset_server.load("fonts/quattrocentoSans-Bold.ttf");
+    let selected_member = selected_member_query.single();
+    let abilities = &abilities_query.single().items[&selected_member.0];
+    let items = abilities.iter().map(|ability| { ability.as_selector_item() }).collect();
     let mut selector = Selector;
-    // selector.spawn(&mut commands, AbilitiesScreen);
+    selector.spawn(&mut commands, AbilitiesScreen, &font, items);
 }
 
 fn spawn_items_list(
     mut commands: Commands,
-    selected_member_query: Query<(&SelectedMemberId)>,
-    attacks_query: Query<(&Attacks)>,
+    asset_server: Res<AssetServer>,
+    consumables_query: Query<(&Consumables)>,
 ) {
+    let font = asset_server.load("fonts/quattrocentoSans-Bold.ttf");
+    let consumables = &consumables_query.single().items;
+    let items = consumables.iter().map(|consumable| { consumable.as_selector_item() }).collect();
     let mut selector = Selector;
-    // selector.spawn(&mut commands, ItemsScreen);
+    selector.spawn(&mut commands, ItemsScreen, &font, items);
 }
 
 fn spawn_main(
