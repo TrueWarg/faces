@@ -2,8 +2,8 @@ use bevy::{
     app::Update,
     asset::{AssetServer, Handle},
     color::palettes::css::ANTIQUE_WHITE,
-    color::palettes::css::DIM_GREY,
-    color::palettes::css::OLIVE,
+    color::palettes::css::DIM_GREY
+    ,
     color::palettes::css::SILVER,
     hierarchy::{Children, DespawnRecursiveExt},
     prelude::AppExtStates,
@@ -31,6 +31,7 @@ use bevy::{
     text::Text,
 };
 use bevy::color::palettes::basic::YELLOW;
+use bevy::color::palettes::css::BLUE;
 use bevy::input::ButtonInput;
 use bevy::prelude::{KeyCode, State};
 use bevy::utils::HashSet;
@@ -39,9 +40,10 @@ use hashlink::LinkedHashMap;
 use crate::core::states::GameState;
 use crate::fight::{ActionTarget, Enemy, FightId, FightStorage};
 use crate::fight::actions_ui::{ActionId, ActionItem};
+use crate::fight::enemy_ui::{EnemyId, EnemyItem};
+use crate::fight::mappers::{GetActionTarget, GetSelectorItem};
 use crate::fight::party_member_ui::{Health, MemberId, PartyMemberItem};
 use crate::fight::selector_ui::{pick_item_handle, SelectedItemPosHolder, Selector};
-use crate::fight::mappers::{GetActionTarget, GetSelectorItem};
 use crate::gui::{Container, Root};
 use crate::party::{PartyMember, PartyStateStorage};
 use crate::rpg::{Ability, ConsumableItem, DirectionalAttack, TargetProps};
@@ -104,6 +106,23 @@ struct AvailableMembers {
 #[derive(Component)]
 struct CurrentAllyStep(Option<AllyStep>);
 
+impl CurrentAllyStep {
+    fn set_target_id(&mut self, id: usize) {
+        match &mut self.0 {
+            None => {}
+            Some(step) => match step {
+                AllyStep::OnEnemy { action, member_id, mut target_id } => {
+                    target_id = Some(id);
+                }
+                AllyStep::OnAlly { action, member_id, mut target_id } => {
+                    target_id = Some(id)
+                }
+                AllyStep::Guard => {}
+            },
+        }
+    }
+}
+
 #[derive(Component)]
 enum AllyStep {
     OnEnemy {
@@ -156,7 +175,11 @@ impl Plugin for FightingScene {
             .add_systems(OnEnter(ScreenState::ItemsList), spawn_items_list)
             .add_systems(OnExit(ScreenState::ItemsList), unspawn::<ItemsScreen>)
             .add_systems(Update, (selected_consumable_handle, pick_item_handle::<ItemsScreen>)
-                .run_if(in_state(ScreenState::ItemsList)));
+                .run_if(in_state(ScreenState::ItemsList)))
+
+            .add_systems(Update, target_enemy_selection_input_handle.run_if(in_state(ScreenState::SelectEnemyTarget)))
+
+            .add_systems(Update, target_ally_selection_input_handle.run_if(in_state(ScreenState::SelectAllyTarget)));
     }
 }
 
@@ -244,6 +267,31 @@ fn party_member_selection_state_changes(
     }
 }
 
+fn target_ally_selection_input_handle(
+    mut next_state: ResMut<NextState<ScreenState>>,
+    mut query: Query<
+        (&MemberId, &Interaction, &mut BackgroundColor),
+        (Changed<Interaction>, With<MemberId>),
+    >,
+    mut current_step_query: Query<(&mut CurrentAllyStep)>,
+) {
+    for (id, interaction, mut background) in &mut query {
+        match interaction {
+            Interaction::None => {
+                *background = ANTIQUE_WHITE.into();
+            }
+            Interaction::Hovered => {
+                *background = BLUE.into();
+            }
+            Interaction::Pressed => {
+                let mut step = current_step_query.single_mut();
+                step.set_target_id(id.0);
+                next_state.set(ScreenState::PlayerStepApply);
+            }
+        }
+    }
+}
+
 fn party_state_changes(
     parent_query: Query<(&PartyMember, &Children),
         (Changed<PartyMember>),
@@ -258,6 +306,32 @@ fn party_state_changes(
         }
     }
 }
+
+fn target_enemy_selection_input_handle(
+    mut next_state: ResMut<NextState<ScreenState>>,
+    mut query: Query<
+        (&EnemyId, &Interaction, &mut BackgroundColor),
+        (Changed<Interaction>, With<EnemyId>),
+    >,
+    mut current_step_query: Query<(&mut CurrentAllyStep)>,
+) {
+    for (id, interaction, mut background) in &mut query {
+        match interaction {
+            Interaction::None => {
+                *background = ANTIQUE_WHITE.into();
+            }
+            Interaction::Hovered => {
+                *background = HOVER_BUTTON_COLOR.into();
+            }
+            Interaction::Pressed => {
+                let mut step = current_step_query.single_mut();
+                step.set_target_id(id.0);
+                next_state.set(ScreenState::PlayerStepApply);
+            }
+        }
+    }
+}
+
 
 fn spawn_attacks_list(
     mut commands: Commands,
@@ -358,7 +432,7 @@ fn selected_consumable_handle(
                     member_id: selected_member.0,
                     target_id: None,
                 });
-                next_state.set(ScreenState::SelectEnemyTarget);
+                next_state.set(ScreenState::SelectAllyTarget);
             }
         }
     }
@@ -437,7 +511,7 @@ fn spawn_fight_area(
     let mut main_container = Container::size_percentage(100.0, height_percent);
     main_container.row().justify_around();
     main_container.spawn(parent, |parent| {
-        for enemy in &enemies {
+        for enemy in enemies {
             spawn_enemy_item(parent, asset_server, enemy);
         }
     });
@@ -446,13 +520,15 @@ fn spawn_fight_area(
 fn spawn_enemy_item(
     parent: &mut ChildBuilder,
     asset_server: &Res<AssetServer>,
-    enemy: &Enemy,
+    enemy: Enemy,
 ) {
     let mut main_container = Container::size_percentage(20.0, 80.0);
     main_container
-        .background_color(Color::from(OLIVE))
         .margin(25.0);
-    main_container.spawn(parent, |parent| {});
+    main_container.spawn_with_payload(parent, enemy.target, |parent| {
+        let item = EnemyItem::new(enemy.id);
+        item.spawn(parent)
+    });
 }
 
 fn spawn_player_menu(

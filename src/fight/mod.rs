@@ -6,6 +6,7 @@ mod party_member_ui;
 mod actions_ui;
 mod selector_ui;
 mod mappers;
+mod enemy_ui;
 
 pub use scene::*;
 pub use storages::*;
