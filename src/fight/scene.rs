@@ -33,15 +33,15 @@ use bevy::{
 use bevy::color::palettes::basic::YELLOW;
 use bevy::input::ButtonInput;
 use bevy::prelude::{KeyCode, State};
+use bevy::utils::HashSet;
 use hashlink::LinkedHashMap;
 
 use crate::core::states::GameState;
-use crate::fight::{Enemy, FightId, FightStorage};
+use crate::fight::{ActionTarget, Enemy, FightId, FightStorage};
 use crate::fight::actions_ui::{ActionId, ActionItem};
 use crate::fight::party_member_ui::{Health, MemberId, PartyMemberItem};
 use crate::fight::selector_ui::{pick_item_handle, SelectedItemPosHolder, Selector};
-use crate::fight::mappers::AsSelectorItem;
-use crate::fight::scene::ScreenState::AbilitiesList;
+use crate::fight::mappers::{GetActionTarget, GetSelectorItem};
 use crate::gui::{Container, Root};
 use crate::party::{PartyMember, PartyStateStorage};
 use crate::rpg::{Ability, ConsumableItem, DirectionalAttack, TargetProps};
@@ -55,6 +55,10 @@ enum ScreenState {
     AttacksList,
     AbilitiesList,
     ItemsList,
+    SelectEnemyTarget,
+    SelectAllyTarget,
+    PlayerStepApply,
+    EnemyStep,
 }
 
 #[derive(Component)]
@@ -75,21 +79,51 @@ struct AbilitiesScreen;
 struct ItemsScreen;
 
 #[derive(Component)]
-pub struct SelectedMemberId(pub String);
+pub struct SelectedMemberId(pub usize);
 
 #[derive(Component)]
 struct Attacks {
-    items: LinkedHashMap<String, Vec<DirectionalAttack>>,
+    items: LinkedHashMap<usize, Vec<DirectionalAttack>>,
 }
 
 #[derive(Component)]
 struct Abilities {
-    items: LinkedHashMap<String, Vec<Ability>>,
+    items: LinkedHashMap<usize, Vec<Ability>>,
 }
 
 #[derive(Component)]
 struct Consumables {
     items: Vec<ConsumableItem>,
+}
+
+#[derive(Component)]
+struct AvailableMembers {
+    ids: HashSet<usize>,
+}
+
+#[derive(Component)]
+struct CurrentAllyStep(Option<AllyStep>);
+
+#[derive(Component)]
+enum AllyStep {
+    OnEnemy {
+        action: StepAction,
+        member_id: usize,
+        target_id: Option<usize>,
+    },
+    OnAlly {
+        action: StepAction,
+        member_id: usize,
+        target_id: Option<usize>,
+    },
+    Guard,
+}
+
+#[derive(Component)]
+enum StepAction {
+    Attack(DirectionalAttack),
+    Ability(Ability),
+    Consumable(ConsumableItem),
 }
 
 impl Plugin for FightingScene {
@@ -111,17 +145,17 @@ impl Plugin for FightingScene {
 
             .add_systems(OnEnter(ScreenState::AttacksList), spawn_attacks_list)
             .add_systems(OnExit(ScreenState::AttacksList), unspawn::<AttacksScreen>)
-            .add_systems(Update, (selected_item_handle::<AttacksScreen>, pick_item_handle::<AttacksScreen>)
+            .add_systems(Update, (selected_attacks_handle, pick_item_handle::<AttacksScreen>)
                 .run_if(in_state(ScreenState::AttacksList)))
 
             .add_systems(OnEnter(ScreenState::AbilitiesList), spawn_abilities_list)
             .add_systems(OnExit(ScreenState::AbilitiesList), unspawn::<AbilitiesScreen>)
-            .add_systems(Update, (selected_item_handle::<AttacksScreen>, pick_item_handle::<AbilitiesScreen>)
+            .add_systems(Update, (selected_ability_handle, pick_item_handle::<AbilitiesScreen>)
                 .run_if(in_state(ScreenState::AbilitiesList)))
 
             .add_systems(OnEnter(ScreenState::ItemsList), spawn_items_list)
             .add_systems(OnExit(ScreenState::ItemsList), unspawn::<ItemsScreen>)
-            .add_systems(Update, (selected_item_handle::<AttacksScreen>, pick_item_handle::<ItemsScreen>)
+            .add_systems(Update, (selected_consumable_handle, pick_item_handle::<ItemsScreen>)
                 .run_if(in_state(ScreenState::ItemsList)));
     }
 }
@@ -187,7 +221,7 @@ fn party_member_selection_input_handle(
             Interaction::Hovered => {}
             Interaction::Pressed => {
                 let mut new_id = selected_member_query.single_mut();
-                *new_id = SelectedMemberId((*member_id).0.clone());
+                *new_id = SelectedMemberId((*member_id).0);
             }
         }
     }
@@ -234,27 +268,102 @@ fn spawn_attacks_list(
     let font = asset_server.load("fonts/quattrocentoSans-Bold.ttf");
     let selected_member = selected_member_query.single();
     let attacks = &attacks_query.single().items[&selected_member.0];
-    let items = attacks.iter().map(|attack| { attack.as_selector_item() }).collect();
+    let items = attacks.iter().map(|attack| { attack.selector_item() }).collect();
     let mut selector = Selector;
     selector.spawn(&mut commands, AttacksScreen, &font, items);
 }
 
-fn selected_item_handle<S>(
-    current_state: Res<State<ScreenState>>,
+fn selected_attacks_handle(
     mut next_state: ResMut<NextState<ScreenState>>,
+    selected_member_query: Query<(&SelectedMemberId)>,
+    mut current_step_query: Query<(&mut CurrentAllyStep)>,
+    attacks_query: Query<(&Attacks)>,
     mut holder_query: Query<(&mut SelectedItemPosHolder), Changed<SelectedItemPosHolder>>,
 ) {
     for mut holder in holder_query.iter_mut() {
         match holder.take_away() {
             None => {}
             Some(value) => {
-                let screen = current_state.get();
-                println!("!!! [{:?}] value {value}", screen);
-                next_state.set(ScreenState::Main);
+                let selected_member = selected_member_query.single();
+                let attacks = &attacks_query.single().items[&selected_member.0];
+                let attack = &attacks[value];
+                let mut current_step = current_step_query.single_mut();
+                current_step.0 = Some(AllyStep::OnEnemy {
+                    action: StepAction::Attack(attack.clone()),
+                    member_id: selected_member.0,
+                    target_id: None,
+                });
+                next_state.set(ScreenState::SelectEnemyTarget);
             }
         }
     }
 }
+
+fn selected_ability_handle(
+    mut next_state: ResMut<NextState<ScreenState>>,
+    selected_member_query: Query<(&SelectedMemberId)>,
+    mut current_step_query: Query<(&mut CurrentAllyStep)>,
+    abilities_query: Query<(&Abilities)>,
+    mut holder_query: Query<(&mut SelectedItemPosHolder), Changed<SelectedItemPosHolder>>,
+) {
+    for mut holder in holder_query.iter_mut() {
+        match holder.take_away() {
+            None => {}
+            Some(value) => {
+                let selected_member = selected_member_query.single();
+                let abilities = &abilities_query.single().items[&selected_member.0];
+                let ability = &abilities[value];
+                let mut current_step = current_step_query.single_mut();
+                let target_direction = ability.action_target();
+                match target_direction {
+                    ActionTarget::Enemy => {
+                        current_step.0 = Some(AllyStep::OnEnemy {
+                            action: StepAction::Ability(ability.clone()),
+                            member_id: selected_member.0,
+                            target_id: None,
+                        });
+                        next_state.set(ScreenState::SelectEnemyTarget);
+                    }
+                    ActionTarget::Ally => {
+                        current_step.0 = Some(AllyStep::OnAlly {
+                            action: StepAction::Ability(ability.clone()),
+                            member_id: selected_member.0,
+                            target_id: None,
+                        });
+                        next_state.set(ScreenState::SelectAllyTarget);
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn selected_consumable_handle(
+    mut next_state: ResMut<NextState<ScreenState>>,
+    selected_member_query: Query<(&SelectedMemberId)>,
+    mut current_step_query: Query<(&mut CurrentAllyStep)>,
+    consumables_query: Query<(&Consumables)>,
+    mut holder_query: Query<(&mut SelectedItemPosHolder), Changed<SelectedItemPosHolder>>,
+) {
+    for mut holder in holder_query.iter_mut() {
+        match holder.take_away() {
+            None => {}
+            Some(value) => {
+                let selected_member = selected_member_query.single();
+                let items = &consumables_query.single().items;
+                let item = &items[value];
+                let mut current_step = current_step_query.single_mut();
+                current_step.0 = Some(AllyStep::OnAlly {
+                    action: StepAction::Consumable(item.clone()),
+                    member_id: selected_member.0,
+                    target_id: None,
+                });
+                next_state.set(ScreenState::SelectEnemyTarget);
+            }
+        }
+    }
+}
+
 
 fn spawn_abilities_list(
     mut commands: Commands,
@@ -265,7 +374,7 @@ fn spawn_abilities_list(
     let font = asset_server.load("fonts/quattrocentoSans-Bold.ttf");
     let selected_member = selected_member_query.single();
     let abilities = &abilities_query.single().items[&selected_member.0];
-    let items = abilities.iter().map(|ability| { ability.as_selector_item() }).collect();
+    let items = abilities.iter().map(|ability| { ability.selector_item() }).collect();
     let mut selector = Selector;
     selector.spawn(&mut commands, AbilitiesScreen, &font, items);
 }
@@ -277,7 +386,7 @@ fn spawn_items_list(
 ) {
     let font = asset_server.load("fonts/quattrocentoSans-Bold.ttf");
     let consumables = &consumables_query.single().items;
-    let items = consumables.iter().map(|consumable| { consumable.as_selector_item() }).collect();
+    let items = consumables.iter().map(|consumable| { consumable.selector_item() }).collect();
     let mut selector = Selector;
     selector.spawn(&mut commands, ItemsScreen, &font, items);
 }
@@ -306,11 +415,12 @@ fn spawn_main(
         .insert(FightingMainScreen);
 
     root.spawn(&mut commands, FightingMainScreen, |parent| {
-        let default_selected = members.first().expect("Members should not be empty").id.clone();
+        let default_selected = members.first().expect("Members should not be empty").id;
         parent.spawn(SelectedMemberId(default_selected));
         parent.spawn(Consumables { items });
         parent.spawn(SelectedItemPosHolder::new());
-
+        parent.spawn(CurrentAllyStep(None));
+        // parent.spawn(AvailableMembers { ids: HashSet::new() });
         main_container.spawn(parent, |parent| {
             spawn_fight_area(parent, 70.0, &asset_server, fight.enemies);
             spawn_player_menu(parent, 30.0, &asset_server, members);
@@ -373,8 +483,8 @@ fn spawn_player_menu(
             let mut attacks = LinkedHashMap::new();
             let mut abilities = LinkedHashMap::new();
             for item in members {
-                attacks.insert(item.id.clone(), item.attacks);
-                abilities.insert(item.id.clone(), item.abilities);
+                attacks.insert(item.id, item.attacks);
+                abilities.insert(item.id, item.abilities);
                 spawn_ally_item(parent, asset_server, item.id, item.target);
             }
             parent.spawn(Attacks { items: attacks });
@@ -389,7 +499,7 @@ fn spawn_player_menu(
 fn spawn_ally_item(
     parent: &mut ChildBuilder,
     asset_server: &Res<AssetServer>,
-    member_id: String,
+    member_id: usize,
     props: TargetProps,
 ) {
     let font = asset_server.load("fonts/quattrocentoSans-Bold.ttf");

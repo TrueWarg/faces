@@ -1,19 +1,18 @@
 use bevy::prelude::Component;
-use crate::rpg::{DirectionalAction, TargetProps};
 
-#[derive(Component)]
+#[derive(Component, Clone)]
 pub enum ConsumableItem {
     Dumplings(Dumplings),
     Venison(Venison),
 }
 
-#[derive(Component)]
+#[derive(Component, Clone)]
 pub struct Dumplings {
     pub health: i32,
     pub energy: i32,
 }
 
-#[derive(Component)]
+#[derive(Component, Clone)]
 pub struct Venison {
     pub health: i32,
     pub energy: i32,

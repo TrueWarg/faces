@@ -20,3 +20,8 @@ pub struct Enemy {
 
 #[derive(Component)]
 pub struct FightId(pub usize);
+
+pub enum  ActionTarget {
+    Enemy,
+    Ally,
+}

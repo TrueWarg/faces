@@ -10,7 +10,7 @@ pub struct PartyMemberItem {
 }
 
 #[derive(Component)]
-pub struct MemberId(pub String);
+pub struct MemberId(pub usize);
 
 #[derive(Component)]
 pub struct Health;
@@ -19,7 +19,7 @@ pub struct Health;
 pub struct Energy;
 
 impl PartyMemberItem {
-    pub fn new(id: String) -> PartyMemberItem {
+    pub fn new(id: usize) -> PartyMemberItem {
         return PartyMemberItem { id: MemberId(id)};
     }
 

@@ -13,7 +13,7 @@ impl PartyStateStorage {
     pub fn get_fight_party_members(&self) -> Vec<PartyMember> {
         return vec![
             PartyMember {
-                id: "0".to_string(),
+                id: 0,
                 name: "".to_string(),
                 asset_path: "".to_string(),
                 target: TargetProps {
@@ -35,10 +35,12 @@ impl PartyStateStorage {
                     DirectionalAttack::Punch { damage: 2 },
                     DirectionalAttack::Punch { damage: 3 },
                 ],
-                abilities: vec![],
+                abilities: vec![
+                    Ability::WoundsLicking { health: 4, cost: 3 },
+                ],
             },
             PartyMember {
-                id: "1".to_string(),
+                id: 1,
                 name: "".to_string(),
                 asset_path: "".to_string(),
                 target: TargetProps {
@@ -62,11 +64,11 @@ impl PartyStateStorage {
                     DirectionalAttack::Punch { damage: 3 },
                 ],
                 abilities: vec![
-                    Ability::NeckTwist { damage: 0 },
-                    Ability::NeckTwist { damage: 0 },
-                    Ability::NeckTwist { damage: 0 },
-                    Ability::NeckTwist { damage: 0 },
-                    Ability::NeckTwist { damage: 0 },
+                    Ability::NeckTwist { damage: 0, cost: 0 },
+                    Ability::NeckTwist { damage: 0, cost: 0 },
+                    Ability::NeckTwist { damage: 0, cost: 0 },
+                    Ability::NeckTwist { damage: 0, cost: 0 },
+                    Ability::NeckTwist { damage: 0, cost: 0 },
                 ],
             },
         ];

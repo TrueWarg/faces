@@ -3,7 +3,7 @@ use crate::rpg::{Ability, DirectionalAttack, TargetProps};
 
 #[derive(Component, PartialEq, Clone)]
 pub struct PartyMember {
-    pub id: String,
+    pub id: usize,
     pub name: String,
     pub asset_path: String,
     pub target: TargetProps,

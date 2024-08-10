@@ -4,5 +4,10 @@ use bevy::prelude::Component;
 pub enum Ability {
     NeckTwist {
         damage: i32,
+        cost: i32,
+    },
+    WoundsLicking {
+        health: i32,
+        cost: i32,
     }
 }
