@@ -30,7 +30,7 @@ pub fn test_fights() -> HashMap<usize, Fight> {
         TEST_FIGHT_ID_0.0,
         Fight {
             id: TEST_FIGHT_ID_0,
-            arena_bg_path: "background/test_bg.png".to_string(),
+            arena_bg_path: "background/fight/gopniks_1.png".to_string(),
             enemies: vec![
                 Enemy {
                     id: 0,
