@@ -2,8 +2,6 @@ use bevy::asset::Handle;
 use bevy::color::Color;
 use bevy::hierarchy::ChildBuilder;
 use bevy::prelude::{Bundle, Font, JustifyText, TextBundle, TextSection, TextStyle, UiRect, Val};
-use bevy::ui::AlignContent;
-use crate::gui::{Button, Container};
 
 pub struct Text {
     bundle: TextBundle,

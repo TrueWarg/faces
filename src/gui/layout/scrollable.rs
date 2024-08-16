@@ -2,7 +2,7 @@ use bevy::color::Color;
 use bevy::hierarchy::{BuildChildren, ChildBuilder};
 use bevy::prelude::{default, FlexDirection, NodeBundle, Style, Val};
 
-use crate::gui::{Container, Scroll, ScrollableContent};
+use crate::gui::{Scroll, ScrollableContent};
 
 pub struct Scrollable {
     bundle: NodeBundle,

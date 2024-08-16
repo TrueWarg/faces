@@ -4,6 +4,7 @@ use bevy::{
     window::{Window, WindowPlugin},
 };
 use bevy::prelude::AppExtStates;
+use bevy::window::WindowMode;
 use bevy_rapier2d::prelude::{NoUserData, RapierPhysicsPlugin};
 
 use player::resources::PlayerAnimations;
@@ -37,6 +38,7 @@ fn main() {
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 title: "Faces".to_string(),
+                mode: WindowMode::BorderlessFullscreen,
                 ..Default::default()
             }),
             ..Default::default()
