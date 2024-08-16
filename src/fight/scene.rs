@@ -33,8 +33,12 @@ use bevy::{
 use bevy::color::palettes::basic::YELLOW;
 use bevy::color::palettes::css::BLUE;
 use bevy::input::ButtonInput;
-use bevy::prelude::{KeyCode, State};
+use bevy::math::{UVec2, Vec3};
+use bevy::prelude::{default, Display, ImageBundle, KeyCode, State, Style, Transform, UiImage};
+use bevy::ui::{ContentSize, Node, NodeMeasure};
+use bevy::ui::widget::{ImageMeasure, UiImageSize};
 use bevy::utils::HashSet;
+use bevy::window::Window;
 use hashlink::LinkedHashMap;
 
 use crate::core::states::GameState;
@@ -482,11 +486,18 @@ fn spawn_main(
     let mut main_container = Container::default();
     main_container.align_start();
 
-    commands.spawn(SpriteBundle {
-        texture: asset_server.load(&fight.arena_bg_path),
-        ..Default::default()
-    })
-        .insert(FightingMainScreen);
+    let mut arena_container = Root::size_percentage(100.0, 70.0);
+    arena_container.spawn(&mut commands, FightingMainScreen, |parent| {
+        parent.spawn(
+            ImageBundle {
+                image: UiImage {
+                    texture: asset_server.load(&fight.arena_bg_path),
+                    ..default()
+                },
+                transform: Transform::from_scale(Vec3::new(0.75, 0.65, 1.0)),
+                ..default()
+            });
+    });
 
     root.spawn(&mut commands, FightingMainScreen, |parent| {
         let default_selected = members.first().expect("Members should not be empty").id;
@@ -499,7 +510,7 @@ fn spawn_main(
             spawn_fight_area(parent, 70.0, &asset_server, fight.enemies);
             spawn_player_menu(parent, 30.0, &asset_server, members);
         })
-    })
+    });
 }
 
 fn spawn_fight_area(
@@ -512,7 +523,7 @@ fn spawn_fight_area(
     main_container.row().justify_around();
     main_container.spawn(parent, |parent| {
         for enemy in enemies {
-            spawn_enemy_item(parent, asset_server, enemy);
+            // spawn_enemy_item(parent, asset_server, enemy);
         }
     });
 }

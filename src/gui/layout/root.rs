@@ -25,6 +25,13 @@ impl Default for Root {
 }
 
 impl Root {
+    pub fn size_percentage(width: f32, height: f32) -> Root {
+        let mut root = Self::default();
+        root.bundle.style.width = Val::Percent(width);
+        root.bundle.style.height = Val::Percent(height);
+        root
+    }
+
     pub fn background_color(&mut self, color: Color) -> &mut Root {
         self.bundle.background_color = color.into();
         self
