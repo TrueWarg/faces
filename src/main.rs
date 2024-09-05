@@ -12,7 +12,7 @@ use player::resources::PlayerAnimations;
 use crate::core::states::GameState;
 use crate::dev::DevSettingsPlugin;
 use crate::fight::{FightingScene, FightPlugin};
-use crate::gui::VerticalScrollPlugin;
+use crate::gui::UiPlugin;
 use crate::party::PartyPlugin;
 
 mod core;
@@ -52,7 +52,7 @@ fn main() {
             FightPlugin,
             PartyPlugin,
             FightingScene,
-            VerticalScrollPlugin,
+            UiPlugin,
             // npc::systems::MainNpcPlugin,
         ))
         .add_systems(Startup, startup::setup)

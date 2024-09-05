@@ -1,5 +1,5 @@
-mod button;
-mod text;
+mod buttons;
+mod texts;
 
-pub use button::*;
-pub use text::*;
+pub use buttons::*;
+pub use texts::*;

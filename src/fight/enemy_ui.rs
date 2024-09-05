@@ -1,35 +1,42 @@
 use bevy::color::palettes::css::{ANTIQUE_WHITE, GREEN};
-use bevy::hierarchy::ChildBuilder;
-use bevy::prelude::{Color, Component};
-
-use crate::gui::{Button, Container};
-
-pub struct EnemyItem {
-    id: EnemyId,
-}
+use bevy::prelude::ButtonBundle;
+use bevy::prelude::Color;
+use bevy::prelude::Component;
+use bevy::prelude::Entity;
+use bevy::prelude::NodeBundle;
+use bevy::prelude::Val;
+use sickle_ui::prelude::SetBackgroundColorExt;
+use sickle_ui::prelude::SetSizeExt;
+use sickle_ui::prelude::UiBuilder;
+use sickle_ui::prelude::UiContainerExt;
 
 #[derive(Component)]
 pub struct EnemyId(pub usize);
 
-impl EnemyItem {
-    pub fn new(id: usize) -> EnemyItem {
-        return EnemyItem { id: EnemyId(id) };
-    }
+pub trait EnemyItemExt<'a> {
+    fn enemy_item(
+        &mut self,
+        id: EnemyId,
+    ) -> UiBuilder<Entity>;
+}
 
-    pub fn spawn(self, parent: &mut ChildBuilder) {
-        let mut border = Button::default();
-        border
-            .size_percentage(100.0, 100.0)
+impl<'a> EnemyItemExt<'a> for UiBuilder<'a, Entity> {
+    fn enemy_item(&mut self, id: EnemyId) -> UiBuilder<Entity> {
+        let mut item = self.container(
+            (ButtonBundle::default(), id),
+            |parent| {
+                parent
+                    .container(NodeBundle::default(), |_| {})
+                    .style()
+                    .size(Val::Percent(90.0))
+                    .background_color(Color::from(GREEN))
+                ;
+            });
+
+        item
+            .style()
             .background_color(Color::from(ANTIQUE_WHITE));
 
-        let mut frame = Container::size_percentage(90.0, 90.0);
-        frame.justify_start();
-        let mut avatar = Container::size_percentage(100.0, 80.0);
-        avatar.background_color(Color::from(GREEN));
-        border.spawn(parent, self.id, |parent| {
-            frame.spawn(parent, |parent| {
-                avatar.spawn_empty(parent);
-            })
-        });
+        return item;
     }
 }
