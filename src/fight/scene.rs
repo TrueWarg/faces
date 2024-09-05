@@ -1,56 +1,68 @@
-use bevy::{
-    app::Update,
-    asset::{AssetServer, Handle},
-    color::palettes::css::ANTIQUE_WHITE,
-    color::palettes::css::DIM_GREY
-    ,
-    color::palettes::css::SILVER,
-    hierarchy::{Children, DespawnRecursiveExt},
-    prelude::AppExtStates,
-    prelude::BackgroundColor,
-    prelude::Changed,
-    prelude::ChildBuilder,
-    prelude::Color,
-    prelude::Commands,
-    prelude::Component,
-    prelude::Entity,
-    prelude::Font,
-    prelude::in_state,
-    prelude::Interaction,
-    prelude::IntoSystemConfigs,
-    prelude::NextState,
-    prelude::OnEnter,
-    prelude::OnExit,
-    prelude::Plugin,
-    prelude::Query,
-    prelude::Res,
-    prelude::ResMut,
-    prelude::SpriteBundle,
-    prelude::States,
-    prelude::With,
-    text::Text,
-};
+use bevy::app::Update;
+use bevy::asset::AssetServer;
+use bevy::asset::Handle;
 use bevy::color::palettes::basic::YELLOW;
+use bevy::color::palettes::css::ANTIQUE_WHITE;
 use bevy::color::palettes::css::BLUE;
+use bevy::color::palettes::css::DIM_GREY;
+use bevy::color::palettes::css::SILVER;
+use bevy::hierarchy::Children;
+use bevy::hierarchy::DespawnRecursiveExt;
 use bevy::input::ButtonInput;
-use bevy::math::{UVec2, Vec3};
-use bevy::prelude::{default, Display, ImageBundle, KeyCode, State, Style, Transform, UiImage};
-use bevy::ui::{ContentSize, Node, NodeMeasure};
-use bevy::ui::widget::{ImageMeasure, UiImageSize};
+use bevy::prelude::AlignItems;
+use bevy::prelude::AppExtStates;
+use bevy::prelude::BackgroundColor;
+use bevy::prelude::Changed;
+use bevy::prelude::ChildBuilder;
+use bevy::prelude::Color;
+use bevy::prelude::Commands;
+use bevy::prelude::Component;
+use bevy::prelude::default;
+use bevy::prelude::Entity;
+use bevy::prelude::Font;
+use bevy::prelude::ImageBundle;
+use bevy::prelude::in_state;
+use bevy::prelude::Interaction;
+use bevy::prelude::IntoSystemConfigs;
+use bevy::prelude::JustifyContent;
+use bevy::prelude::KeyCode;
+use bevy::prelude::NextState;
+use bevy::prelude::OnEnter;
+use bevy::prelude::OnExit;
+use bevy::prelude::Plugin;
+use bevy::prelude::Query;
+use bevy::prelude::Res;
+use bevy::prelude::ResMut;
+use bevy::prelude::State;
+use bevy::prelude::States;
+use bevy::prelude::UiImage;
+use bevy::prelude::With;
+use bevy::text::Text;
+use bevy::ui::{UiRect, Val};
 use bevy::utils::HashSet;
-use bevy::window::Window;
 use hashlink::LinkedHashMap;
+use sickle_ui::prelude::SetAlignItemsExt;
+use sickle_ui::prelude::SetBackgroundColorExt;
+use sickle_ui::prelude::SetHeightExt;
+use sickle_ui::prelude::SetJustifyContentExt;
+use sickle_ui::prelude::SetMarginExt;
+use sickle_ui::prelude::SetSizeExt;
+use sickle_ui::prelude::SetWidthExt;
+use sickle_ui::prelude::UiColumnExt;
+use sickle_ui::prelude::UiContainerExt;
+use sickle_ui::prelude::UiRowExt;
+use sickle_ui::ui_builder::{UiBuilder, UiBuilderExt, UiRoot};
 
 use crate::core::states::GameState;
 use crate::fight::{ActionTarget, Enemy, FightId, FightStorage};
-use crate::fight::actions_ui::{ActionId, ActionItem};
-use crate::fight::enemy_ui::{EnemyId, EnemyItem};
+use crate::fight::actions_ui::{ActionId, ActionItemExt};
+use crate::fight::enemy_ui::EnemyId;
 use crate::fight::mappers::{GetActionTarget, GetSelectorItem};
-use crate::fight::party_member_ui::{Health, MemberId, PartyMemberItem};
-use crate::fight::selector_ui::{pick_item_handle, SelectedItemPosHolder, Selector};
-use crate::gui::{Container, Root};
+use crate::fight::party_member_ui::{Health, MemberId, PartyMemberItemExt};
+use crate::fight::selector_ui::{pick_item_handle, SelectedItemPosHolder, SelectorExt};
+use crate::gui::TextButton;
 use crate::party::{PartyMember, PartyStateStorage};
-use crate::rpg::{Ability, ConsumableItem, DirectionalAttack, TargetProps};
+use crate::rpg::{Ability, ConsumableItem, DirectionalAttack};
 
 pub struct FightingScene;
 
@@ -190,30 +202,30 @@ impl Plugin for FightingScene {
 fn actions_menu_input_handle(
     mut next_state: ResMut<NextState<ScreenState>>,
     mut query: Query<
-        (&ActionId, &Interaction, &mut BackgroundColor),
-        (Changed<Interaction>, With<ActionId>),
+        (&TextButton<ActionId>, &Interaction, &mut BackgroundColor),
+        Changed<Interaction>,
     >,
 ) {
-    for (button_id, interaction, mut background_color) in &mut query {
+    for (button, interaction, mut background_color) in &mut query {
         match *interaction {
             Interaction::None => {
-                *background_color = DIM_GREY.into();
+                *background_color = button.config.idle
             }
             Interaction::Hovered => {
-                *background_color = HOVER_BUTTON_COLOR.into();
+                *background_color = button.config.hover
             }
             Interaction::Pressed => {
-                if button_id.0 == ATTACKS_BUTTON_ID.0 {
+                if button.payload.0 == ATTACKS_BUTTON_ID.0 {
                     next_state.set(ScreenState::AttacksList);
                 }
 
-                if button_id.0 == PROTECT_BUTTON_ID.0 {}
+                if button.payload.0 == PROTECT_BUTTON_ID.0 {}
 
-                if button_id.0 == ABILITIES_BUTTON_ID.0 {
+                if button.payload.0 == ABILITIES_BUTTON_ID.0 {
                     next_state.set(ScreenState::AbilitiesList);
                 }
 
-                if button_id.0 == ITEMS_BUTTON_ID.0 {
+                if button.payload.0 == ITEMS_BUTTON_ID.0 {
                     next_state.set(ScreenState::ItemsList);
                 }
             }
@@ -297,11 +309,8 @@ fn target_ally_selection_input_handle(
 }
 
 fn party_state_changes(
-    parent_query: Query<(&PartyMember, &Children),
-        (Changed<PartyMember>),
-    >,
-    mut children_query: Query<(&mut Text), With<Health>,
-    >,
+    parent_query: Query<(&PartyMember, &Children), Changed<PartyMember>>,
+    mut children_query: Query<(&mut Text), With<Health>>,
 ) {
     for (member, mut children) in parent_query.iter() {
         for &child in children.iter() {
@@ -336,19 +345,21 @@ fn target_enemy_selection_input_handle(
     }
 }
 
-
 fn spawn_attacks_list(
     mut commands: Commands,
-    asset_server: Res<AssetServer>,
     selected_member_query: Query<(&SelectedMemberId)>,
     attacks_query: Query<(&Attacks)>,
 ) {
-    let font = asset_server.load("fonts/quattrocentoSans-Bold.ttf");
     let selected_member = selected_member_query.single();
     let attacks = &attacks_query.single().items[&selected_member.0];
     let items = attacks.iter().map(|attack| { attack.selector_item() }).collect();
-    let mut selector = Selector;
-    selector.spawn(&mut commands, AttacksScreen, &font, items);
+
+    commands
+        .ui_builder(UiRoot)
+        .selector(items)
+        .insert(AttacksScreen)
+        .style()
+        .size(Val::Percent(100.0));
 }
 
 fn selected_attacks_handle(
@@ -445,28 +456,31 @@ fn selected_consumable_handle(
 
 fn spawn_abilities_list(
     mut commands: Commands,
-    asset_server: Res<AssetServer>,
     selected_member_query: Query<(&SelectedMemberId)>,
     abilities_query: Query<(&Abilities)>,
 ) {
-    let font = asset_server.load("fonts/quattrocentoSans-Bold.ttf");
     let selected_member = selected_member_query.single();
     let abilities = &abilities_query.single().items[&selected_member.0];
     let items = abilities.iter().map(|ability| { ability.selector_item() }).collect();
-    let mut selector = Selector;
-    selector.spawn(&mut commands, AbilitiesScreen, &font, items);
+    commands
+        .ui_builder(UiRoot)
+        .selector(items)
+        .style()
+        .size(Val::Percent(100.0));
 }
 
 fn spawn_items_list(
     mut commands: Commands,
-    asset_server: Res<AssetServer>,
     consumables_query: Query<(&Consumables)>,
 ) {
-    let font = asset_server.load("fonts/quattrocentoSans-Bold.ttf");
     let consumables = &consumables_query.single().items;
     let items = consumables.iter().map(|consumable| { consumable.selector_item() }).collect();
-    let mut selector = Selector;
-    selector.spawn(&mut commands, ItemsScreen, &font, items);
+    commands
+        .ui_builder(UiRoot)
+        .selector(items)
+        .insert(ItemsScreen)
+        .style()
+        .size(Val::Percent(100.0));
 }
 
 fn spawn_main(
@@ -476,41 +490,40 @@ fn spawn_main(
     fight_storage: Res<FightStorage>,
     party_storage: Res<PartyStateStorage>,
 ) {
-    let mut root = Root::default();
-
     let fight_id = query.single();
     let fight = fight_storage.load(&fight_id.0).expect("");
     let members = party_storage.get_fight_party_members();
     let items = party_storage.get_consumables();
 
-    let mut main_container = Container::default();
-    main_container.align_start();
-
-    let mut arena_container = Root::size_percentage(100.0, 70.0);
-    arena_container.spawn(&mut commands, FightingMainScreen, |parent| {
-        parent.spawn(
-            ImageBundle {
+    let default_selected = members.first().expect("Members should not be empty").id;
+    commands
+        .ui_builder(UiRoot)
+        .column(|parent| {
+            parent.container(ImageBundle {
                 image: UiImage {
                     texture: asset_server.load(&fight.arena_bg_path),
                     ..default()
                 },
-                transform: Transform::from_scale(Vec3::new(0.75, 0.65, 1.0)),
                 ..default()
-            });
-    });
+            }, |_| {})
+                .style()
+                .width(Val::Percent(100.0))
+                .height(Val::Percent(70.0));
 
-    root.spawn(&mut commands, FightingMainScreen, |parent| {
-        let default_selected = members.first().expect("Members should not be empty").id;
-        parent.spawn(SelectedMemberId(default_selected));
-        parent.spawn(Consumables { items });
-        parent.spawn(SelectedItemPosHolder::new());
-        parent.spawn(CurrentAllyStep(None));
-        // parent.spawn(AvailableMembers { ids: HashSet::new() });
-        main_container.spawn(parent, |parent| {
-            spawn_fight_area(parent, 70.0, &asset_server, fight.enemies);
             spawn_player_menu(parent, 30.0, &asset_server, members);
         })
-    });
+        .insert((
+            FightingMainScreen,
+            SelectedMemberId(default_selected),
+            Consumables { items },
+            SelectedItemPosHolder::new(),
+            CurrentAllyStep(None),
+            // AvailableMembers { ids: HashSet::new() },
+        ))
+        .style()
+        .justify_content(JustifyContent::Center)
+        .size(Val::Percent(100.0))
+        .align_items(AlignItems::Center);
 }
 
 fn spawn_fight_area(
@@ -519,120 +532,80 @@ fn spawn_fight_area(
     asset_server: &Res<AssetServer>,
     enemies: Vec<Enemy>,
 ) {
-    let mut main_container = Container::size_percentage(100.0, height_percent);
-    main_container.row().justify_around();
-    main_container.spawn(parent, |parent| {
-        for enemy in enemies {
-            // spawn_enemy_item(parent, asset_server, enemy);
-        }
-    });
+
 }
 
 fn spawn_enemy_item(
     parent: &mut ChildBuilder,
     asset_server: &Res<AssetServer>,
     enemy: Enemy,
-) {
-    let mut main_container = Container::size_percentage(20.0, 80.0);
-    main_container
-        .margin(25.0);
-    main_container.spawn_with_payload(parent, enemy.target, |parent| {
-        let item = EnemyItem::new(enemy.id);
-        item.spawn(parent)
-    });
-}
+) {}
 
 fn spawn_player_menu(
-    parent: &mut ChildBuilder,
+    parent: &mut UiBuilder<Entity>,
     height_percent: f32,
     asset_server: &Res<AssetServer>,
     members: Vec<PartyMember>,
 ) {
-    let mut main_container = Container::size_percentage(100.0, height_percent);
-
-    main_container.row()
-        .align_start()
-        .justify_start();
-
-    let mut allies_container = Container::size_percentage(75.0, 100.0);
-    allies_container.row()
-        .background_color(Color::from(DIM_GREY))
-        .align_start()
-        .justify_start();
-
-    let mut actions_container = Container::size_percentage(25.0, 100.0);
-    actions_container
-        .background_color(Color::from(SILVER))
-        .justify_between();
-
-    main_container.spawn(parent, |parent| {
-        allies_container.spawn(parent, |parent| {
+    parent
+        .row(|parent| {
             let mut attacks = LinkedHashMap::new();
             let mut abilities = LinkedHashMap::new();
-            for item in members {
-                attacks.insert(item.id, item.attacks);
-                abilities.insert(item.id, item.abilities);
-                spawn_ally_item(parent, asset_server, item.id, item.target);
-            }
-            parent.spawn(Attacks { items: attacks });
-            parent.spawn(Abilities { items: abilities });
-        });
-        actions_container.spawn(parent, |parent| {
-            spawn_actions(parent, asset_server);
-        });
-    });
-}
 
-fn spawn_ally_item(
-    parent: &mut ChildBuilder,
-    asset_server: &Res<AssetServer>,
-    member_id: usize,
-    props: TargetProps,
-) {
-    let font = asset_server.load("fonts/quattrocentoSans-Bold.ttf");
+            parent.row(|parent| {
+                for item in members {
+                    attacks.insert(item.id, item.attacks);
+                    abilities.insert(item.id, item.abilities);
+                    parent
+                        .party_member_item(MemberId(item.id))
+                        .insert(item.target)
+                        .style()
+                        .margin(UiRect {
+                            left: Val::Px(25.0),
+                            right: Val::Px(25.0),
+                            top: Val::Px(25.0),
+                            bottom: Val::Px(25.0),
+                        })
+                        .width(Val::Percent(20.0))
+                        .height(Val::Percent(80.0));
+                }
+            })
+                .insert(Attacks { items: attacks })
+                .insert(Abilities { items: abilities })
+                .style()
+                .background_color(Color::from(DIM_GREY))
+                .justify_content(JustifyContent::FlexStart)
+                .align_items(AlignItems::FlexStart)
+                .width(Val::Percent(75.0))
+                .height(Val::Percent(100.0));
 
-    let mut main_container = Container::size_percentage(20.0, 80.0);
-    main_container.margin(25.0);
-    main_container.spawn_with_payload(parent, props, |parent| {
-        let member = PartyMemberItem::new(member_id);
-        member.spawn(parent, &font);
-    });
+            spawn_actions(parent, 25.0, 100.0);
+        })
+        .style()
+        .justify_content(JustifyContent::FlexStart)
+        .align_items(AlignItems::FlexStart)
+        .width(Val::Percent(100.0))
+        .height(Val::Percent(height_percent));
 }
 
 fn spawn_actions(
-    parent: &mut ChildBuilder,
-    asset_server: &Res<AssetServer>,
+    parent: &mut UiBuilder<Entity>,
+    width_percent: f32,
+    height_percent: f32,
 ) {
-    let font = &asset_server.load("fonts/quattrocentoSans-Bold.ttf");
-
-    let mut attacks_button = ActionItem::new(ATTACKS_BUTTON_ID, "Attacks", font);
-    attacks_button
-        .size_percentage(95.0, 20.0)
-        .margin(4.0)
-        .text_color(Color::from(SILVER));
-
-    let mut protect_button = ActionItem::new(PROTECT_BUTTON_ID, "Protect", font);
-    protect_button
-        .size_percentage(95.0, 20.0)
-        .margin(4.0)
-        .text_color(Color::from(SILVER));
-
-    let mut abilities_button = ActionItem::new(ABILITIES_BUTTON_ID, "Abilities", font);
-    abilities_button
-        .size_percentage(95.0, 20.0)
-        .margin(4.0)
-        .text_color(Color::from(SILVER));
-
-    let mut items_button = ActionItem::new(ITEMS_BUTTON_ID, "Items", font);
-    items_button
-        .size_percentage(95.0, 20.0)
-        .margin(4.0)
-        .text_color(Color::from(SILVER));
-
-    attacks_button.spawn(parent);
-    protect_button.spawn(parent);
-    abilities_button.spawn(parent);
-    items_button.spawn(parent);
+    parent
+        .column(|parent| {
+            parent.action_item(ATTACKS_BUTTON_ID, "Attacks");
+            parent.action_item(PROTECT_BUTTON_ID, "Protect");
+            parent.action_item(ABILITIES_BUTTON_ID, "Abilities");
+            parent.action_item(ITEMS_BUTTON_ID, "Items");
+        })
+        .style()
+        .width(Val::Percent(width_percent))
+        .height(Val::Percent(height_percent))
+        .background_color(Color::from(SILVER))
+        .justify_content(JustifyContent::SpaceBetween)
+        .align_items(AlignItems::Center);
 }
 
 fn unspawn<M: Component>(
