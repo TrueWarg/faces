@@ -9,7 +9,7 @@ use bevy::color::palettes::css::SILVER;
 use bevy::hierarchy::Children;
 use bevy::hierarchy::DespawnRecursiveExt;
 use bevy::input::ButtonInput;
-use bevy::prelude::AlignItems;
+use bevy::prelude::{AlignItems, NodeBundle, PositionType};
 use bevy::prelude::AppExtStates;
 use bevy::prelude::BackgroundColor;
 use bevy::prelude::Changed;
@@ -41,7 +41,7 @@ use bevy::text::Text;
 use bevy::ui::{UiRect, Val};
 use bevy::utils::HashSet;
 use hashlink::LinkedHashMap;
-use sickle_ui::prelude::SetAlignItemsExt;
+use sickle_ui::prelude::{SetAlignItemsExt, SetBottomExt, SetLeftExt, SetPositionTypeExt, SetRightExt, SetScaleExt, SetTopExt};
 use sickle_ui::prelude::SetBackgroundColorExt;
 use sickle_ui::prelude::SetHeightExt;
 use sickle_ui::prelude::SetJustifyContentExt;
@@ -54,9 +54,9 @@ use sickle_ui::prelude::UiRowExt;
 use sickle_ui::ui_builder::{UiBuilder, UiBuilderExt, UiRoot};
 
 use crate::core::states::GameState;
-use crate::fight::{ActionTarget, Enemy, FightId, FightStorage};
+use crate::fight::{ActionTarget, Enemy, Fight, FightId, FightStorage};
 use crate::fight::actions_ui::{ActionId, ActionItemExt};
-use crate::fight::enemy_ui::EnemyId;
+use crate::fight::enemy_ui::{EnemyId, EnemyItemExt};
 use crate::fight::mappers::{GetActionTarget, GetSelectorItem};
 use crate::fight::party_member_ui::{Health, MemberId, PartyMemberItemExt};
 use crate::fight::selector_ui::{pick_item_handle, SelectedItemPosHolder, SelectorExt};
@@ -499,17 +499,7 @@ fn spawn_main(
     commands
         .ui_builder(UiRoot)
         .column(|parent| {
-            parent.container(ImageBundle {
-                image: UiImage {
-                    texture: asset_server.load(&fight.arena_bg_path),
-                    ..default()
-                },
-                ..default()
-            }, |_| {})
-                .style()
-                .width(Val::Percent(100.0))
-                .height(Val::Percent(70.0));
-
+            spawn_fight_area(parent, 70.0, &asset_server, fight);
             spawn_player_menu(parent, 30.0, &asset_server, members);
         })
         .insert((
@@ -527,19 +517,32 @@ fn spawn_main(
 }
 
 fn spawn_fight_area(
-    parent: &mut ChildBuilder,
+    parent: &mut UiBuilder<Entity>,
     height_percent: f32,
     asset_server: &Res<AssetServer>,
-    enemies: Vec<Enemy>,
+    fight: Fight,
 ) {
-
+    parent.container(ImageBundle {
+        image: UiImage {
+            texture: asset_server.load(&fight.arena_bg_path),
+            ..default()
+        },
+        ..default()
+    }, |parent| {
+        for enemy in fight.enemies {
+            parent
+                .enemy_item(EnemyId(enemy.id), asset_server.load(enemy.asset_path))
+                .style()
+                .position_type(PositionType::Absolute)
+                .scale(enemy.scale)
+                .left(Val::Percent(enemy.relative_x))
+                .top(Val::Percent(enemy.relative_y));
+        }
+    })
+        .style()
+        .width(Val::Percent(100.0))
+        .height(Val::Percent(height_percent));
 }
-
-fn spawn_enemy_item(
-    parent: &mut ChildBuilder,
-    asset_server: &Res<AssetServer>,
-    enemy: Enemy,
-) {}
 
 fn spawn_player_menu(
     parent: &mut UiBuilder<Entity>,

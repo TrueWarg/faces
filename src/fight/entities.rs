@@ -14,6 +14,9 @@ pub struct Enemy {
     pub id: usize,
     pub name: String,
     pub asset_path: String,
+    pub relative_x: f32,
+    pub relative_y: f32,
+    pub scale: f32,
     pub target: TargetProps,
     pub attacks: Vec<DirectionalAttack>,
 }
