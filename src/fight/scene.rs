@@ -453,7 +453,6 @@ fn selected_consumable_handle(
     }
 }
 
-
 fn spawn_abilities_list(
     mut commands: Commands,
     selected_member_query: Query<(&SelectedMemberId)>,
@@ -465,6 +464,7 @@ fn spawn_abilities_list(
     commands
         .ui_builder(UiRoot)
         .selector(items)
+        .insert(AbilitiesScreen)
         .style()
         .size(Val::Percent(100.0));
 }
