@@ -6,14 +6,14 @@ use bevy::color::palettes::css::ANTIQUE_WHITE;
 use bevy::color::palettes::css::BLUE;
 use bevy::color::palettes::css::DIM_GREY;
 use bevy::color::palettes::css::SILVER;
+use bevy::color::Srgba;
 use bevy::hierarchy::Children;
 use bevy::hierarchy::DespawnRecursiveExt;
 use bevy::input::ButtonInput;
-use bevy::prelude::{AlignItems, NodeBundle, PositionType};
+use bevy::prelude::{AlignItems, PositionType};
 use bevy::prelude::AppExtStates;
 use bevy::prelude::BackgroundColor;
 use bevy::prelude::Changed;
-use bevy::prelude::ChildBuilder;
 use bevy::prelude::Color;
 use bevy::prelude::Commands;
 use bevy::prelude::Component;
@@ -39,9 +39,8 @@ use bevy::prelude::UiImage;
 use bevy::prelude::With;
 use bevy::text::Text;
 use bevy::ui::{UiRect, Val};
-use bevy::utils::HashSet;
-use hashlink::LinkedHashMap;
-use sickle_ui::prelude::{SetAlignItemsExt, SetBottomExt, SetLeftExt, SetPositionTypeExt, SetRightExt, SetScaleExt, SetTopExt};
+use bevy::utils::{HashMap, HashSet};
+use sickle_ui::prelude::{SetAlignItemsExt, SetLeftExt, SetPositionTypeExt, SetTopExt};
 use sickle_ui::prelude::SetBackgroundColorExt;
 use sickle_ui::prelude::SetHeightExt;
 use sickle_ui::prelude::SetJustifyContentExt;
@@ -54,7 +53,7 @@ use sickle_ui::prelude::UiRowExt;
 use sickle_ui::ui_builder::{UiBuilder, UiBuilderExt, UiRoot};
 
 use crate::core::states::GameState;
-use crate::fight::{ActionTarget, Enemy, Fight, FightId, FightStorage};
+use crate::fight::{ActionTarget, Fight, FightId, FightStorage};
 use crate::fight::actions_ui::{ActionId, ActionItemExt};
 use crate::fight::enemy_ui::{EnemyId, EnemyItemExt};
 use crate::fight::mappers::{GetActionTarget, GetSelectorItem};
@@ -62,7 +61,7 @@ use crate::fight::party_member_ui::{Health, MemberId, PartyMemberItemExt};
 use crate::fight::selector_ui::{pick_item_handle, SelectedItemPosHolder, SelectorExt};
 use crate::gui::TextButton;
 use crate::party::{PartyMember, PartyStateStorage};
-use crate::rpg::{Ability, ConsumableItem, DirectionalAttack};
+use crate::rpg::{Ability, ConsumableItem, DirectionalAttack, TargetProps};
 
 pub struct FightingScene;
 
@@ -101,12 +100,12 @@ pub struct SelectedMemberId(pub usize);
 
 #[derive(Component)]
 struct Attacks {
-    items: LinkedHashMap<usize, Vec<DirectionalAttack>>,
+    items: HashMap<usize, Vec<DirectionalAttack>>,
 }
 
 #[derive(Component)]
 struct Abilities {
-    items: LinkedHashMap<usize, Vec<Ability>>,
+    items: HashMap<usize, Vec<Ability>>,
 }
 
 #[derive(Component)]
@@ -117,6 +116,16 @@ struct Consumables {
 #[derive(Component)]
 struct AvailableMembers {
     ids: HashSet<usize>,
+}
+
+#[derive(Component)]
+struct AllyTargets {
+    items: HashMap<usize, TargetProps>,
+}
+
+#[derive(Component)]
+struct EnemyTargets {
+    items: HashMap<usize, TargetProps>,
 }
 
 #[derive(Component)]
@@ -308,6 +317,11 @@ fn target_ally_selection_input_handle(
     }
 }
 
+fn ally_step_handle(
+    mut next_state: ResMut<NextState<ScreenState>>,
+    mut current_step_query: Query<(&mut CurrentAllyStep)>,
+) {}
+
 fn party_state_changes(
     parent_query: Query<(&PartyMember, &Children), Changed<PartyMember>>,
     mut children_query: Query<(&mut Text), With<Health>>,
@@ -331,12 +345,13 @@ fn target_enemy_selection_input_handle(
     for (id, interaction, mut background) in &mut query {
         match interaction {
             Interaction::None => {
-                *background = ANTIQUE_WHITE.into();
+                *background = Color::NONE.into()
             }
             Interaction::Hovered => {
                 *background = HOVER_BUTTON_COLOR.into();
             }
             Interaction::Pressed => {
+                *background = HOVER_BUTTON_COLOR.into();
                 let mut step = current_step_query.single_mut();
                 step.set_target_id(id.0);
                 next_state.set(ScreenState::PlayerStepApply);
@@ -522,6 +537,8 @@ fn spawn_fight_area(
     asset_server: &Res<AssetServer>,
     fight: Fight,
 ) {
+    let mut enemy_targets = HashMap::new();
+
     parent.container(ImageBundle {
         image: UiImage {
             texture: asset_server.load(&fight.arena_bg_path),
@@ -533,12 +550,15 @@ fn spawn_fight_area(
             parent
                 .enemy_item(EnemyId(enemy.id), asset_server.load(enemy.asset_path))
                 .style()
+                .width(Val::Auto)
+                .height(Val::Percent(enemy.relative_height))
                 .position_type(PositionType::Absolute)
-                .scale(enemy.scale)
                 .left(Val::Percent(enemy.relative_x))
                 .top(Val::Percent(enemy.relative_y));
+            enemy_targets.insert(enemy.id, enemy.target);
         }
     })
+        .insert(EnemyTargets { items: enemy_targets })
         .style()
         .width(Val::Percent(100.0))
         .height(Val::Percent(height_percent));
@@ -552,16 +572,16 @@ fn spawn_player_menu(
 ) {
     parent
         .row(|parent| {
-            let mut attacks = LinkedHashMap::new();
-            let mut abilities = LinkedHashMap::new();
-
+            let mut attacks = HashMap::new();
+            let mut abilities = HashMap::new();
+            let mut targets = HashMap::new();
             parent.row(|parent| {
                 for item in members {
                     attacks.insert(item.id, item.attacks);
                     abilities.insert(item.id, item.abilities);
+                    targets.insert(item.id, item.target);
                     parent
                         .party_member_item(MemberId(item.id))
-                        .insert(item.target)
                         .style()
                         .margin(UiRect {
                             left: Val::Px(25.0),
@@ -575,6 +595,7 @@ fn spawn_player_menu(
             })
                 .insert(Attacks { items: attacks })
                 .insert(Abilities { items: abilities })
+                .insert(AllyTargets { items: targets })
                 .style()
                 .background_color(Color::from(DIM_GREY))
                 .justify_content(JustifyContent::FlexStart)
@@ -627,4 +648,4 @@ const ABILITIES_BUTTON_ID: ActionId = ActionId(2);
 const ITEMS_BUTTON_ID: ActionId = ActionId(3);
 
 /// <div style="background-color:rgb(30%, 30%, 30%); width: 10px; padding: 10px; border: 1px solid;"></div>
-const HOVER_BUTTON_COLOR: Color = Color::srgb(0.50, 0.50, 0.50);
+const HOVER_BUTTON_COLOR: Srgba = Srgba::new(0.302, 0.302, 0.302, 0.7);

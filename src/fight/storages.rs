@@ -1,4 +1,4 @@
-use bevy::prelude::{Resource, Val};
+use bevy::prelude::Resource;
 use bevy::utils::HashMap;
 
 use crate::fight::{Enemy, Fight, FightId};
@@ -36,9 +36,9 @@ pub fn test_fights() -> HashMap<usize, Fight> {
                     id: 0,
                     name: "".to_string(),
                     asset_path: "npc/gopnik.png".to_string(),
-                    relative_x: 40.0,
-                    relative_y: 20.0,
-                    scale: 0.3,
+                    relative_x: 50.0,
+                    relative_y: 55.0,
+                    relative_height: 30.0,
                     target: TargetProps {
                         health: RangedProp {
                             min: 0,
@@ -59,9 +59,9 @@ pub fn test_fights() -> HashMap<usize, Fight> {
                     id: 1,
                     name: "".to_string(),
                     asset_path: "npc/red_chad.png".to_string(),
-                    relative_x: 20.0,
-                    relative_y: 15.0,
-                    scale: 0.5,
+                    relative_x: 25.0,
+                    relative_y: 38.0,
+                    relative_height: 55.0,
                     target: TargetProps {
                         health: RangedProp {
                             min: 0,
@@ -82,9 +82,9 @@ pub fn test_fights() -> HashMap<usize, Fight> {
                     id: 2,
                     name: "".to_string(),
                     asset_path: "npc/funny_gopnik.png".to_string(),
-                    relative_x: 60.0,
-                    relative_y: 15.0,
-                    scale: 0.4,
+                    relative_x: 65.0,
+                    relative_y: 50.0,
+                    relative_height: 30.0,
                     target: TargetProps {
                         health: RangedProp {
                             min: 0,
@@ -105,9 +105,9 @@ pub fn test_fights() -> HashMap<usize, Fight> {
                     id: 3,
                     name: "".to_string(),
                     asset_path: "npc/funny_gopnik.png".to_string(),
-                    relative_x: 65.0,
-                    relative_y: 15.0,
-                    scale: 0.4,
+                    relative_x: 73.0,
+                    relative_y: 50.0,
+                    relative_height: 30.0,
                     target: TargetProps {
                         health: RangedProp {
                             min: 0,
@@ -139,7 +139,7 @@ pub fn test_fights() -> HashMap<usize, Fight> {
                     asset_path: "".to_string(),
                     relative_x: 50.0,
                     relative_y: 50.0,
-                    scale: 0.8,
+                    relative_height: 20.0,
                     target: TargetProps {
                         health: RangedProp {
                             min: 0,
