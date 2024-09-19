@@ -93,6 +93,11 @@ fn mouse_input_handle(
                     next_state.set(ScreenState::FightsList);
                     return;
                 }
+
+                if button.payload == DIALOGS_SAMPLES_BUTTON_ID {
+                    return;
+                }
+
                 if button.payload == LEVEL_SAMPLES_BUTTON_ID {
                     return;
                 }
@@ -132,6 +137,9 @@ fn spawn_main(
         .column(|parent| {
             parent
                 .text_button("Fights samples", FIGHT_SAMPLES_BUTTON_ID);
+
+            parent
+                .text_button("Dialogs samples", DIALOGS_SAMPLES_BUTTON_ID);
 
             parent
                 .text_button("Level samples", LEVEL_SAMPLES_BUTTON_ID);
@@ -188,4 +196,5 @@ fn despawn_fignts_list(
 struct SettingsId(pub usize);
 
 const FIGHT_SAMPLES_BUTTON_ID: SettingsId = SettingsId(1);
-const LEVEL_SAMPLES_BUTTON_ID: SettingsId = SettingsId(2);
+const DIALOGS_SAMPLES_BUTTON_ID: SettingsId = SettingsId(2);
+const LEVEL_SAMPLES_BUTTON_ID: SettingsId = SettingsId(3);
