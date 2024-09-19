@@ -30,6 +30,7 @@ mod gui;
 mod dev;
 mod rpg;
 mod party;
+mod dialog;
 
 fn main() {
     App::new()
