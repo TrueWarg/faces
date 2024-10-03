@@ -79,11 +79,6 @@ enum ScreenState {
 }
 
 #[derive(Component)]
-struct FontHandle {
-    font: Handle<Font>,
-}
-
-#[derive(Component)]
 struct FightingMainScreen;
 
 #[derive(Component)]

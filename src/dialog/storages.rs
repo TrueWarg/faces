@@ -1,5 +1,6 @@
 use bevy::prelude::Resource;
 use bevy::utils::HashMap;
+use crate::dialog::DialogId;
 use crate::dialog::entities::Dialog;
 use crate::dialog::graph::{test_dialog_1, test_dialog_2};
 
@@ -21,7 +22,7 @@ fn test_dialogs() -> HashMap<usize, Dialog> {
     result.insert(
         0,
         Dialog {
-            id: 0,
+            id: DialogId(0),
             label: Some("Dialog 1".to_string()),
             root: test_dialog_1(),
         }
@@ -29,7 +30,7 @@ fn test_dialogs() -> HashMap<usize, Dialog> {
     result.insert(
         1,
         Dialog {
-            id: 1,
+            id: DialogId(1),
             label: Some("Dialog 2".to_string()),
             root: test_dialog_2(),
         }
