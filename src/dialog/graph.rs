@@ -1,5 +1,6 @@
 use bevy::utils::HashSet;
 
+#[derive(Clone)]
 pub struct DialogStick {
     pub id: usize,
     replicas: Vec<Replica>,
@@ -43,6 +44,7 @@ impl DialogStick {
     }
 }
 
+#[derive(Clone)]
 pub struct Replica {
     pub text: String,
 }
@@ -55,6 +57,7 @@ impl Replica {
     }
 }
 
+#[derive(Clone)]
 pub struct Branching {
     pub id: usize,
     pub variants: Vec<Variant>,
@@ -69,6 +72,7 @@ impl Default for Branching {
     }
 }
 
+#[derive(Clone)]
 pub struct Variant {
     pub label: String,
     pub stick: DialogStick,
@@ -93,6 +97,7 @@ impl Variant {
     }
 }
 
+#[derive(Clone)]
 pub enum DialogEffect {
     ReplaceDialog,
     EndDialog,

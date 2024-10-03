@@ -34,7 +34,7 @@ use sickle_ui::prelude::UiColumnExt;
 use sickle_ui::ui_builder::{UiBuilderExt, UiRoot};
 
 use crate::core::states::GameState;
-use crate::dialog::DialogsStorage;
+use crate::dialog::{DialogId, DialogsStorage};
 use crate::fight::{FightId, FightStorage};
 use crate::gui::{TextButton, TextButtonExt};
 
@@ -80,6 +80,7 @@ impl Plugin for DevSettingsPlugin {
 fn mouse_input_handle(
     mut commands: Commands,
     mut fight_id_query: Query<(&mut FightId)>,
+    mut dialog_id_query: Query<(&mut DialogId)>,
     mut next_game_state: ResMut<NextState<GameState>>,
     current_screen_state: Res<State<ScreenState>>,
     mut next_state: ResMut<NextState<ScreenState>>,
@@ -125,6 +126,14 @@ fn mouse_input_handle(
                         return;
                     }
                     ScreenState::DialogsList => {
+                        match dialog_id_query.get_single_mut() {
+                            Ok(mut dialog_id) => dialog_id.0 = button.payload.0,
+                            Err(_) => {
+                                commands.spawn(DialogId(button.payload.0));
+                            }
+                        }
+
+                        next_game_state.set(GameState::Dialog);
                         return;
                     }
                     ScreenState::LevelsList => {

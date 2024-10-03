@@ -30,6 +30,13 @@ impl TextConfig {
             color,
         };
     }
+
+    pub fn small(color: Color) -> TextConfig {
+        return TextConfig {
+            font_size: TEXT_SIZE_SMALL,
+            color,
+        };
+    }
 }
 
 struct SetFont(String, f32, Color);
@@ -140,9 +147,9 @@ impl<'a> TextExt<'a> for UiBuilder<'a, Entity> {
     }
 }
 
-const TEXT_SIZE_SMALL: f32 = 18.0;
+const TEXT_SIZE_SMALL: f32 = 24.0;
 const TEXT_SIZE_MEDIUM: f32 = 36.0;
 const TEXT_SIZE_LARGE: f32 = 90.0;
 const TEXT_SIZE_EXTRA_LARGE: f32 = 108.0;
 
-const DEFAULT_FONT_PATH: &str = "fonts/quattrocentoSans-Bold.ttf";
+const DEFAULT_FONT_PATH: &str = "fonts/Deledda Open Light.ttf";
