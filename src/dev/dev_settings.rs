@@ -34,6 +34,7 @@ use sickle_ui::prelude::UiColumnExt;
 use sickle_ui::ui_builder::{UiBuilderExt, UiRoot};
 
 use crate::core::states::GameState;
+use crate::dialog::DialogsStorage;
 use crate::fight::{FightId, FightStorage};
 use crate::gui::{TextButton, TextButtonExt};
 
@@ -46,6 +47,9 @@ struct DevSettingsScreen;
 struct FightsList;
 
 #[derive(Component)]
+struct DialogsList;
+
+#[derive(Component)]
 struct LevelsList;
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
@@ -53,6 +57,7 @@ enum ScreenState {
     #[default]
     Main,
     FightsList,
+    DialogsList,
     LevelsList,
 }
 
@@ -64,6 +69,8 @@ impl Plugin for DevSettingsPlugin {
             .add_systems(OnExit(GameState::DevSetting), despawn_main)
             .add_systems(OnEnter(ScreenState::FightsList), spawn_fights_list)
             .add_systems(OnExit(ScreenState::FightsList), despawn_fignts_list)
+            .add_systems(OnEnter(ScreenState::DialogsList), spawn_dialogs_list)
+            .add_systems(OnExit(ScreenState::DialogsList), despawn_dialogs_list)
             .add_systems(Update, (keyboard_input_handle, mouse_input_handle)
                 .run_if(in_state(GameState::DevSetting)),
             );
@@ -74,6 +81,7 @@ fn mouse_input_handle(
     mut commands: Commands,
     mut fight_id_query: Query<(&mut FightId)>,
     mut next_game_state: ResMut<NextState<GameState>>,
+    current_screen_state: Res<State<ScreenState>>,
     mut next_state: ResMut<NextState<ScreenState>>,
     mut query: Query<
         (&TextButton<SettingsId>, &Interaction, &mut BackgroundColor),
@@ -89,27 +97,40 @@ fn mouse_input_handle(
                 *background_color = button.config.hover;
             }
             Interaction::Pressed => {
-                if button.payload == FIGHT_SAMPLES_BUTTON_ID {
-                    next_state.set(ScreenState::FightsList);
-                    return;
-                }
+                match current_screen_state.get() {
+                    ScreenState::Main => {
+                        if button.payload == FIGHT_SAMPLES_BUTTON_ID {
+                            next_state.set(ScreenState::FightsList);
+                            return;
+                        }
 
-                if button.payload == DIALOGS_SAMPLES_BUTTON_ID {
-                    return;
-                }
+                        if button.payload == DIALOGS_SAMPLES_BUTTON_ID {
+                            next_state.set(ScreenState::DialogsList);
+                            return;
+                        }
 
-                if button.payload == LEVEL_SAMPLES_BUTTON_ID {
-                    return;
-                }
+                        if button.payload == LEVEL_SAMPLES_BUTTON_ID {
+                            return;
+                        }
+                    }
+                    ScreenState::FightsList => {
+                        match fight_id_query.get_single_mut() {
+                            Ok(mut fight_id) => fight_id.0 = button.payload.0,
+                            Err(_) => {
+                                commands.spawn(FightId(button.payload.0));
+                            }
+                        }
 
-                match fight_id_query.get_single_mut() {
-                    Ok(mut fight_id) => fight_id.0 = button.payload.0,
-                    Err(_) => {
-                        commands.spawn(FightId(button.payload.0));
+                        next_game_state.set(GameState::Fighting);
+                        return;
+                    }
+                    ScreenState::DialogsList => {
+                        return;
+                    }
+                    ScreenState::LevelsList => {
+                        return;
                     }
                 }
-
-                next_game_state.set(GameState::Fighting)
             }
         }
     }
@@ -187,6 +208,39 @@ fn spawn_fights_list(
 fn despawn_fignts_list(
     mut commands: Commands,
     query: Query<Entity, With<FightsList>>,
+) {
+    let entity = query.single();
+    commands.entity(entity).despawn_recursive();
+}
+
+fn spawn_dialogs_list(
+    mut commands: Commands,
+    dialogs_storage: Res<DialogsStorage>,
+) {
+    commands
+        .ui_builder(UiRoot)
+        .column(|parent| {
+            for (id, dialog) in dialogs_storage.get_all() {
+                let text = match dialog.label {
+                    None => { format!("Dialog with id {}", id) }
+                    Some(value) => { value }
+                };
+                parent
+                    .text_button(text, SettingsId(id));
+            }
+        })
+        .insert(DialogsList)
+        .style()
+        .justify_content(JustifyContent::SpaceAround)
+        .size(Val::Percent(100.0))
+        .flex_direction(FlexDirection::Column)
+        .align_items(AlignItems::Center)
+        .background_color(Color::from(DIM_GREY));
+}
+
+fn despawn_dialogs_list(
+    mut commands: Commands,
+    query: Query<Entity, With<DialogsList>>,
 ) {
     let entity = query.single();
     commands.entity(entity).despawn_recursive();

@@ -11,6 +11,7 @@ use player::resources::PlayerAnimations;
 
 use crate::core::states::GameState;
 use crate::dev::DevSettingsPlugin;
+use crate::dialog::DialogPlugin;
 use crate::fight::{FightingScene, FightPlugin};
 use crate::gui::UiPlugin;
 use crate::party::PartyPlugin;
@@ -54,6 +55,7 @@ fn main() {
             PartyPlugin,
             FightingScene,
             UiPlugin,
+            DialogPlugin,
             // npc::systems::MainNpcPlugin,
         ))
         .add_systems(Startup, startup::setup)

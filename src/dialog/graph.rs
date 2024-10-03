@@ -215,7 +215,7 @@ fn test_dialog_0() -> DialogStick {
 //   |  ^ ^
 //   |  | |
 //   -- * *
-fn test_dialog_1() -> DialogStick {
+pub fn test_dialog_1() -> DialogStick {
     let mut main_stick = DialogStick::from(0);
 
     main_stick.replicas.extend(
@@ -297,7 +297,7 @@ fn test_dialog_1() -> DialogStick {
 //  |      end  |
 //  |<----------|
 //
-fn test_dialog_2() -> DialogStick {
+pub fn test_dialog_2() -> DialogStick {
     let mut main_stick = DialogStick::from(0);
     main_stick.replicas.extend(
         vec![
