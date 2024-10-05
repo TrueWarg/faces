@@ -1,4 +1,4 @@
-use bevy::utils::HashSet;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Clone)]
 pub struct DialogStick {
@@ -6,7 +6,6 @@ pub struct DialogStick {
     replicas: Vec<Replica>,
     branching: Option<Branching>,
 }
-
 
 impl Default for DialogStick {
     fn default() -> Self {
@@ -19,6 +18,10 @@ impl Default for DialogStick {
 }
 
 impl DialogStick {
+    pub fn replicas_size(&self) -> usize {
+        return self.replicas.len();
+    }
+
     pub fn first_replica(&self) -> &Replica {
         return self.get_replica_at(0);
     }
@@ -75,23 +78,23 @@ impl Default for Branching {
 #[derive(Clone)]
 pub struct Variant {
     pub label: String,
-    pub stick: DialogStick,
+    pub stick_id: usize,
     pub effect: Option<DialogEffect>,
 }
 
 impl Variant {
-    fn create_with_effect(label: String, stick: DialogStick, effect: DialogEffect) -> Self {
+    fn create_with_effect(label: String, stick_id: usize, effect: DialogEffect) -> Self {
         return Variant {
             label,
-            stick,
+            stick_id,
             effect: Some(effect),
         };
     }
 
-    fn create(label: String, stick: DialogStick) -> Self {
+    fn create(label: String, stick_id: usize) -> Self {
         return Variant {
             label,
-            stick,
+            stick_id,
             effect: None,
         };
     }
@@ -103,14 +106,15 @@ pub enum DialogEffect {
     EndDialog,
 }
 
-
-fn dialog_run_str(dialog: DialogStick, answers: Vec<usize>) -> String {
+fn dialog_run_str(dialog: (usize, HashMap<usize, DialogStick>), answers: Vec<usize>) -> String {
+    let (root_id, pool) = dialog;
     let mut result = "".to_string();
-    let mut branch_stack = vec![&dialog];
+    let mut branch_stack = vec![root_id];
     let mut answer_number = 0;
     let mut was_in_stack = HashSet::new();
     loop {
-        let branch = branch_stack.last().expect("");
+        let stick_id = branch_stack.last().expect("");
+        let branch = pool.get(stick_id).expect("No value");
         if !was_in_stack.contains(&branch.id) {
             for replica in &branch.replicas {
                 result += replica.text.as_str();
@@ -148,7 +152,7 @@ fn dialog_run_str(dialog: DialogStick, answers: Vec<usize>) -> String {
                         }
                     }
                 }
-                branch_stack.push(&variant.stick)
+                branch_stack.push(variant.stick_id)
             }
         }
 
@@ -168,7 +172,7 @@ fn dialog_run_str(dialog: DialogStick, answers: Vec<usize>) -> String {
 //    |  | | |
 //    ---* * *
 //         end
-fn test_dialog_0() -> DialogStick {
+fn test_dialog_0() -> (usize, HashMap<usize, DialogStick>) {
     let mut main_stick = DialogStick::from(0);
 
     main_stick.replicas.extend(
@@ -197,14 +201,21 @@ fn test_dialog_0() -> DialogStick {
         Branching {
             id: 0,
             variants: vec![
-                Variant::create("What is your name?".to_string(), question_stick),
-                Variant::create_with_effect("I will twist your neck!".to_string(), neck_twist_stick, DialogEffect::ReplaceDialog),
-                Variant::create_with_effect("I will go.".to_string(), go_away_stick, DialogEffect::ReplaceDialog),
+                Variant::create("What is your name?".to_string(), question_stick.id),
+                Variant::create_with_effect("I will twist your neck!".to_string(), neck_twist_stick.id, DialogEffect::ReplaceDialog),
+                Variant::create_with_effect("I will go.".to_string(), go_away_stick.id, DialogEffect::ReplaceDialog),
             ],
         }
     );
 
-    return main_stick;
+    let mut pool = HashMap::new();
+    let root_id = main_stick.id;
+    pool.insert(main_stick.id, main_stick);
+    pool.insert(question_stick.id, question_stick);
+    pool.insert(neck_twist_stick.id, neck_twist_stick);
+    pool.insert(go_away_stick.id, go_away_stick);
+
+    return (root_id, pool);
 }
 
 //         start
@@ -220,7 +231,7 @@ fn test_dialog_0() -> DialogStick {
 //   |  ^ ^
 //   |  | |
 //   -- * *
-pub fn test_dialog_1() -> DialogStick {
+pub fn test_dialog_1() -> (usize, HashMap<usize, DialogStick>) {
     let mut main_stick = DialogStick::from(0);
 
     main_stick.replicas.extend(
@@ -251,12 +262,11 @@ pub fn test_dialog_1() -> DialogStick {
         Branching {
             id: 0,
             variants: vec![
-                Variant::create_with_effect("Formidable Face!".to_string(), tell_name_stick, DialogEffect::ReplaceDialog),
-                Variant::create_with_effect("I will not tell you!".to_string(), dont_tell_name_stick, DialogEffect::ReplaceDialog),
+                Variant::create_with_effect("Formidable Face!".to_string(), tell_name_stick.id, DialogEffect::ReplaceDialog),
+                Variant::create_with_effect("I will not tell you!".to_string(), dont_tell_name_stick.id, DialogEffect::ReplaceDialog),
             ],
         }
     );
-
 
     let mut neck_twist_stick = DialogStick::from(2);
     neck_twist_stick.replicas.push(
@@ -272,14 +282,23 @@ pub fn test_dialog_1() -> DialogStick {
         Branching {
             id: 0,
             variants: vec![
-                Variant::create("What is your name?".to_string(), question_stick),
-                Variant::create_with_effect("I will twist your neck!".to_string(), neck_twist_stick, DialogEffect::ReplaceDialog),
-                Variant::create_with_effect("I will go.".to_string(), go_away_stick, DialogEffect::ReplaceDialog),
+                Variant::create("What is your name?".to_string(), question_stick.id),
+                Variant::create_with_effect("I will twist your neck!".to_string(), neck_twist_stick.id, DialogEffect::ReplaceDialog),
+                Variant::create_with_effect("I will go.".to_string(), go_away_stick.id, DialogEffect::ReplaceDialog),
             ],
         }
     );
 
-    return main_stick;
+    let mut pool = HashMap::new();
+    let root_id = main_stick.id;
+    pool.insert(main_stick.id, main_stick);
+    pool.insert(tell_name_stick.id, tell_name_stick);
+    pool.insert(dont_tell_name_stick.id, dont_tell_name_stick);
+    pool.insert(question_stick.id, question_stick);
+    pool.insert(neck_twist_stick.id, neck_twist_stick);
+    pool.insert(go_away_stick.id, go_away_stick);
+
+    return (root_id, pool);
 }
 
 //         start
@@ -302,7 +321,7 @@ pub fn test_dialog_1() -> DialogStick {
 //  |      end  |
 //  |<----------|
 //
-pub fn test_dialog_2() -> DialogStick {
+pub fn test_dialog_2() -> (usize, HashMap<usize, DialogStick>) {
     let mut main_stick = DialogStick::from(0);
     main_stick.replicas.extend(
         vec![
@@ -329,13 +348,15 @@ pub fn test_dialog_2() -> DialogStick {
         а именно Вашим, или, если обвинения не беспочвенны, не Вашем домом.".to_string())
     );
 
+    let empty_dont_say = DialogStick::from(21);
+    let empty_twist_neck =  DialogStick::from(22);
     why_question_stick.branching = Some(
         Branching {
             id: 0,
             variants: vec![
-                Variant::create_with_effect("[Промолчать]".to_string(), DialogStick::from(21), DialogEffect::ReplaceDialog),
+                Variant::create_with_effect("[Промолчать]".to_string(), empty_dont_say.id, DialogEffect::ReplaceDialog),
                 Variant::create_with_effect("Ыыыыыыууууу!!!! \
-                Этё мой дём!!!!! [Свернуть шею]".to_string(), DialogStick::from(22), DialogEffect::EndDialog),
+                Этё мой дём!!!!! [Свернуть шею]".to_string(), empty_twist_neck.id, DialogEffect::EndDialog),
             ],
         }
     );
@@ -364,16 +385,27 @@ pub fn test_dialog_2() -> DialogStick {
         Branching {
             id: 0,
             variants: vec![
-                Variant::create("Ыыыу, ето ошибка! Мне не должно ничего приходить!".to_string(), it_is_mistake_question_stick),
-                Variant::create("Почему мне присля этя повесьтька?".to_string(), why_question_stick),
-                Variant::create("Когдя мне надо в суд?".to_string(), when_in_court),
-                Variant::create_with_effect("Хм. Давайте я расписюсь.".to_string(), ok, DialogEffect::EndDialog),
-                Variant::create_with_effect("[Свернуть шею]".to_string(), twist_neck, DialogEffect::EndDialog),
+                Variant::create("Ыыыу, ето ошибка! Мне не должно ничего приходить!".to_string(), it_is_mistake_question_stick.id),
+                Variant::create("Почему мне присля этя повесьтька?".to_string(), why_question_stick.id),
+                Variant::create("Когдя мне надо в суд?".to_string(), when_in_court.id),
+                Variant::create_with_effect("Хм. Давайте я расписюсь.".to_string(), ok.id, DialogEffect::EndDialog),
+                Variant::create_with_effect("[Свернуть шею]".to_string(), twist_neck.id, DialogEffect::EndDialog),
             ],
         }
     );
 
-    return main_stick;
+    let mut pool = HashMap::new();
+    let root_id = main_stick.id;
+    pool.insert(main_stick.id, main_stick);
+    pool.insert(empty_dont_say.id, empty_dont_say);
+    pool.insert(empty_twist_neck.id, empty_twist_neck);
+    pool.insert(it_is_mistake_question_stick.id, it_is_mistake_question_stick);
+    pool.insert(why_question_stick.id, why_question_stick);
+    pool.insert(when_in_court.id, when_in_court);
+    pool.insert(ok.id, ok);
+    pool.insert(twist_neck.id, twist_neck);
+
+    return (root_id, pool);
 }
 
 #[test]

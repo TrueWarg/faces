@@ -9,7 +9,7 @@ pub struct DialogsStorage;
 
 impl DialogsStorage {
     pub fn get_by_id(&self, id: &usize) -> Option<Dialog> {
-        return test_dialogs().remove(id)
+        return test_dialogs().remove(id);
     }
 
     pub fn get_all(&self) -> HashMap<usize, Dialog> {
@@ -19,21 +19,26 @@ impl DialogsStorage {
 
 fn test_dialogs() -> HashMap<usize, Dialog> {
     let mut result = HashMap::default();
+    let (root_id, sticks) = test_dialog_1();
     result.insert(
         0,
-        Dialog {
-            id: DialogId(0),
-            label: Some("Dialog 1".to_string()),
-            root: test_dialog_1(),
-        }
+        Dialog::from(
+            DialogId(0),
+            "Dialog 1".to_string(),
+            root_id,
+            sticks,
+        ),
     );
+    let (root_id, sticks) = test_dialog_2();
+
     result.insert(
         1,
-        Dialog {
-            id: DialogId(1),
-            label: Some("Dialog 2".to_string()),
-            root: test_dialog_2(),
-        }
+        Dialog::from(
+            DialogId(1),
+            "Dialog 2".to_string(),
+            root_id,
+            sticks,
+        ),
     );
     return result;
 }
