@@ -2,8 +2,9 @@ use bevy::app::{App, Plugin};
 use bevy::asset::AssetServer;
 use bevy::color::Color;
 use bevy::color::palettes::css::{ANTIQUE_WHITE, DIM_GREY, WHITE};
-use bevy::hierarchy::DespawnRecursiveExt;
-use bevy::prelude::AlignItems;
+use bevy::hierarchy::{Children, DespawnRecursiveExt};
+use bevy::log::warn;
+use bevy::prelude::{AlignItems, Interaction, NextState, ResMut, State};
 use bevy::prelude::BackgroundColor;
 use bevy::prelude::Changed;
 use bevy::prelude::Commands;
@@ -20,6 +21,7 @@ use bevy::prelude::Update;
 use bevy::prelude::Val;
 use bevy::prelude::With;
 use bevy::ui::{AlignSelf, FocusPolicy};
+use bevy::utils::HashMap;
 use sickle_ui::prelude::{ScrollAxis, SetBorderColorExt, SetBorderExt};
 use sickle_ui::prelude::SetAlignItemsExt;
 use sickle_ui::prelude::SetAlignSelfExt;
@@ -37,37 +39,48 @@ use sickle_ui::prelude::UiRoot;
 use sickle_ui::prelude::UiRowExt;
 use sickle_ui::prelude::UiScrollViewExt;
 use sickle_ui::ui_builder::UiBuilderExt;
+use sickle_ui::ui_commands::UpdateTextExt;
 
 use crate::core::states::GameState;
-use crate::dialog::{Branching, DialogId, DialogsStorage, DialogStick};
-use crate::gui::{ButtonConfig, TextButtonExt, TextConfig, TextExt};
+use crate::dialog::{Branching, Dialog, DialogEffect, DialogId, DialogsStorage, DialogStick};
+use crate::fight::FightId;
+use crate::gui::{ButtonConfig, TextButton, TextButtonExt, TextConfig, TextExt};
 
 pub struct DialogScene;
 
 #[derive(Component)]
-pub struct DialogSceneScreen;
+struct DialogSceneScreen;
 
 #[derive(Component)]
-pub struct DialogOptions;
+struct DialogOptions;
 
 #[derive(Component)]
-pub struct Sticks(Vec<(usize, DialogStick)>);
+struct Sticks(Vec<(usize, usize)>);
 
 #[derive(Component)]
-pub struct CurrentBranching(Option<Branching>);
+struct CurrentReplica(String);
 
 #[derive(Component)]
-pub struct LastPhrase(String);
+struct CurrentBranching(Option<Branching>);
 
 #[derive(Component)]
-pub struct VariantId(usize);
+struct LastPhrase(String);
+
+#[derive(Component)]
+struct OptionId(usize);
 
 impl Plugin for DialogScene {
     fn build(&self, app: &mut App) {
         app
             .add_systems(OnEnter(GameState::Dialog), spawn_main)
-            .add_systems(Update, spawn_dialog_options_panel)
-            .add_systems(OnExit(GameState::Dialog), unspawn);
+            .add_systems(OnExit(GameState::Dialog), unspawn)
+            .add_systems(Update, dialog_options_panel_respawns)
+            .add_systems(Update, (
+                option_input_handle,
+                dialog_options_updates,
+                current_replica_updates,
+            ),
+            );
     }
 }
 
@@ -81,7 +94,20 @@ fn spawn_main(
     let dialog = dialogs_storage
         .get_by_id(&dialog_id.0)
         .expect(&format!("No dialog with id {}", &dialog_id.0));
-    let current_branching = CurrentBranching(dialog.root.get_branching().clone());
+    let root_stick = dialog.get_root_stick();
+    let current_replica = if root_stick.replicas_size() > 0 {
+        CurrentReplica(root_stick.first_replica().text.clone())
+    } else {
+        CurrentReplica("".to_string())
+    };
+    let current_branching = if root_stick.replicas_size() > 0 {
+        CurrentBranching(None)
+    } else {
+        CurrentBranching(root_stick.get_branching().clone())
+    };
+
+    let id_to_replica_position = vec![(root_stick.id, 0)];
+
     commands
         .ui_builder(UiRoot)
         .column(|parent| {
@@ -94,9 +120,8 @@ fn spawn_main(
             parent
                 .column(|parent| {
                     parent
-                        .configure_text(
-                            "NEXT",
-                            TextConfig::small(Color::from(ANTIQUE_WHITE)))
+                        .configure_text("", TextConfig::small(Color::from(ANTIQUE_WHITE)))
+                        .insert(current_replica)
                         .style()
                         .margin(
                             UiRect {
@@ -123,8 +148,9 @@ fn spawn_main(
         })
         .insert((
             DialogSceneScreen,
-            dialog,
             current_branching,
+            dialog,
+            Sticks(id_to_replica_position),
         )
         )
         .style()
@@ -134,7 +160,7 @@ fn spawn_main(
         .align_items(AlignItems::Center);
 }
 
-fn spawn_dialog_options_panel(
+fn dialog_options_panel_respawns(
     mut commands: Commands,
     options_query: Query<Entity, With<DialogOptions>>,
     branching_query: Query<(&CurrentBranching), Changed<CurrentBranching>>,
@@ -189,7 +215,7 @@ fn option_button(
     parent
         .configure_text_button(
             label,
-            VariantId(id),
+            OptionId(id),
             TextConfig::small(Color::from(ANTIQUE_WHITE)),
             ButtonConfig {
                 width: Val::Percent(100.0),
@@ -202,6 +228,115 @@ fn option_button(
         .style()
         .focus_policy(FocusPolicy::Pass)
         .justify_content(JustifyContent::FlexStart);
+}
+
+fn option_input_handle(
+    mut sticks_query: Query<&mut Sticks>,
+    dialog_query: Query<&Dialog>,
+    mut replica_query: Query<&mut CurrentReplica>,
+    branching_query: Query<&CurrentBranching>,
+    mut button_query: Query<
+        (&TextButton<OptionId>, &Interaction, &mut BackgroundColor),
+        Changed<Interaction>,
+    >,
+) {
+    for (button, interaction, mut background_color) in &mut button_query {
+        match *interaction {
+            Interaction::None => {
+                *background_color = button.config.idle;
+            }
+            Interaction::Hovered => {
+                *background_color = button.config.hover;
+            }
+            Interaction::Pressed => {
+                let mut stack = &mut sticks_query.single_mut().0;
+                if stack.is_empty() {
+                    return;
+                }
+                let last_idx = stack.len() - 1;
+                if button.payload.0 == BTN_NEXT_ID {
+                    let (id, mut pos) = stack.last().expect("No value in stack");
+                    let stick = dialog_query.single().get_stick_at(*id);
+                    if pos + 1 < stick.replicas_size() {
+                        pos += 1;
+                        stack[last_idx].1 = pos;
+
+                        replica_query.single_mut().0 = stick.get_replica_at(pos).text.clone();
+                    }
+
+                    if pos == stick.replicas_size() - 1 {
+                        let branching = stick.get_branching().clone();
+                        if branching.is_none() {
+                            stack.pop();
+                        }
+                    }
+                    return;
+                }
+                match &branching_query.single().0 {
+                    None => {}
+                    Some(branching) => {
+                        let selected = &branching.variants[button.payload.0];
+                        match &selected.effect {
+                            None => {}
+                            Some(effect) => {
+                                match effect {
+                                    DialogEffect::ReplaceDialog => {
+                                        stack.pop();
+                                    }
+                                    DialogEffect::EndDialog => {
+                                        stack.pop();
+                                    }
+                                }
+                            }
+                        }
+                        let stick = dialog_query.single().get_stick_at(selected.stick_id);
+                        replica_query.single_mut().0 = stick.first_replica().text.clone();
+                        stack.push((selected.stick_id, 0));
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn dialog_options_updates(
+    sticks_query: Query<&Sticks, Changed<Sticks>>,
+    dialog_query: Query<&Dialog>,
+    mut branching_query: Query<&mut CurrentBranching>,
+) {
+    for sticks in sticks_query.iter() {
+        let stack = &sticks.0;
+        if stack.is_empty() {
+            return;
+        }
+        let (id, pos) = stack.last().expect("No value in stack");
+        let stick = dialog_query.single().get_stick_at(*id);
+
+        let new_branching = if *pos == stick.replicas_size() - 1 {
+            stick.get_branching().clone()
+        } else {
+            None
+        };
+
+        println!("!!! stack = {:?}", stack);
+        branching_query.single_mut().0 = new_branching
+    }
+}
+
+fn current_replica_updates(
+    mut commands: Commands,
+    mut replica_query: Query<(&Children, &CurrentReplica), Changed<CurrentReplica>>,
+) {
+    for (children, replica) in replica_query.iter_mut() {
+        for &child in children.iter() {
+            match commands.get_entity(child) {
+                None => { warn!("Current replica component is not found") }
+                Some(mut entity_commands) => {
+                    entity_commands.update_text(replica.0.clone());
+                }
+            }
+        }
+    }
 }
 
 fn unspawn(

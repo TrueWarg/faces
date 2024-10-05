@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct DialogStick {
     pub id: usize,
     replicas: Vec<Replica>,
@@ -47,7 +47,7 @@ impl DialogStick {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Replica {
     pub text: String,
 }
@@ -60,7 +60,7 @@ impl Replica {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Branching {
     pub id: usize,
     pub variants: Vec<Variant>,
@@ -75,7 +75,7 @@ impl Default for Branching {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Variant {
     pub label: String,
     pub stick_id: usize,
@@ -100,7 +100,7 @@ impl Variant {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum DialogEffect {
     ReplaceDialog,
     EndDialog,
@@ -316,7 +316,9 @@ pub fn test_dialog_1() -> (usize, HashMap<usize, DialogStick>) {
 //  ----^ ^  |
 //  |     |  *
 //  |     *  |
-//  -----^ ^ |---
+//  |    ^ ^ |---
+//  |    | |    |
+//  |--- * *    |
 //  |      |    |
 //  |      end  |
 //  |<----------|
@@ -348,15 +350,21 @@ pub fn test_dialog_2() -> (usize, HashMap<usize, DialogStick>) {
         а именно Вашим, или, если обвинения не беспочвенны, не Вашем домом.".to_string())
     );
 
-    let empty_dont_say = DialogStick::from(21);
-    let empty_twist_neck =  DialogStick::from(22);
+    let mut dont_say_any = DialogStick::from(21);
+    dont_say_any.replicas.push(
+        Replica::from_text("Ну так что? Подписывать будете?".to_string())
+    );
+    let mut furiously_twist_neck = DialogStick::from(22);
+    furiously_twist_neck.replicas.push(
+        Replica::from_text("Что вы... Грозный, ввваааааа! Эу...".to_string())
+    );
     why_question_stick.branching = Some(
         Branching {
             id: 0,
             variants: vec![
-                Variant::create_with_effect("[Промолчать]".to_string(), empty_dont_say.id, DialogEffect::ReplaceDialog),
+                Variant::create_with_effect("[Промолчать]".to_string(), dont_say_any.id, DialogEffect::ReplaceDialog),
                 Variant::create_with_effect("Ыыыыыыууууу!!!! \
-                Этё мой дём!!!!! [Свернуть шею]".to_string(), empty_twist_neck.id, DialogEffect::EndDialog),
+                Этё мой дём!!!!! [Свернуть шею]".to_string(), furiously_twist_neck.id, DialogEffect::EndDialog),
             ],
         }
     );
@@ -397,8 +405,8 @@ pub fn test_dialog_2() -> (usize, HashMap<usize, DialogStick>) {
     let mut pool = HashMap::new();
     let root_id = main_stick.id;
     pool.insert(main_stick.id, main_stick);
-    pool.insert(empty_dont_say.id, empty_dont_say);
-    pool.insert(empty_twist_neck.id, empty_twist_neck);
+    pool.insert(dont_say_any.id, dont_say_any);
+    pool.insert(furiously_twist_neck.id, furiously_twist_neck);
     pool.insert(it_is_mistake_question_stick.id, it_is_mistake_question_stick);
     pool.insert(why_question_stick.id, why_question_stick);
     pool.insert(when_in_court.id, when_in_court);
@@ -500,6 +508,7 @@ fn test_dialog_21() {
     let mut expected = "Здравстуйте! У меня к вам очень важное дело.\n\n".to_string();
     expected += "Вам повестка в суд! Вы должны расписаться здесь и здесь, а еще вот тут. Пожалуйста, вот вам ручка.\n\n";
     expected += "Только не забудьте её мне вернуть, хорошо?\n\n";
+
     expected += "-------------------------\n";
     expected += "1. Ыыыу, ето ошибка! Мне не должно ничего приходить!\n";
     expected += "2. Почему мне присля этя повесьтька?\n";
@@ -512,11 +521,14 @@ fn test_dialog_21() {
     expected += "Я просто курьер, особых подробностей не знаю.\n\n";
     expected += "Но вроде как вы объвиняетесь в незаконном владении имуществом, \
     а именно Вашим, или, если обвинения не беспочвенны, не Вашем домом.\n\n";
+
     expected += "-------------------------\n";
     expected += "1. [Промолчать]\n";
     expected += "2. Ыыыыыыууууу!!!! Этё мой дём!!!!! [Свернуть шею]\n";
     expected += "-------------------------\n\n";
+
     expected += "Ыыыыыыууууу!!!! Этё мой дём!!!!! [Свернуть шею]\n\n";
+    expected += "Что вы... Грозный, ввваааааа! Эу...\n\n";
 
     assert_eq!(expected, dialog_run_str(test_dialog_2(), vec![1, 1]))
 }
@@ -526,6 +538,7 @@ fn test_dialog_22() {
     let mut expected = "Здравстуйте! У меня к вам очень важное дело.\n\n".to_string();
     expected += "Вам повестка в суд! Вы должны расписаться здесь и здесь, а еще вот тут. Пожалуйста, вот вам ручка.\n\n";
     expected += "Только не забудьте её мне вернуть, хорошо?\n\n";
+
     expected += "-------------------------\n";
     expected += "1. Ыыыу, ето ошибка! Мне не должно ничего приходить!\n";
     expected += "2. Почему мне присля этя повесьтька?\n";
@@ -538,11 +551,13 @@ fn test_dialog_22() {
     expected += "Я просто курьер, особых подробностей не знаю.\n\n";
     expected += "Но вроде как вы объвиняетесь в незаконном владении имуществом, \
     а именно Вашим, или, если обвинения не беспочвенны, не Вашем домом.\n\n";
+
     expected += "-------------------------\n";
     expected += "1. [Промолчать]\n";
     expected += "2. Ыыыыыыууууу!!!! Этё мой дём!!!!! [Свернуть шею]\n";
     expected += "-------------------------\n\n";
     expected += "[Промолчать]\n\n";
+    expected += "Ну так что? Подписывать будете?\n\n";
 
     expected += "-------------------------\n";
     expected += "1. Ыыыу, ето ошибка! Мне не должно ничего приходить!\n";
