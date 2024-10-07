@@ -25,6 +25,8 @@ fn test_dialogs() -> HashMap<usize, Dialog> {
         Dialog::from(
             DialogId(0),
             "Dialog 1".to_string(),
+            "background/dialog_bg.png".to_string(),
+            "npc/dialog_courier.png".to_string(),
             root_id,
             sticks,
         ),
@@ -36,6 +38,8 @@ fn test_dialogs() -> HashMap<usize, Dialog> {
         Dialog::from(
             DialogId(1),
             "Dialog 2".to_string(),
+            "background/dialog_bg.png".to_string(),
+            "npc/dialog_courier.png".to_string(),
             root_id,
             sticks,
         ),

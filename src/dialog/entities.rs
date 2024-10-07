@@ -6,6 +6,8 @@ use crate::dialog::graph::DialogStick;
 pub struct Dialog {
     pub id: DialogId,
     pub label: Option<String>,
+    pub bg_path: String,
+    pub character_path: String,
     pub root_id: usize,
     sticks: HashMap<usize, DialogStick>,
 }
@@ -14,12 +16,16 @@ impl Dialog {
     pub fn from(
         id: DialogId,
         label: String,
+        bg_path: String,
+        character_path: String,
         root_id: usize,
         sticks: HashMap<usize, DialogStick>,
     ) -> Dialog {
         return Dialog {
             id,
             label: Some(label),
+            bg_path,
+            character_path,
             root_id,
             sticks,
         };

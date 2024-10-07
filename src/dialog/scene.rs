@@ -4,7 +4,7 @@ use bevy::color::Color;
 use bevy::color::palettes::css::{ANTIQUE_WHITE, DIM_GREY, WHITE};
 use bevy::hierarchy::{Children, DespawnRecursiveExt};
 use bevy::log::warn;
-use bevy::prelude::{AlignItems, Interaction, NextState, ResMut, State};
+use bevy::prelude::{AlignItems, default, ImageBundle, Interaction, NextState, PositionType, ResMut, State, UiImage};
 use bevy::prelude::BackgroundColor;
 use bevy::prelude::Changed;
 use bevy::prelude::Commands;
@@ -22,7 +22,7 @@ use bevy::prelude::Val;
 use bevy::prelude::With;
 use bevy::ui::{AlignSelf, FocusPolicy};
 use bevy::utils::HashMap;
-use sickle_ui::prelude::{ScrollAxis, SetBorderColorExt, SetBorderExt};
+use sickle_ui::prelude::{ScrollAxis, SetBorderColorExt, SetBorderExt, SetLeftExt, SetPositionTypeExt, SetTopExt};
 use sickle_ui::prelude::SetAlignItemsExt;
 use sickle_ui::prelude::SetAlignSelfExt;
 use sickle_ui::prelude::SetBackgroundColorExt;
@@ -111,12 +111,29 @@ fn spawn_main(
     commands
         .ui_builder(UiRoot)
         .column(|parent| {
-            parent
-                .container(NodeBundle::default(), |_| {})
+            parent.container(ImageBundle {
+                image: UiImage {
+                    texture: asset_server.load(&dialog.bg_path),
+                    ..default()
+                },
+                ..default()
+            }, |parent| {
+                parent.container(ImageBundle {
+                    image: UiImage { texture: asset_server.load(&dialog.character_path), ..default() },
+                    ..default()
+                }, |parent| {},
+                )
+                    .style()
+                    .width(Val::Auto)
+                    .height(Val::Percent(70.0))
+                    .position_type(PositionType::Relative)
+                    .top(Val::Percent(30.0))
+                    .left(Val::Percent(40.0));
+            })
                 .style()
-                .background_color(Color::from(WHITE))
                 .height(Val::Percent(60.0))
                 .width(Val::Percent(100.0));
+
             parent
                 .column(|parent| {
                     parent
@@ -318,7 +335,6 @@ fn dialog_options_updates(
             None
         };
 
-        println!("!!! stack = {:?}", stack);
         branching_query.single_mut().0 = new_branching
     }
 }
