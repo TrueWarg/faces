@@ -37,6 +37,7 @@ use crate::core::states::GameState;
 use crate::dialog::{DialogId, DialogsStorage};
 use crate::fight::{FightId, FightStorage};
 use crate::gui::{TextButton, TextButtonExt};
+use crate::level::states::Level;
 
 pub struct DevSettingsPlugin;
 
@@ -71,6 +72,8 @@ impl Plugin for DevSettingsPlugin {
             .add_systems(OnExit(ScreenState::FightsList), despawn_fignts_list)
             .add_systems(OnEnter(ScreenState::DialogsList), spawn_dialogs_list)
             .add_systems(OnExit(ScreenState::DialogsList), despawn_dialogs_list)
+            .add_systems(OnEnter(ScreenState::LevelsList), spawn_levels_list)
+            .add_systems(OnExit(ScreenState::LevelsList), despawn_levels_list)
             .add_systems(Update, (keyboard_input_handle, mouse_input_handle)
                 .run_if(in_state(GameState::DevSetting)),
             );
@@ -82,6 +85,7 @@ fn mouse_input_handle(
     mut fight_id_query: Query<(&mut FightId)>,
     mut dialog_id_query: Query<(&mut DialogId)>,
     mut next_game_state: ResMut<NextState<GameState>>,
+    mut next_level_state: ResMut<NextState<Level>>,
     current_screen_state: Res<State<ScreenState>>,
     mut next_state: ResMut<NextState<ScreenState>>,
     mut query: Query<
@@ -111,6 +115,7 @@ fn mouse_input_handle(
                         }
 
                         if button.payload == LEVEL_SAMPLES_BUTTON_ID {
+                            next_state.set(ScreenState::LevelsList);
                             return;
                         }
                     }
@@ -121,7 +126,6 @@ fn mouse_input_handle(
                                 commands.spawn(FightId(button.payload.0));
                             }
                         }
-
                         next_game_state.set(GameState::Fighting);
                         return;
                     }
@@ -132,11 +136,14 @@ fn mouse_input_handle(
                                 commands.spawn(DialogId(button.payload.0));
                             }
                         }
-
                         next_game_state.set(GameState::Dialog);
                         return;
                     }
                     ScreenState::LevelsList => {
+                        if button.payload == HOUSE_LEVEL_BUTTON_ID {
+                            next_level_state.set(Level::House);
+                        }
+                        next_game_state.set(GameState::Exploration);
                         return;
                     }
                 }
@@ -255,9 +262,36 @@ fn despawn_dialogs_list(
     commands.entity(entity).despawn_recursive();
 }
 
+fn spawn_levels_list(
+    mut commands: Commands,
+) {
+    commands
+        .ui_builder(UiRoot)
+        .column(|parent| {
+            parent.text_button("House", HOUSE_LEVEL_BUTTON_ID);
+        })
+        .insert(LevelsList)
+        .style()
+        .justify_content(JustifyContent::SpaceAround)
+        .size(Val::Percent(100.0))
+        .flex_direction(FlexDirection::Column)
+        .align_items(AlignItems::Center)
+        .background_color(Color::from(DIM_GREY));
+}
+
+fn despawn_levels_list(
+    mut commands: Commands,
+    query: Query<Entity, With<LevelsList>>,
+) {
+    let entity = query.single();
+    commands.entity(entity).despawn_recursive();
+}
+
+
 #[derive(Component, Eq, PartialEq)]
 struct SettingsId(pub usize);
 
 const FIGHT_SAMPLES_BUTTON_ID: SettingsId = SettingsId(1);
 const DIALOGS_SAMPLES_BUTTON_ID: SettingsId = SettingsId(2);
 const LEVEL_SAMPLES_BUTTON_ID: SettingsId = SettingsId(3);
+const HOUSE_LEVEL_BUTTON_ID: SettingsId = SettingsId(11);
