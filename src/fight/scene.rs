@@ -1,6 +1,5 @@
 use bevy::app::Update;
 use bevy::asset::AssetServer;
-use bevy::asset::Handle;
 use bevy::color::palettes::basic::YELLOW;
 use bevy::color::palettes::css::ANTIQUE_WHITE;
 use bevy::color::palettes::css::BLUE;
@@ -19,7 +18,6 @@ use bevy::prelude::Commands;
 use bevy::prelude::Component;
 use bevy::prelude::default;
 use bevy::prelude::Entity;
-use bevy::prelude::Font;
 use bevy::prelude::ImageBundle;
 use bevy::prelude::in_state;
 use bevy::prelude::Interaction;

@@ -23,11 +23,3 @@ impl MoveDirection {
         )
     }
 }
-
-#[derive(Hash, PartialEq, Eq, Clone, Deserialize)]
-pub enum FightDirection {
-    Forward,
-    Left,
-    Backward,
-    Right,
-}

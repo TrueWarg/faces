@@ -1,4 +1,4 @@
-pub mod components;
+pub mod entities;
 pub mod states;
 pub mod collisions;
 pub mod z_index;

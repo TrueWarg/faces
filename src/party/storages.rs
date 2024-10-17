@@ -1,6 +1,7 @@
 use bevy::prelude::Resource;
-use crate::party::entity::PartyMember;
-use crate::rpg::{Ability, ConsumableItem, DirectionalAction, DirectionalAttack};
+
+use crate::party::entities::PartyMember;
+use crate::rpg::{Ability, ConsumableItem, DirectionalAttack};
 use crate::rpg::Dumplings;
 use crate::rpg::RangedProp;
 use crate::rpg::TargetProps;

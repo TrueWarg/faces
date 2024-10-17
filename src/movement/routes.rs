@@ -1,6 +1,6 @@
 use crate::core::geometry::{nearest_to_point, round_segments_intersection, BBox, Point2D};
 
-use super::component::{Blocks, MoveAgent, Target};
+use super::entities::{Blocks, MoveAgent, Target};
 use bevy::{ecs::system::Query, transform::components::Transform, utils::HashSet};
 use std::collections::{HashMap, VecDeque};
 

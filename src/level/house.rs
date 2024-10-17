@@ -15,30 +15,31 @@ use bevy::{
     time::Timer,
 };
 use bevy::math::UVec2;
-use bevy::prelude::{in_state, OnEnter, OnExit, States, TransformBundle};
+use bevy::prelude::{Component, in_state, OnEnter, OnExit, States, TransformBundle};
 use bevy_rapier2d::prelude::{Collider, RigidBody};
 
 use crate::{
     core::{
         collisions::recalculate_z,
-        components::{Description, LevelYMax},
+        entities::{Description, LevelYMax},
         state_machines::{CycleLinearTransition, FiniteLinearTransition},
         z_index::{calculate_z, FLOOR_Z, ON_WALL_OBJECT_Z, WALL_Z},
     },
-    interaction::{
-        component::{
-            Container, ContainerState, InteractionArea, InteractionSide, LimitedInteractor,
-            PassiveInteractor, Switcher, SwitcherState,
-        },
-        systems::{change_switcher_state, transite_to_next_container_state},
+    interaction::interactors::{
+        Container, ContainerState, InteractionArea, InteractionSide, LimitedInteractor,
+        PassiveInteractor, Switcher, SwitcherState,
     },
 };
 use crate::core::states::GameState;
+use crate::interaction::interactors::{change_switcher_state, transit_to_next_container_state};
 
 use super::{
-    component::{LevelArm, WoodenChest},
-    resources::WoodenChestSprites,
+    objects::{LevelArm, WoodenChest},
+    sprites::WoodenChestSprites,
 };
+
+#[derive(Component)]
+struct HouseLevel;
 
 pub struct HousePlugin<S: States> {
     pub state: S,
@@ -49,13 +50,12 @@ impl<S: States> Plugin for HousePlugin<S> {
         app
             .add_systems(OnEnter(self.state.clone()), load)
             .add_systems(OnExit(self.state.clone()), unload)
-            .add_systems(OnExit(GameState::Exporation), unload)
+            .add_systems(OnExit(GameState::Exploration), unload)
             .add_systems(
                 Update,
-                (
-                    recalculate_z,
-                    draw_wooden_chest_states.after(transite_to_next_container_state),
-                    draw_level_arm_states.after(change_switcher_state),
+                (recalculate_z,
+                 draw_wooden_chest_states.after(transit_to_next_container_state),
+                 draw_level_arm_states.after(change_switcher_state),
                 ).run_if(in_state(self.state.clone())),
             );
     }
@@ -320,14 +320,16 @@ fn spawn_door(commands: &mut Commands, asset_server: &Res<AssetServer>) {
 }
 
 fn spawn_floor(commands: &mut Commands, asset_server: &Res<AssetServer>) {
-    commands.spawn(RigidBody::Fixed).insert(SpriteBundle {
-        texture: asset_server.load("house/floor.png"),
-        transform: Transform {
-            translation: Vec3::new(0.0, 0.0, FLOOR_Z),
+    commands
+        .spawn(RigidBody::Fixed)
+        .insert(SpriteBundle {
+            texture: asset_server.load("house/floor.png"),
+            transform: Transform {
+                translation: Vec3::new(0.0, 0.0, FLOOR_Z),
+                ..Default::default()
+            },
             ..Default::default()
-        },
-        ..Default::default()
-    });
+        });
 }
 
 fn spawn_walls(commands: &mut Commands, asset_server: &Res<AssetServer>) {

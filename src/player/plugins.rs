@@ -1,5 +1,4 @@
 use bevy::{
-    ecs::entity::Entity,
     prelude::{
         Assets, AssetServer, BuildChildren, ButtonInput, Commands, IntoSystemConfigs, KeyCode,
         Plugin, Query, Res, ResMut, Startup, Transform, Update, With,
@@ -13,15 +12,15 @@ use bevy::sprite::SpriteBundle;
 use bevy_rapier2d::prelude::{Collider, GravityScale, LockedAxes, RigidBody, Velocity};
 
 use crate::{
-    animation::entities::{FightDirection, MoveDirection},
-    core::{components::BodyYOffset, z_index::DEFAULT_OBJECT_Z},
-    interaction::component::{ActiveInteractor, InteractionArea, InteractionSide},
-    movement::component::Target,
+    animation::entities::MoveDirection,
+    core::{entities::BodyYOffset, z_index::DEFAULT_OBJECT_Z},
+    interaction::interactors::{ActiveInteractor, InteractionArea, InteractionSide},
+    movement::entities::Target,
 };
 
 use super::{
-    components::{FightAnimation, MoveAnimation, Player},
-    resources::PlayerAnimations,
+    animations::PlayerAnimations,
+    entities::{MoveAnimation, Player},
 };
 
 pub struct PlayerPlugin;
@@ -29,12 +28,9 @@ pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         app.add_systems(Startup, player_spawns)
-            // .add_systems(Update, player_fight)
-            // .add_systems(Update, player_movement.after(player_fight))
             .add_systems(Update, player_movement)
             .add_systems(Update, player_animation.after(player_movement))
             .add_systems(Update, basic_animation.after(player_animation))
-            .add_systems(Update, basic_fight_animation.after(player_animation))
             .add_systems(Update, change_interaction_area.after(player_movement));
     }
 }
@@ -46,17 +42,11 @@ fn player_spawns(
     mut layouts: ResMut<Assets<TextureAtlasLayout>>,
 ) {
     let start_move_direction = MoveDirection::ForwardIdle;
-    let start_fight_direction = FightDirection::Forward;
 
     let moves_handle = asset_server.load("npc/formidable_face.png");
     let move_layout = TextureAtlasLayout::from_grid(UVec2::new(32, 46), 6, 8, None, None);
 
-    // let fight_handle = asset_server.load("npc/formidable_face_fight.png");
-    let fight_layout = TextureAtlasLayout::from_grid(UVec2::new(64, 68), 6, 4, None, None);
-
     let move_layout_handle = layouts.add(move_layout);
-    let fight_layout_handle = layouts.add(fight_layout);
-
 
     commands
         .spawn(RigidBody::Dynamic)
@@ -78,14 +68,6 @@ fn player_spawns(
             direction: start_move_direction,
             sheet_handle: move_layout_handle,
         })
-        .insert(FightAnimation {
-            timer: Timer::from_seconds(
-                character_animations.fight[&start_fight_direction].2,
-                bevy::time::TimerMode::Repeating,
-            ),
-            direction: start_fight_direction,
-            sheet_handle: fight_layout_handle,
-        })
         .insert(Velocity::zero())
         .insert(LockedAxes::ROTATION_LOCKED)
         .insert(GravityScale(0.0))
@@ -96,7 +78,6 @@ fn player_spawns(
         )))
         .insert(Player {
             speed: 200.0,
-            is_fights: false,
         })
         .insert(BodyYOffset::create(20.0))
         .with_children(|children| {
@@ -120,12 +101,6 @@ fn player_movement(
     mut player_info: Query<(&Player, &mut Velocity)>,
 ) {
     for (player, mut velocity) in player_info.iter_mut() {
-        if player.is_fights {
-            velocity.linvel.x = 0.0;
-            velocity.linvel.y = 0.0;
-            return;
-        }
-
         let up = keyboard.pressed(KeyCode::KeyW);
         let down = keyboard.pressed(KeyCode::KeyS);
         let left = keyboard.pressed(KeyCode::KeyA);
@@ -148,44 +123,12 @@ fn player_movement(
     }
 }
 
-fn player_fight(
-    mut commands: Commands,
-    keyboard: Res<ButtonInput<KeyCode>>,
-    character_animations: Res<PlayerAnimations>,
-    mut player_query: Query<(Entity, &MoveAnimation, &FightAnimation, &mut Player)>,
-) {
-    // for (entity, move_animation, fight_animation, mut player) in player_query.iter_mut() {
-    //     if keyboard.pressed(KeyCode::KeyL) && keyboard.just_pressed(KeyCode::KeyL) {
-    //         let sprite_part = character_animations.fight[&fight_animation.direction];
-    //         commands
-    //             .entity(entity)
-    //             .insert(fight_animation.sheet_handle.clone())
-    //             .insert(TextureAtlasSprite {
-    //                 index: sprite_part.0 as usize,
-    //                 ..Default::default()
-    //             });
-    //         player.is_fights = true;
-    //     } else if keyboard.just_released(KeyCode::KeyL) {
-    //         let sprite_part = character_animations.moves[&move_animation.direction];
-    //         commands
-    //             .entity(entity)
-    //             .insert(move_animation.sheet_handle.clone())
-    //             .insert(TextureAtlasSprite {
-    //                 index: sprite_part.0 as usize,
-    //                 ..Default::default()
-    //             });
-    //         player.is_fights = false;
-    //     }
-    // }
-}
-
 fn player_animation(
     keyboard_input: Res<ButtonInput<KeyCode>>,
     character_animations: Res<PlayerAnimations>,
     mut player_query: Query<
         (
             &mut MoveAnimation,
-            &mut FightAnimation,
             &mut TextureAtlas,
             &Velocity,
             &Player,
@@ -193,7 +136,7 @@ fn player_animation(
         With<Player>,
     >,
 ) {
-    for (mut move_animation, mut fight_animation, mut sprite, rb_vels, player) in
+    for (mut move_animation, mut sprite, rb_vels, player) in
         player_query.iter_mut()
     {
         let mut restart_animation = false;
@@ -227,26 +170,10 @@ fn player_animation(
             restart_animation = true;
         }
 
-        if keyboard_input.just_pressed(KeyCode::KeyA) {
-            fight_animation.direction = FightDirection::Left;
-        } else if keyboard_input.just_pressed(KeyCode::KeyD) {
-            fight_animation.direction = FightDirection::Right;
-        } else if keyboard_input.just_pressed(KeyCode::KeyW) {
-            fight_animation.direction = FightDirection::Backward;
-        } else if keyboard_input.just_pressed(KeyCode::KeyS) {
-            fight_animation.direction = FightDirection::Forward;
-        }
-
         if restart_animation {
-            if !player.is_fights {
-                let sprite_part = character_animations.moves[&move_animation.direction];
-                sprite.index = sprite_part.0 as usize;
-                move_animation.timer =
-                    Timer::from_seconds(sprite_part.2, bevy::time::TimerMode::Repeating);
-            }
-
-            let sprite_part = character_animations.fight[&fight_animation.direction];
-            fight_animation.timer =
+            let sprite_part = character_animations.moves[&move_animation.direction];
+            sprite.index = sprite_part.0 as usize;
+            move_animation.timer =
                 Timer::from_seconds(sprite_part.2, bevy::time::TimerMode::Repeating);
         }
     }
@@ -276,38 +203,13 @@ fn change_interaction_area(
 fn basic_animation(
     time: Res<Time>,
     character_animations: Res<PlayerAnimations>,
-    mut animation_query: Query<(&mut MoveAnimation, &mut TextureAtlas, &Player)>,
+    mut animation_query: Query<(&mut MoveAnimation, &mut TextureAtlas)>,
 ) {
-    for (mut move_animation, mut sprite, player) in animation_query.iter_mut() {
-        if player.is_fights {
-            return;
-        }
+    for (mut move_animation, mut sprite) in animation_query.iter_mut() {
         move_animation.timer.tick(time.delta());
 
-        if move_animation.timer.finished() && !player.is_fights {
+        if move_animation.timer.finished() {
             let animation_idxs = character_animations.moves[&move_animation.direction];
-            if sprite.index >= animation_idxs.1 as usize {
-                sprite.index = animation_idxs.0 as usize;
-            } else {
-                sprite.index += 1;
-            }
-        }
-    }
-}
-
-fn basic_fight_animation(
-    time: Res<Time>,
-    character_animations: Res<PlayerAnimations>,
-    mut animation_query: Query<(&mut FightAnimation, &mut TextureAtlas, &Player)>,
-) {
-    for (mut fight_animation, mut sprite, player) in animation_query.iter_mut() {
-        if !player.is_fights {
-            return;
-        }
-        fight_animation.timer.tick(time.delta());
-
-        if fight_animation.timer.finished() {
-            let animation_idxs = character_animations.fight[&fight_animation.direction];
             if sprite.index >= animation_idxs.1 as usize {
                 sprite.index = animation_idxs.0 as usize;
             } else {

@@ -139,7 +139,7 @@ pub fn distance_to_line(point: &Point2D, line: &Line2D) -> f32 {
     return numerator / denominator;
 }
 
-/// find lines intercection with solving equestions systems using Cramer's rule
+/// find lines intersection with solving equations systems using Cramer's rule
 /// A1x + B1y = -C1
 /// A2x + B2y = -C2
 ///     |A1 B1|
@@ -160,11 +160,11 @@ pub fn distance_to_line(point: &Point2D, line: &Line2D) -> f32 {
 pub fn round_lines_intersection(line1: &Line2D, line2: &Line2D) -> Option<Point2D> {
     let d = line1.a * line2.b - line1.b * line2.a;
     if d == 0 {
-        return Option::None;
+        return None;
     }
     let dx = -line1.c * line2.b + line2.c * line1.b;
     let dy = -line1.a * line2.c + line2.a * line1.c;
-    return Option::Some(Point2D {
+    return Some(Point2D {
         x: dx / d,
         y: dy / d,
     });
@@ -183,9 +183,9 @@ pub fn round_segments_intersection(
         let intersect_first = point_in_rectangle(&point, segment1_x, segment1_y);
         let intersect_second = point_in_rectangle(&point, segment2_x, segment2_y);
         if intersect_first && intersect_second {
-            Option::Some(point)
+            Some(point)
         } else {
-            Option::None
+            None
         }
     });
 }
@@ -207,7 +207,7 @@ fn point_in_rectangle(point: &Point2D, top_left: &Point2D, bottom_right: &Point2
 //    **|*** |
 //       ****
 #[test]
-fn bbox_round_intercection_test_1() {
+fn bbox_round_intersection_test_1() {
     let first = BBox {
         left: 0.0,
         top: 4.0,
@@ -232,7 +232,7 @@ fn bbox_round_intercection_test_1() {
 //   ***|*** |
 //      ******
 #[test]
-fn bbox_round_intercection_test_2() {
+fn bbox_round_intersection_test_2() {
     let second = BBox {
         left: 0.0,
         top: 4.0,
@@ -258,7 +258,7 @@ fn bbox_round_intercection_test_2() {
 //   |      |
 //   ********
 #[test]
-fn bbox_round_intercection_test_3() {
+fn bbox_round_intersection_test_3() {
     let first = BBox {
         left: 0.0,
         top: 4.0,
@@ -282,7 +282,7 @@ fn bbox_round_intercection_test_3() {
 //   |           |
 //   *************
 #[test]
-fn bbox_round_intercection_test_4() {
+fn bbox_round_intersection_test_4() {
     let first = BBox {
         left: 0.0,
         top: 4.0,
@@ -300,7 +300,7 @@ fn bbox_round_intercection_test_4() {
 //   |      1    |
 //   *************
 #[test]
-fn bbox_round_intercection_test_5() {
+fn bbox_round_intersection_test_5() {
     let first = BBox {
         left: 0.0,
         top: 4.0,
@@ -326,7 +326,7 @@ fn bbox_round_intercection_test_5() {
 //   |           |    |
 //   ******************
 #[test]
-fn bbox_round_intercection_test_6() {
+fn bbox_round_intersection_test_6() {
     let first = BBox {
         left: 0.0,
         top: 4.0,
@@ -352,7 +352,7 @@ fn bbox_round_intercection_test_6() {
 //             |     |
 //             *******
 #[test]
-fn bbox_round_intercection_test_7() {
+fn bbox_round_intersection_test_7() {
     let first = BBox {
         left: 0.0,
         top: 4.0,
@@ -378,7 +378,7 @@ fn bbox_round_intercection_test_7() {
 //             |     |
 //             *******
 #[test]
-fn bbox_round_intercection_test_8() {
+fn bbox_round_intersection_test_8() {
     let second = BBox {
         left: 0.0,
         top: 4.0,
@@ -422,7 +422,7 @@ fn distance_to_line_test_3() {
 fn distance_to_line_test_4() {
     let point = Point2D { x: -2, y: 2 };
     let line = Line2D::from(&Point2D { x: -3, y: 1 }, &Point2D { x: -2, y: 0 });
-    let expected = format!("{:.4}", (2.0 as f32).sqrt());
+    let expected = format!("{:.4}", 2.0f32.sqrt());
     let result = format!("{:.4}", distance_to_line(&point, &line));
     assert_eq!(result, expected);
 }
@@ -432,7 +432,7 @@ fn round_lines_intersection_test_1() {
     let line1 = Line2D::new(1, 1, 0);
     let line2 = Line2D::new(2, 1, 0);
     let result = round_lines_intersection(&line1, &line2);
-    assert_eq!(result, Option::Some(Point2D::new(0, 0)));
+    assert_eq!(result, Some(Point2D::new(0, 0)));
 }
 
 #[test]
@@ -440,7 +440,7 @@ fn round_lines_intersection_test_2() {
     let line1 = Line2D::new(3, 1, 2);
     let line2 = Line2D::new(2, 7, -6);
     let result = round_lines_intersection(&line1, &line2);
-    assert_eq!(result, Option::Some(Point2D::new(-1, 1)));
+    assert_eq!(result, Some(Point2D::new(-1, 1)));
 }
 
 #[test]
@@ -448,7 +448,7 @@ fn round_lines_intersection_test_3() {
     let line1 = Line2D::new(0, 1, -12);
     let line2 = Line2D::new(2, 1, 6);
     let result = round_lines_intersection(&line1, &line2);
-    assert_eq!(result, Option::Some(Point2D::new(-9, 12)));
+    assert_eq!(result, Some(Point2D::new(-9, 12)));
 }
 
 #[test]
@@ -456,7 +456,7 @@ fn round_lines_intersection_test_4() {
     let line1 = Line2D::new(2, 3, 0);
     let line2 = Line2D::new(-3, 1, 1);
     let result = round_lines_intersection(&line1, &line2);
-    assert_eq!(result, Option::Some(Point2D::new(0, 0)));
+    assert_eq!(result, Some(Point2D::new(0, 0)));
 }
 
 #[test]
@@ -464,7 +464,7 @@ fn round_lines_intersection_test_parallel_5() {
     let line1 = Line2D::new(1, -1, 0);
     let line2 = Line2D::new(1, -1, -2);
     let result = round_lines_intersection(&line1, &line2);
-    assert_eq!(result, Option::None);
+    assert_eq!(result, None);
 }
 
 #[test]
@@ -472,7 +472,7 @@ fn round_lines_intersection_test_the_same_6() {
     let line1 = Line2D::new(1, -1, -2);
     let line2 = Line2D::new(1, -1, -2);
     let result = round_lines_intersection(&line1, &line2);
-    assert_eq!(result, Option::None);
+    assert_eq!(result, None);
 }
 
 #[test]
@@ -484,7 +484,7 @@ fn round_segments_intersection_parallel_1() {
     let end2 = Point2D::new(1, 1);
 
     let result = round_segments_intersection(&start1, &end1, &start2, &end2);
-    assert_eq!(result, Option::None);
+    assert_eq!(result, None);
 }
 
 #[test]
@@ -496,7 +496,7 @@ fn round_segments_intersection_not_intersect_2() {
     let end2 = Point2D::new(3, 3);
 
     let result = round_segments_intersection(&start1, &end1, &start2, &end2);
-    assert_eq!(result, Option::None);
+    assert_eq!(result, None);
 }
 
 #[test]
@@ -508,7 +508,7 @@ fn round_segments_intersection_not_intersect_3() {
     let end2 = Point2D::new(7, 0);
 
     let result = round_segments_intersection(&start1, &end1, &start2, &end2);
-    assert_eq!(result, Option::None);
+    assert_eq!(result, None);
 }
 
 #[test]
@@ -520,7 +520,7 @@ fn round_segments_intersection_4() {
     let end2 = Point2D::new(7, 0);
 
     let result = round_segments_intersection(&start1, &end1, &start2, &end2);
-    assert_eq!(result, Option::Some(Point2D::new(3, 1)));
+    assert_eq!(result, Some(Point2D::new(3, 1)));
 }
 
 #[test]
@@ -532,7 +532,7 @@ fn round_segments_intersection_5() {
     let end2 = Point2D::new(6, 0);
 
     let result = round_segments_intersection(&start1, &end1, &start2, &end2);
-    assert_eq!(result, Option::Some(Point2D::new(3, 2)));
+    assert_eq!(result, Some(Point2D::new(3, 2)));
 }
 
 #[test]
@@ -544,7 +544,7 @@ fn round_segments_intersection_6() {
     let end2 = Point2D::new(2, -3);
 
     let result = round_segments_intersection(&start1, &end1, &start2, &end2);
-    assert_eq!(result, Option::Some(Point2D::new(2, 2)));
+    assert_eq!(result, Some(Point2D::new(2, 2)));
 }
 
 #[test]
@@ -556,5 +556,5 @@ fn round_segments_intersection_7() {
     let end2 = Point2D::new(0, -4);
 
     let result = round_segments_intersection(&start1, &end1, &start2, &end2);
-    assert_eq!(result, Option::Some(Point2D::new(0, 0)));
+    assert_eq!(result, Some(Point2D::new(0, 0)));
 }

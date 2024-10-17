@@ -1,7 +1,7 @@
 use bevy::app::{App, Plugin, Startup};
 use bevy::prelude::Commands;
 
-use crate::party::state_storage::PartyStateStorage;
+use crate::party::storages::PartyStateStorage;
 
 pub struct PartyPlugin;
 

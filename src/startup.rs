@@ -1,6 +1,6 @@
 use bevy::prelude::{Camera2dBundle, Commands, Vec3};
 
-use crate::core::components::MainCamera;
+use crate::core::entities::MainCamera;
 
 pub fn setup(mut commands: Commands) {
     let mut cam = Camera2dBundle::default();

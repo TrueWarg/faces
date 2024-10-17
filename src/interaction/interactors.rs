@@ -1,4 +1,6 @@
 use bevy::{prelude::Component, time::Timer};
+use bevy::input::ButtonInput;
+use bevy::prelude::{Commands, Entity, KeyCode, Query, Res, Time, Transform, With};
 
 use crate::core::{
     geometry::BBox,
@@ -32,7 +34,7 @@ pub enum ContainerState {
 }
 
 impl FiniteLinearTransition for ContainerState {
-    fn transite(&self) -> Self {
+    fn transit(&self) -> Self {
         match self {
             ContainerState::Closed => ContainerState::Full,
             _ => ContainerState::Empty,
@@ -76,7 +78,7 @@ impl SwitcherState {
 }
 
 impl CycleLinearTransition for SwitcherState {
-    fn transite(&self) -> Self {
+    fn transit(&self) -> Self {
         match self {
             SwitcherState::On => Self::ToOff,
             SwitcherState::Off => Self::ToOn,
@@ -132,5 +134,71 @@ impl InteractionArea {
             right: x + self.half_w + self.offset_x,
             bottom: y - self.half_h + self.offset_y,
         };
+    }
+}
+
+pub fn detect_active_interaction(
+    active: &Query<(&ActiveInteractor, &Transform)>,
+    passive: (&PassiveInteractor, &Transform),
+) -> bool {
+    let (active_interactor, active_transform) = active
+        .get_single()
+        .expect("One active interactor is expected");
+
+    let active_translation = active_transform.translation;
+    let active_area = &active_interactor
+        .area
+        .to_box(active_translation.x, active_translation.y);
+
+    let delta: f32 = 0.0000001;
+    let (interactor, passive_transform) = passive;
+    let translation = passive_transform.translation;
+    let area = interactor.area.to_box(translation.x, translation.y);
+    let intersection = active_area.round_intersection_with(&area);
+    return active_translation.z - translation.z >= delta && intersection > 0;
+}
+
+pub fn transit_to_next_container_state(
+    mut commands: Commands,
+    keyboard: Res<ButtonInput<KeyCode>>,
+    active: Query<(&ActiveInteractor, &Transform)>,
+    mut interactors: Query<
+        (Entity, &PassiveInteractor, &Transform, &mut Container),
+        With<LimitedInteractor>,
+    >,
+) {
+    if !(keyboard.pressed(KeyCode::KeyE) && keyboard.just_pressed(KeyCode::KeyE)) {
+        return;
+    }
+    for (entity, interactor, transform, mut container) in interactors.iter_mut() {
+        let is_interacting = detect_active_interaction(&active, (interactor, transform));
+        if is_interacting {
+            container.state = container.state.transit();
+            if container.state.is_finished() {
+                commands.entity(entity).remove::<LimitedInteractor>();
+            }
+        }
+    }
+}
+
+pub fn change_switcher_state(
+    time: Res<Time>,
+    keyboard: Res<ButtonInput<KeyCode>>,
+    active: Query<(&ActiveInteractor, &Transform)>,
+    mut interactors: Query<(&PassiveInteractor, &Transform, &mut Switcher)>,
+) {
+    for (interactor, transform, mut switcher) in interactors.iter_mut() {
+        if switcher.state.is_in_transition() {
+            switcher.timer.tick(time.delta());
+            if switcher.timer.finished() {
+                switcher.state = switcher.state.transit();
+            }
+        } else {
+            let is_pressed = keyboard.pressed(KeyCode::KeyE) && keyboard.just_pressed(KeyCode::KeyE);
+            if is_pressed && detect_active_interaction(&active, (interactor, transform)) {
+                switcher.timer.reset();
+                switcher.state = switcher.state.transit();
+            }
+        }
     }
 }

@@ -1,6 +1,6 @@
 use bevy::ecs::component::Component;
 
-use crate::movement::component::MoveDirection;
+use crate::movement::entities::MoveDirection;
 
 #[derive(Component)]
 pub struct Npc {

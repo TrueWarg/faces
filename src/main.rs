@@ -7,20 +7,23 @@ use bevy::prelude::AppExtStates;
 use bevy::window::WindowMode;
 use bevy_rapier2d::prelude::{NoUserData, RapierPhysicsPlugin};
 
-use player::resources::PlayerAnimations;
+use player::animations::PlayerAnimations;
 
 use crate::core::states::GameState;
 use crate::dev::DevSettingsPlugin;
 use crate::dialog::{DialogPlugin, DialogScene};
 use crate::fight::{FightingScene, FightPlugin};
 use crate::gui::UiPlugin;
+use crate::interaction::BaseInteractionPlugin;
+use crate::level::LevelNavPlugin;
+use crate::menu::ui::MainMenuPlugin;
 use crate::party::PartyPlugin;
+use crate::player::plugins::PlayerPlugin;
 
 mod core;
 mod interaction;
 mod level;
 mod player;
-mod resources;
 mod startup;
 mod movement;
 mod npc;
@@ -46,18 +49,17 @@ fn main() {
             ..Default::default()
         }))
         .add_plugins((
-            menu::systems::MainMenuPlugin,
+            MainMenuPlugin,
             DevSettingsPlugin,
-            // player::systems::PlayerPlugin,
-            level::LevelNavPlugin,
-            interaction::systems::BaseInteractionPlugin,
+            PlayerPlugin,
+            LevelNavPlugin,
             FightPlugin,
             PartyPlugin,
             FightingScene,
             UiPlugin,
             DialogPlugin,
             DialogScene,
-            // npc::systems::MainNpcPlugin,
+            BaseInteractionPlugin,
         ))
         .add_systems(Startup, startup::setup)
         .init_state::<GameState>()

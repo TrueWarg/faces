@@ -1,7 +1,7 @@
-mod state_storage;
-mod entity;
-mod plugin;
+mod storages;
+mod entities;
+mod plugins;
 
-pub use entity::*;
-pub use plugin::*;
-pub use state_storage::*;
+pub use entities::*;
+pub use plugins::*;
+pub use storages::*;

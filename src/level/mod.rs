@@ -6,8 +6,8 @@ use crate::level::house::HousePlugin;
 use crate::level::states::Level;
 
 pub mod house;
-pub mod component;
-pub mod resources;
+pub mod objects;
+pub mod sprites;
 pub(crate) mod states;
 
 pub struct LevelNavPlugin;
@@ -28,7 +28,7 @@ fn load_level(
     game_state: Res<State<GameState>>,
     mut next_state: ResMut<NextState<Level>>,
 ) {
-    if game_state.get() == &GameState::Exporation {
+    if game_state.get() == &GameState::Exploration {
         if game_state.is_changed() {
             next_state.set(Level::House);
         }
