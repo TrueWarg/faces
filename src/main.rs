@@ -16,7 +16,7 @@ use crate::fight::{FightingScene, FightPlugin};
 use crate::gui::UiPlugin;
 use crate::interaction::BaseInteractionPlugin;
 use crate::level::LevelNavPlugin;
-use crate::menu::ui::MainMenuPlugin;
+use crate::menu::MainMenuPlugin;
 use crate::party::PartyPlugin;
 use crate::player::plugins::PlayerPlugin;
 

@@ -1,1 +1,3 @@
-pub(crate) mod ui;
+mod ui;
+
+pub use ui::MainMenuPlugin;

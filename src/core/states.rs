@@ -2,6 +2,7 @@ use bevy::prelude::States;
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
 pub enum GameState {
+    #[default]
     MainMenu,
     Exploration,
     ProhibitedPlace,
@@ -12,6 +13,6 @@ pub enum GameState {
     Journal,
     CatScene,
     GameOver,
-    #[default]
+    // #[default]
     DevSetting,
 }
