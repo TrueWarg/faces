@@ -3,8 +3,8 @@ use std::collections::{HashMap, HashSet};
 #[derive(Clone, Debug)]
 pub struct DialogStick {
     pub id: usize,
-    replicas: Vec<Replica>,
-    branching: Option<Branching>,
+    pub replicas: Vec<Replica>,
+    pub branching: Option<Branching>,
 }
 
 impl Default for DialogStick {
@@ -83,7 +83,7 @@ pub struct Variant {
 }
 
 impl Variant {
-    fn create_with_effect(label: String, stick_id: usize, effect: DialogEffect) -> Self {
+    pub fn create_with_effect(label: String, stick_id: usize, effect: DialogEffect) -> Self {
         return Variant {
             label,
             stick_id,
@@ -91,7 +91,7 @@ impl Variant {
         };
     }
 
-    fn create(label: String, stick_id: usize) -> Self {
+    pub fn create(label: String, stick_id: usize) -> Self {
         return Variant {
             label,
             stick_id,
@@ -571,7 +571,6 @@ fn test_dialog_22() {
 
     assert_eq!(expected, dialog_run_str(test_dialog_2(), vec![1, 0, 4]))
 }
-
 
 
 pub const INVALID_NODE_ID: usize = 0;

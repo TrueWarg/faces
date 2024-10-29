@@ -15,7 +15,7 @@ use bevy::{
     time::Timer,
 };
 use bevy::math::UVec2;
-use bevy::prelude::{Component, in_state, OnEnter, OnExit, States, TransformBundle};
+use bevy::prelude::{Component, in_state, NextState, OnEnter, OnExit, States, Time, TransformBundle};
 use bevy_rapier2d::prelude::{Collider, RigidBody};
 
 use crate::{
@@ -31,15 +31,18 @@ use crate::{
     },
 };
 use crate::core::states::GameState;
-use crate::interaction::interactors::{change_switcher_state, transit_to_next_container_state};
+use crate::dialog::DialogId;
+use crate::interaction::interactors::{ActiveInteractor, change_switcher_state, detect_active_interaction, transit_to_next_container_state};
+use crate::npc::{npc_basic_animation, NpcAnimations, spawns_npc};
+use crate::world_state::EscapeFromHouse;
 
-use super::{
-    objects::{LevelArm, WoodenChest},
-    sprites::WoodenChestSprites,
-};
+use super::{COURIER_DIALOG, objects::{LevelArm, WoodenChest}, sprites::WoodenChestSprites};
 
 #[derive(Component)]
 struct HouseLevel;
+
+#[derive(Component)]
+struct Courier;
 
 pub struct HousePlugin<S: States> {
     pub state: S,
@@ -51,6 +54,10 @@ impl<S: States> Plugin for HousePlugin<S> {
             .add_systems(OnEnter(self.state.clone()), load)
             .add_systems(OnExit(self.state.clone()), unload)
             .add_systems(OnExit(GameState::Exploration), unload)
+            .add_systems(OnEnter(EscapeFromHouse::Courier), spawn_courier)
+            .add_systems(OnExit(EscapeFromHouse::Courier), despawn_courier)
+            .add_systems(Update, npc_basic_animation.run_if(in_state(EscapeFromHouse::Courier)))
+            .add_systems(Update, dialog_starts.run_if(in_state(EscapeFromHouse::Courier)))
             .add_systems(
                 Update,
                 (recalculate_z,
@@ -381,3 +388,51 @@ fn spawn_walls(commands: &mut Commands, asset_server: &Res<AssetServer>) {
             ..Default::default()
         });
 }
+
+fn dialog_starts(
+    mut commands: Commands,
+    keyboard: Res<ButtonInput<KeyCode>>,
+    active: Query<(&ActiveInteractor, &Transform)>,
+    interactors: Query<(&PassiveInteractor, &Transform), With<Courier>>,
+    mut dialog_id_query: Query<(&mut DialogId)>,
+    mut next_game_state: ResMut<NextState<GameState>>,
+) {
+    if !(keyboard.pressed(KeyCode::KeyE) && keyboard.just_pressed(KeyCode::KeyE)) {
+        return;
+    }
+    for (interactor, transform) in interactors.iter() {
+        let is_interacting = detect_active_interaction(&active, (interactor, transform));
+        if is_interacting {
+            match dialog_id_query.get_single_mut() {
+                Ok(mut dialog_id) => dialog_id.0 = COURIER_DIALOG,
+                Err(_) => {
+                    commands.spawn(DialogId(COURIER_DIALOG));
+                }
+            }
+            next_game_state.set(GameState::Dialog);
+        }
+    }
+}
+
+fn spawn_courier(
+    asset_server: Res<AssetServer>,
+    mut commands: Commands,
+    character_animations: Res<NpcAnimations>,
+    mut layouts: ResMut<Assets<TextureAtlasLayout>>,
+) {
+    spawns_npc(
+        asset_server,
+        commands,
+        character_animations,
+        layouts,
+        Courier,
+        "npc/clerk.png".to_string(),
+        120.0,
+        200.0,
+        ON_WALL_OBJECT_Z + 1.5,
+        0.0,
+        0.0,
+    );
+}
+
+fn despawn_courier() {}

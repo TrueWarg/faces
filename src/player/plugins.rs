@@ -27,7 +27,7 @@ pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.add_systems(Startup, player_spawns)
+        app.add_systems(Startup, spawn_player)
             .add_systems(Update, player_movement)
             .add_systems(Update, player_animation.after(player_movement))
             .add_systems(Update, basic_animation.after(player_animation))
@@ -35,7 +35,7 @@ impl Plugin for PlayerPlugin {
     }
 }
 
-fn player_spawns(
+fn spawn_player(
     asset_server: Res<AssetServer>,
     mut commands: Commands,
     character_animations: Res<PlayerAnimations>,
@@ -131,12 +131,11 @@ fn player_animation(
             &mut MoveAnimation,
             &mut TextureAtlas,
             &Velocity,
-            &Player,
         ),
         With<Player>,
     >,
 ) {
-    for (mut move_animation, mut sprite, rb_vels, player) in
+    for (mut move_animation, mut sprite, rb_vels) in
         player_query.iter_mut()
     {
         let mut restart_animation = false;

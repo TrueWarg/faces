@@ -1,9 +1,8 @@
 use bevy::prelude::Resource;
 use bevy::utils::HashMap;
 
-use crate::dialog::DialogId;
 use crate::dialog::entities::Dialog;
-use crate::dialog::graph::test_dialog_2;
+use crate::level::{COURIER_DIALOG, courier_dialog};
 
 #[derive(Resource)]
 pub struct DialogsStorage;
@@ -20,17 +19,6 @@ impl DialogsStorage {
 
 fn test_dialogs() -> HashMap<usize, Dialog> {
     let mut result = HashMap::default();
-    let (root_id, sticks) = test_dialog_2();
-    result.insert(
-        1,
-        Dialog::from(
-            DialogId(1),
-            "Dialog 1".to_string(),
-            "background/dialog_bg.png".to_string(),
-            "npc/dialog_courier.png".to_string(),
-            root_id,
-            sticks,
-        ),
-    );
+    result.insert(COURIER_DIALOG, courier_dialog());
     return result;
 }
