@@ -9,6 +9,9 @@ pub mod house;
 pub mod objects;
 pub mod sprites;
 pub(crate) mod states;
+mod dialogs;
+
+pub use dialogs::*;
 
 pub struct LevelNavPlugin;
 

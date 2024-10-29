@@ -17,8 +17,10 @@ use crate::gui::UiPlugin;
 use crate::interaction::BaseInteractionPlugin;
 use crate::level::LevelNavPlugin;
 use crate::menu::MainMenuPlugin;
+use crate::npc::NpcAnimations;
 use crate::party::PartyPlugin;
 use crate::player::plugins::PlayerPlugin;
+use crate::world_state::WorldStatePlugin;
 
 mod core;
 mod interaction;
@@ -35,10 +37,12 @@ mod dev;
 mod rpg;
 mod party;
 mod dialog;
+mod world_state;
 
 fn main() {
     App::new()
         .insert_resource(PlayerAnimations::default())
+        .insert_resource(NpcAnimations::default())
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
@@ -60,6 +64,7 @@ fn main() {
             DialogPlugin,
             DialogScene,
             BaseInteractionPlugin,
+            WorldStatePlugin,
         ))
         .add_systems(Startup, startup::setup)
         .init_state::<GameState>()
