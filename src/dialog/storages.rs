@@ -22,3 +22,25 @@ fn test_dialogs() -> HashMap<usize, Dialog> {
     result.insert(COURIER_DIALOG, courier_dialog());
     return result;
 }
+
+#[derive(Resource, Default)]
+pub struct SelectedVariantsSource(HashMap<usize, Vec<usize>>);
+
+impl SelectedVariantsSource {
+    pub fn produce(&mut self, dialog_id: usize, variant_id: usize) {
+        let mut variants = self.0.get_mut(&dialog_id);
+        match variants {
+            None => {
+                self.0.insert(dialog_id, vec![variant_id]);
+            }
+            Some(items) => {
+                items.push(variant_id);
+            }
+        }
+    }
+
+    pub fn consume(&mut self, dialog_id: &usize) -> Option<Vec<usize>> {
+        return self.0.remove(dialog_id);
+    }
+}
+

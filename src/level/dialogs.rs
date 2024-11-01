@@ -27,6 +27,9 @@ use crate::dialog::{Branching, Dialog, DialogEffect, DialogId, DialogStick, Repl
 
 pub const COURIER_DIALOG: usize = 1;
 
+pub const END_DIALOG_NECK_TWISTED: usize = 1;
+pub const END_DIALOG_AGENDA_TAKEN: usize = 2;
+
 pub fn courier_dialog() -> Dialog {
     let (root_id, sticks) = courier_dialog_body();
     return Dialog::from(
@@ -80,7 +83,10 @@ fn courier_dialog_body() -> (usize, HashMap<usize, DialogStick>) {
             variants: vec![
                 Variant::create_with_effect("[Промолчать]".to_string(), dont_say_any.id, DialogEffect::ReplaceDialog),
                 Variant::create_with_effect("Ыыыыыыууууу!!!! \
-                Этё мой дём!!!!! [Свернуть шею]".to_string(), furiously_twist_neck.id, DialogEffect::EndDialog),
+                Этё мой дём!!!!! [Свернуть шею]".to_string(),
+                                            furiously_twist_neck.id,
+                                            DialogEffect::EndDialog(Some(END_DIALOG_NECK_TWISTED)),
+                ),
             ],
         }
     );
@@ -112,8 +118,16 @@ fn courier_dialog_body() -> (usize, HashMap<usize, DialogStick>) {
                 Variant::create("Ыыыу, ето ошибка! Мне не должно ничего приходить!".to_string(), it_is_mistake_question_stick.id),
                 Variant::create("Почему мне присля этя повесьтька?".to_string(), why_question_stick.id),
                 Variant::create("Когдя мне надо в суд?".to_string(), when_in_court.id),
-                Variant::create_with_effect("Хм. Давайте я расписюсь.".to_string(), ok.id, DialogEffect::EndDialog),
-                Variant::create_with_effect("[Свернуть шею]".to_string(), twist_neck.id, DialogEffect::EndDialog),
+                Variant::create_with_effect(
+                    "Хм. Давайте я расписюсь.".to_string(),
+                    ok.id,
+                    DialogEffect::EndDialog(Some(END_DIALOG_AGENDA_TAKEN)),
+                ),
+                Variant::create_with_effect(
+                    "[Свернуть шею]".to_string(),
+                    twist_neck.id,
+                    DialogEffect::EndDialog(Some(END_DIALOG_NECK_TWISTED)),
+                ),
             ],
         }
     );

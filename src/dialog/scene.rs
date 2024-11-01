@@ -42,9 +42,10 @@ use sickle_ui::ui_builder::UiBuilderExt;
 use sickle_ui::ui_commands::UpdateTextExt;
 
 use crate::core::states::GameState;
-use crate::dialog::{Branching, Dialog, DialogEffect, DialogId, DialogsStorage, DialogStick};
+use crate::dialog::{Branching, Dialog, DialogEffect, DialogId, DialogsStorage, DialogStick, SelectedVariantsSource};
 use crate::fight::FightId;
 use crate::gui::{ButtonConfig, TextButton, TextButtonExt, TextConfig, TextExt};
+use crate::world_state::EscapeFromHouse;
 
 pub struct DialogScene;
 
@@ -248,6 +249,9 @@ fn option_button(
 }
 
 fn option_input_handle(
+    mut dialog_variant_source: ResMut<SelectedVariantsSource>,
+    query: Query<(&DialogId)>,
+    mut escape_from_house_state: ResMut<NextState<GameState>>,
     mut sticks_query: Query<&mut Sticks>,
     dialog_query: Query<&Dialog>,
     mut replica_query: Query<&mut CurrentReplica>,
@@ -300,8 +304,13 @@ fn option_input_handle(
                                     DialogEffect::ReplaceDialog => {
                                         stack.pop();
                                     }
-                                    DialogEffect::EndDialog => {
+                                    DialogEffect::EndDialog(end_id) => {
+                                        let dialog_id = query.single();
+                                        if let Some(id) = end_id {
+                                            dialog_variant_source.produce(dialog_id.0, *id);
+                                        }
                                         stack.pop();
+                                        escape_from_house_state.set(GameState::Exploration);
                                     }
                                 }
                             }

@@ -1,6 +1,6 @@
 use bevy::app::{App, Plugin, Startup};
 use bevy::prelude::Commands;
-use crate::dialog::DialogsStorage;
+use crate::dialog::{DialogsStorage, SelectedVariantsSource};
 
 pub struct DialogPlugin;
 
@@ -14,4 +14,5 @@ fn init_storages(
     mut commands: Commands,
 ) {
     commands.insert_resource(DialogsStorage);
+    commands.insert_resource(SelectedVariantsSource::default());
 }

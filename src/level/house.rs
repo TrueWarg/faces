@@ -14,8 +14,9 @@ use bevy::{
     sprite::{SpriteBundle, TextureAtlas, TextureAtlasLayout},
     time::Timer,
 };
+use bevy::hierarchy::DespawnRecursiveExt;
 use bevy::math::UVec2;
-use bevy::prelude::{Component, in_state, NextState, OnEnter, OnExit, States, Time, TransformBundle};
+use bevy::prelude::{Component, in_state, NextState, OnEnter, OnExit, States, TransformBundle};
 use bevy_rapier2d::prelude::{Collider, RigidBody};
 
 use crate::{
@@ -31,12 +32,16 @@ use crate::{
     },
 };
 use crate::core::states::GameState;
-use crate::dialog::DialogId;
-use crate::interaction::interactors::{ActiveInteractor, change_switcher_state, detect_active_interaction, transit_to_next_container_state};
+use crate::dialog::{DialogId, SelectedVariantsSource};
+use crate::interaction::interactors::ActiveInteractor;
+use crate::interaction::interactors::change_switcher_state;
+use crate::interaction::interactors::detect_active_interaction;
+use crate::interaction::interactors::transit_to_next_container_state;
 use crate::npc::{npc_basic_animation, NpcAnimations, spawns_npc};
 use crate::world_state::EscapeFromHouse;
+use crate::world_state::EscapeFromHouse::{CallDog, GoSleep};
 
-use super::{COURIER_DIALOG, objects::{LevelArm, WoodenChest}, sprites::WoodenChestSprites};
+use super::{COURIER_DIALOG, END_DIALOG_AGENDA_TAKEN, END_DIALOG_NECK_TWISTED, objects::{LevelArm, WoodenChest}, sprites::WoodenChestSprites};
 
 #[derive(Component)]
 struct HouseLevel;
@@ -61,6 +66,7 @@ impl<S: States> Plugin for HousePlugin<S> {
             .add_systems(
                 Update,
                 (recalculate_z,
+                 escape_from_house_variants_handles,
                  draw_wooden_chest_states.after(transit_to_next_container_state),
                  draw_level_arm_states.after(change_switcher_state),
                 ).run_if(in_state(self.state.clone())),
@@ -93,6 +99,31 @@ fn load(
     spawn_dog_house(&mut commands, &asset_server, y_max);
     spawn_level_arm(&mut commands, &asset_server, texture_atlases);
     spawn_test_chest(&mut commands, &asset_server, y_max);
+}
+
+fn escape_from_house_variants_handles(
+    mut dialog_variant_source: ResMut<SelectedVariantsSource>,
+    mut escape_from_house_state: ResMut<NextState<EscapeFromHouse>>,
+) {
+    // todo: it calculates on each frame.
+    // make it when dialog_variant_source updates only.
+    let selected = dialog_variant_source.consume(&COURIER_DIALOG);
+    match selected {
+        None => {}
+        Some(ids) => {
+            for id in ids {
+                if id == END_DIALOG_NECK_TWISTED {
+                    println!("!!! go sleep");
+                    escape_from_house_state.set(GoSleep)
+                }
+
+                if id == END_DIALOG_AGENDA_TAKEN {
+                    println!("!!! call dog");
+                    escape_from_house_state.set(CallDog)
+                }
+            }
+        }
+    }
 }
 
 fn unload(
@@ -435,4 +466,11 @@ fn spawn_courier(
     );
 }
 
-fn despawn_courier() {}
+fn despawn_courier(
+    mut commands: Commands,
+    courier_query: Query<Entity, With<Courier>>,
+) {
+    for entity in courier_query.iter() {
+        commands.entity(entity).despawn_recursive();
+    }
+}
