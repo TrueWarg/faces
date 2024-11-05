@@ -28,7 +28,7 @@ use crate::core::entities::BodyYOffset;
 use crate::core::z_index::DEFAULT_OBJECT_Z;
 use crate::interaction::interactors::{InteractionArea, InteractionSide, PassiveInteractor};
 use crate::movement::entities::Target;
-use crate::npc::entities::{MoveAnimation, Npc};
+pub use crate::npc::entities::{MoveAnimation, Npc, IdleAnimation};
 
 mod entities;
 mod animations;

@@ -251,7 +251,7 @@ fn option_button(
 fn option_input_handle(
     mut dialog_variant_source: ResMut<SelectedVariantsSource>,
     query: Query<(&DialogId)>,
-    mut escape_from_house_state: ResMut<NextState<GameState>>,
+    mut game_state: ResMut<NextState<GameState>>,
     mut sticks_query: Query<&mut Sticks>,
     dialog_query: Query<&Dialog>,
     mut replica_query: Query<&mut CurrentReplica>,
@@ -291,6 +291,9 @@ fn option_input_handle(
                             stack.pop();
                         }
                     }
+                    if stack.is_empty() {
+                        game_state.set(GameState::Exploration);
+                    }
                     return;
                 }
                 match &branching_query.single().0 {
@@ -309,8 +312,7 @@ fn option_input_handle(
                                         if let Some(id) = end_id {
                                             dialog_variant_source.produce(dialog_id.0, *id);
                                         }
-                                        stack.pop();
-                                        escape_from_house_state.set(GameState::Exploration);
+                                        stack.clear();
                                     }
                                 }
                             }

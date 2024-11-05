@@ -15,3 +15,8 @@ pub struct MoveAnimation {
     // todo: remove it, find more convential method to get particular sheets
     pub sheet_handle: Handle<TextureAtlasLayout>,
 }
+
+#[derive(Component)]
+pub struct IdleAnimation {
+    pub timer: Timer,
+}

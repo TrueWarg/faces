@@ -2,6 +2,137 @@ use std::collections::HashMap;
 
 use crate::dialog::{Branching, Dialog, DialogEffect, DialogId, DialogStick, Replica, Variant};
 
+//   start
+//   *
+//   |
+//   ^
+//   |
+//   *
+//   |
+//  ^ ^
+//  | |
+//  * *
+//  |
+//  ^
+//  |
+//  *
+
+pub const SLEEPING_FORMIDABLE_DOG_DIALOG: usize = 1;
+
+pub const END_DIALOG_FORMIDABLE_DOG_JOINED: usize = 1;
+
+pub fn sleeping_formidable_dog_dialog() -> Dialog {
+    let (root_id, sticks) = sleeping_formidable_dog();
+    return Dialog::from(
+        DialogId(COURIER_DIALOG),
+        "Dialog 1".to_string(),
+        "background/dialog_bg.png".to_string(),
+        "npc/dialog_courier.png".to_string(),
+        root_id,
+        sticks,
+    );
+}
+
+fn sleeping_formidable_dog() -> (usize, HashMap<usize, DialogStick>) {
+    let mut main_stick = DialogStick::from(0);
+    main_stick.replicas.extend(
+        vec![
+            Replica::from_text("[Спит] хррр... хррр... хрр...".to_string()),
+        ]
+    );
+
+    let mut after_wake_up_stick = DialogStick::from(1);
+    after_wake_up_stick.replicas.extend(
+        vec![
+            Replica::from_text("Ыыыууу... Что... [зевает] такое, Грозьный?".to_string()),
+        ]
+    );
+
+    let mut go_with_me_stick = DialogStick::from(2);
+
+    go_with_me_stick.replicas.extend(
+        vec![
+            Replica::from_text("Что еще за повестька?".to_string()),
+        ]
+    );
+
+    let mut joined_stick = DialogStick::from(3);
+
+    joined_stick.replicas.extend(
+        vec![
+            Replica::from_text("Лядня, пойдем разберемся.".to_string()),
+        ]
+    );
+
+    go_with_me_stick.branching = Some(
+        Branching {
+            id: 0,
+            variants: vec![
+                Variant::create_with_effect(
+                    "Ыыыу, подозреваю, что делё опять в доме.".to_string(),
+                    joined_stick.id,
+                    DialogEffect::EndDialog(Some(END_DIALOG_FORMIDABLE_DOG_JOINED)),
+                ),
+            ],
+        }
+    );
+
+    let mut you_are_rude_stick = DialogStick::from(4);
+
+    you_are_rude_stick.replicas.extend(
+        vec![
+            Replica::from_text("Ыыыыууу! Ты чего такой грубий?! Не пойду ни кудя за етё!".to_string()),
+        ]
+    );
+
+    after_wake_up_stick.branching = Some(
+        Branching {
+            id: 0,
+            variants: vec![
+                Variant::create_with_effect(
+                    "Пойдем сё мной. Мне дали повестьку в судь.".to_string(),
+                    go_with_me_stick.id,
+                    DialogEffect::ReplaceDialog,
+                ),
+                Variant::create_with_effect(
+                    "Всьтавай давай, шавка парщивая! Сколько можно валяться? Мне повестьку в суть дали!".to_string(),
+                    you_are_rude_stick.id,
+                    DialogEffect::EndDialog(None),
+                ),
+            ],
+        }
+    );
+
+    main_stick.replicas.extend(
+        vec![
+            Replica::from_text("[Спит] хррр... хррр... хрр...".to_string()),
+        ]
+    );
+
+    main_stick.branching = Some(
+        Branching {
+            id: 0,
+            variants: vec![
+                Variant::create_with_effect(
+                    "Подъемь!".to_string(),
+                    after_wake_up_stick.id,
+                    DialogEffect::ReplaceDialog,
+                ),
+            ],
+        }
+    );
+
+    let mut pool = HashMap::new();
+    let root_id = main_stick.id;
+    pool.insert(main_stick.id, main_stick);
+    pool.insert(after_wake_up_stick.id, after_wake_up_stick);
+    pool.insert(go_with_me_stick.id, go_with_me_stick);
+    pool.insert(joined_stick.id, joined_stick);
+    pool.insert(you_are_rude_stick.id, you_are_rude_stick);
+
+    return (root_id, pool);
+}
+
 //         start
 //         *
 //         |
@@ -25,7 +156,7 @@ use crate::dialog::{Branching, Dialog, DialogEffect, DialogId, DialogStick, Repl
 //  |<----------|
 //
 
-pub const COURIER_DIALOG: usize = 1;
+pub const COURIER_DIALOG: usize = 2;
 
 pub const END_DIALOG_NECK_TWISTED: usize = 1;
 pub const END_DIALOG_AGENDA_TAKEN: usize = 2;
@@ -121,12 +252,12 @@ fn courier_dialog_body() -> (usize, HashMap<usize, DialogStick>) {
                 Variant::create_with_effect(
                     "Хм. Давайте я расписюсь.".to_string(),
                     ok.id,
-                    DialogEffect::EndDialog(Some(END_DIALOG_AGENDA_TAKEN)),
+                    DialogEffect::EndDialog(Some(crate::level::END_DIALOG_AGENDA_TAKEN)),
                 ),
                 Variant::create_with_effect(
                     "[Свернуть шею]".to_string(),
                     twist_neck.id,
-                    DialogEffect::EndDialog(Some(END_DIALOG_NECK_TWISTED)),
+                    DialogEffect::EndDialog(Some(crate::level::END_DIALOG_NECK_TWISTED)),
                 ),
             ],
         }

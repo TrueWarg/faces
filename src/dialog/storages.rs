@@ -2,7 +2,10 @@ use bevy::prelude::Resource;
 use bevy::utils::HashMap;
 
 use crate::dialog::entities::Dialog;
-use crate::level::{COURIER_DIALOG, courier_dialog};
+use crate::level::COURIER_DIALOG;
+use crate::level::courier_dialog;
+use crate::level::SLEEPING_FORMIDABLE_DOG_DIALOG;
+use crate::level::sleeping_formidable_dog_dialog;
 
 #[derive(Resource)]
 pub struct DialogsStorage;
@@ -20,6 +23,7 @@ impl DialogsStorage {
 fn test_dialogs() -> HashMap<usize, Dialog> {
     let mut result = HashMap::default();
     result.insert(COURIER_DIALOG, courier_dialog());
+    result.insert(SLEEPING_FORMIDABLE_DOG_DIALOG, sleeping_formidable_dog_dialog());
     return result;
 }
 
