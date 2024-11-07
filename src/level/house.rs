@@ -16,7 +16,7 @@ use bevy::{
 };
 use bevy::hierarchy::DespawnRecursiveExt;
 use bevy::math::UVec2;
-use bevy::prelude::{AppExtStates, Component, in_state, NextState, OnEnter, OnExit, States, Time, TransformBundle};
+use bevy::prelude::{AppExtStates, Bundle, Component, in_state, NextState, OnEnter, OnExit, States, Time, TransformBundle};
 use bevy_rapier2d::prelude::{Collider, RigidBody};
 
 use crate::{
@@ -39,12 +39,19 @@ use crate::interaction::interactors::ActiveInteractor;
 use crate::interaction::interactors::change_switcher_state;
 use crate::interaction::interactors::detect_active_interaction;
 use crate::interaction::interactors::transit_to_next_container_state;
-use crate::movement::entities::Target;
-use crate::npc::{IdleAnimation, npc_basic_animation, NpcAnimations, spawns_npc};
+use crate::level::house::FormidableDogState::Wakefulness;
+use crate::movement::routes::route_build;
+use crate::npc::{IdleAnimation, move_agent_moves, npc_animation, npc_basic_animation, spawn_formidable_dog, spawn_npc};
 use crate::world_state::EscapeFromHouse;
-use crate::world_state::EscapeFromHouse::{CallDog, GoSleep};
+use crate::world_state::EscapeFromHouse::{CallDog, Escape, GoSleep};
 
-use super::{COURIER_DIALOG, END_DIALOG_AGENDA_TAKEN, END_DIALOG_NECK_TWISTED, objects::{LevelArm, WoodenChest}, SLEEPING_FORMIDABLE_DOG_DIALOG, sprites::WoodenChestSprites};
+use super::{END_DIALOG_AGENDA_TAKEN, END_DIALOG_FORMIDABLE_DOG_JOINED};
+use super::COURIER_DIALOG;
+use super::END_DIALOG_NECK_TWISTED;
+use super::objects::LevelArm;
+use super::objects::WoodenChest;
+use super::SLEEPING_FORMIDABLE_DOG_DIALOG;
+use super::sprites::WoodenChestSprites;
 
 #[derive(Component)]
 struct HouseLevel;
@@ -54,6 +61,9 @@ struct Courier;
 
 #[derive(Component)]
 struct SleepingFormidableDog;
+
+#[derive(Component)]
+struct FormidableDog;
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
 enum FormidableDogState {
@@ -76,8 +86,12 @@ impl<S: States> Plugin for HousePlugin<S> {
             .add_systems(OnEnter(EscapeFromHouse::Courier), spawn_courier)
             .add_systems(OnExit(EscapeFromHouse::Courier), despawn_courier)
             .add_systems(OnEnter(FormidableDogState::Sleep), spawn_sleeping_formidable_dog)
-            .add_systems(OnExit(FormidableDogState::Sleep), despawn_courier)
-            .add_systems(Update, npc_basic_animation.run_if(in_state(EscapeFromHouse::Courier)))
+            .add_systems(OnExit(FormidableDogState::Sleep), despawn_sleeping_dog)
+            .add_systems(OnEnter(Wakefulness), initial_spawn_formidable_dog)
+            .add_systems(Update, route_build)
+            .add_systems(Update, move_agent_moves.after(route_build))
+            .add_systems(Update, npc_animation.after(move_agent_moves))
+            .add_systems(Update, npc_basic_animation)
             .add_systems(Update, courier_dialog_starts.run_if(in_state(EscapeFromHouse::Courier)))
             .add_systems(Update, formidable_dog_dialog_starts.run_if(in_state(CallDog)))
             .add_systems(Update, sleeping_dog_basic_animation.run_if(in_state(FormidableDogState::Sleep)))
@@ -122,6 +136,7 @@ fn load(
 fn escape_from_house_variants_handles(
     mut dialog_variant_source: ResMut<SelectedVariantsSource>,
     mut escape_from_house_state: ResMut<NextState<EscapeFromHouse>>,
+    mut formidable_dog_state: ResMut<NextState<FormidableDogState>>,
 ) {
     // todo: it calculates on each frame.
     // make it when dialog_variant_source updates only.
@@ -131,13 +146,23 @@ fn escape_from_house_variants_handles(
         Some(ids) => {
             for id in ids {
                 if id == END_DIALOG_NECK_TWISTED {
-                    println!("!!! go sleep");
                     escape_from_house_state.set(GoSleep)
                 }
 
                 if id == END_DIALOG_AGENDA_TAKEN {
-                    println!("!!! call dog");
                     escape_from_house_state.set(CallDog)
+                }
+            }
+        }
+    }
+    let selected = dialog_variant_source.consume(&SLEEPING_FORMIDABLE_DOG_DIALOG);
+    match selected {
+        None => {}
+        Some(ids) => {
+            for id in ids {
+                if id == END_DIALOG_FORMIDABLE_DOG_JOINED {
+                    escape_from_house_state.set(Escape);
+                    formidable_dog_state.set(Wakefulness);
                 }
             }
         }
@@ -338,8 +363,7 @@ pub fn spawn_sleeping_formidable_dog(
         .insert(PassiveInteractor {
             area: InteractionArea::from_sizes(16.0, 8.0),
             side: InteractionSide::Bottom,
-        })
-        .insert(Target { half_size: 16 });
+        });
 }
 
 fn despawn_sleeping_dog(
@@ -351,7 +375,7 @@ fn despawn_sleeping_dog(
     }
 }
 
-pub fn sleeping_dog_basic_animation(
+fn sleeping_dog_basic_animation(
     time: Res<Time>,
     mut animation_query: Query<(&mut IdleAnimation, &mut TextureAtlas)>,
 ) {
@@ -572,13 +596,11 @@ fn formidable_dog_dialog_starts(
 fn spawn_courier(
     asset_server: Res<AssetServer>,
     mut commands: Commands,
-    character_animations: Res<NpcAnimations>,
     mut layouts: ResMut<Assets<TextureAtlasLayout>>,
 ) {
-    spawns_npc(
+    spawn_npc(
         asset_server,
         commands,
-        character_animations,
         layouts,
         Courier,
         "npc/clerk.png".to_string(),
@@ -588,6 +610,27 @@ fn spawn_courier(
         0.0,
         0.0,
     );
+}
+
+fn initial_spawn_formidable_dog(
+    asset_server: Res<AssetServer>,
+    mut commands: Commands,
+    mut layouts: ResMut<Assets<TextureAtlasLayout>>,
+) {
+    let x = 105.0;
+    let y = -145.0;
+    let z = DEFAULT_OBJECT_Z;
+    spawn_formidable_dog(
+        asset_server,
+        commands,
+        layouts,
+        FormidableDog,
+        x,
+        y,
+        z,
+        200.0,
+        0.0,
+    )
 }
 
 fn despawn_courier(

@@ -2,10 +2,12 @@ use bevy::asset::Handle;
 use bevy::ecs::component::Component;
 use bevy::prelude::{TextureAtlasLayout, Timer};
 use crate::animation::entities::MoveDirection;
+use crate::movement;
 
 #[derive(Component)]
 pub struct Npc {
     pub speed: f32,
+    pub move_direction: movement::entities::MoveDirection,
 }
 
 #[derive(Component)]
