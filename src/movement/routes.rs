@@ -9,20 +9,22 @@ pub fn route_build(
     blocks: Query<&Blocks>,
     mut agents: Query<(&mut MoveAgent, &Transform)>,
 ) {
-    let (target, target_transform) = target.get_single().expect("Expected one target");
     // let blocks = blocks.get_single().expect("Expected one blocks");
 
-    for (mut agent, transform) in agents.iter_mut() {
-        let x = transform.translation.x;
-        let y = transform.translation.y;
-        let square = BBox::from_square(x, y, agent.half_size as f32);
+    for (target, target_transform) in target.iter() {
+        for (mut agent, transform) in agents.iter_mut() {
+            // let x = transform.translation.x;
+            // let y = transform.translation.y;
+            // let square = BBox::from_square(x, y, agent.half_size as f32);
 
-        let target_x = target_transform.translation.x;
-        let target_y = target_transform.translation.y;
-        let target_square = BBox::from_square(target_x, target_y, target.half_size as f32);
-        // todo: use rebuild_route instead of this when it complete
-        agent.route = build_direct_route(&square, &target_square);
-        // rebuild_route(&square, &target_square, &blocks);
+            let target_x = target_transform.translation.x;
+            let target_y = target_transform.translation.y;
+            // let target_square = BBox::from_square(target_x, target_y, target.half_size as f32);
+            // todo: use rebuild_route instead of this when it complete
+            agent.route = vec![Point2D { x: target_x as i32, y: target_y as i32}]
+                // build_direct_route(&square, &target_square);
+            // rebuild_route(&square, &target_square, &blocks);
+        }
     }
 }
 
@@ -40,7 +42,7 @@ fn rebuild_route(start: &BBox, target: &BBox, blocks: &Blocks) -> Vec<Point2D> {
         for point in &points {
             println!("!!! point = {:?} ", point);
         }
-            println!("--------------------------------------------------------");
+        println!("--------------------------------------------------------");
 
         if points.is_empty() {
             break;
@@ -75,7 +77,7 @@ fn rebuild_route(start: &BBox, target: &BBox, blocks: &Blocks) -> Vec<Point2D> {
             }
         }
     }
-    
+
     return points_to_route.remove(&current_point).unwrap_or_default();
 }
 
