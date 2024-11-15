@@ -5,6 +5,6 @@ pub enum Level {
     #[default]
     None,
     House,
-    NearCourt,
+    CourtHouseFront,
     Court,
 }

@@ -7,7 +7,7 @@ use bevy::{
     time::{Time, Timer},
 };
 use bevy::math::UVec2;
-use bevy::prelude::TransformBundle;
+use bevy::prelude::{TransformBundle, Without};
 use bevy::sprite::SpriteBundle;
 use bevy_rapier2d::prelude::{Collider, GravityScale, LockedAxes, RigidBody, Velocity};
 
@@ -17,6 +17,7 @@ use crate::{
     interaction::interactors::{ActiveInteractor, InteractionArea, InteractionSide},
     movement::entities::Target,
 };
+use crate::core::entities::MainCamera;
 
 use super::{
     animations::PlayerAnimations,
@@ -29,6 +30,7 @@ impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         app.add_systems(Startup, spawn_player)
             .add_systems(Update, player_movement)
+            .add_systems(Update, camera_movement.after(player_movement))
             .add_systems(Update, player_animation.after(player_movement))
             .add_systems(Update, basic_animation.after(player_animation))
             .add_systems(Update, change_interaction_area.after(player_movement));
@@ -121,6 +123,16 @@ fn player_movement(
             velocity.linvel.y = 0.0;
         }
     }
+}
+
+pub fn camera_movement(
+    player_query: Query<&Transform, With<Player>>,
+    mut camera_query: Query<&mut Transform, (With<MainCamera>, Without<Player>)>,
+) {
+    let mut camera_transform = camera_query.single_mut();
+    let player_transform = player_query.single();
+    camera_transform.translation.x = player_transform.translation.x;
+    camera_transform.translation.y = player_transform.translation.y;
 }
 
 fn player_animation(

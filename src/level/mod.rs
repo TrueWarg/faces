@@ -10,30 +10,21 @@ pub mod objects;
 pub mod sprites;
 pub(crate) mod states;
 mod dialogs;
+mod courthouse_front;
 
 pub use dialogs::*;
+use crate::level::courthouse_front::CourtHouseFrontPlugin;
 
 pub struct LevelNavPlugin;
 
 impl Plugin for LevelNavPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_systems(Update, load_level)
             .add_plugins((
                 HousePlugin { state: Level::House },
+                CourtHouseFrontPlugin { state: Level::CourtHouseFront }
             )
             )
             .init_state::<Level>();
-    }
-}
-
-fn load_level(
-    game_state: Res<State<GameState>>,
-    mut next_state: ResMut<NextState<Level>>,
-) {
-    if game_state.get() == &GameState::Exploration {
-        if game_state.is_changed() {
-            next_state.set(Level::House);
-        }
     }
 }
