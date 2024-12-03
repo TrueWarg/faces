@@ -16,7 +16,7 @@ use bevy::{
 };
 use bevy::hierarchy::DespawnRecursiveExt;
 use bevy::math::UVec2;
-use bevy::prelude::{AppExtStates, Bundle, Component, in_state, NextState, OnEnter, OnExit, States, Time, TransformBundle};
+use bevy::prelude::{AppExtStates, Component, DetectChanges, in_state, NextState, OnEnter, OnExit, State, States, Time, TransformBundle};
 use bevy_rapier2d::prelude::{Collider, RigidBody};
 
 use crate::{
@@ -83,10 +83,10 @@ impl<S: States> Plugin for HousePlugin<S> {
             .add_systems(OnEnter(self.state.clone()), load)
             .add_systems(OnExit(self.state.clone()), unload)
             .add_systems(OnExit(GameState::Exploration), unload)
-            .add_systems(OnEnter(EscapeFromHouse::Courier), spawn_courier)
-            .add_systems(OnExit(EscapeFromHouse::Courier), despawn_courier)
-            .add_systems(OnEnter(FormidableDogState::Sleep), spawn_sleeping_formidable_dog)
-            .add_systems(OnExit(FormidableDogState::Sleep), despawn_sleeping_dog)
+            .add_systems(Update, courier_spawns.run_if(in_state(self.state.clone())))
+            .add_systems(OnExit(self.state.clone()), despawn_courier)
+            .add_systems(Update, sleeping_formidable_dog_spawns.run_if(in_state(self.state.clone())))
+            .add_systems(OnExit(self.state.clone()), despawn_sleeping_dog)
             .add_systems(OnEnter(Wakefulness), initial_spawn_formidable_dog)
             .add_systems(Update, route_build)
             .add_systems(Update, move_agent_moves.after(route_build))
@@ -311,7 +311,31 @@ fn spawn_dog_house(commands: &mut Commands, asset_server: &Res<AssetServer>, y_m
         });
 }
 
-pub fn spawn_sleeping_formidable_dog(
+fn sleeping_formidable_dog_spawns(
+    asset_server: Res<AssetServer>,
+    commands: Commands,
+    layouts: ResMut<Assets<TextureAtlasLayout>>,
+    level_y_max: Query<&LevelYMax>,
+    formidable_dog_state: Res<State<FormidableDogState>>,
+    query: Query<Entity, With<SleepingFormidableDog>>,
+) {
+    if !formidable_dog_state.is_changed() {
+        return;
+    }
+
+    match formidable_dog_state.get() {
+        FormidableDogState::Sleep => {
+            spawn_sleeping_formidable_dog(
+                asset_server, commands, layouts, level_y_max,
+            );
+        }
+        Wakefulness => {
+            despawn_sleeping_dog(commands, query);
+        }
+    }
+}
+
+fn spawn_sleeping_formidable_dog(
     asset_server: Res<AssetServer>,
     mut commands: Commands,
     mut layouts: ResMut<Assets<TextureAtlasLayout>>,
@@ -368,9 +392,9 @@ pub fn spawn_sleeping_formidable_dog(
 
 fn despawn_sleeping_dog(
     mut commands: Commands,
-    courier_query: Query<Entity, With<SleepingFormidableDog>>,
+    query: Query<Entity, With<SleepingFormidableDog>>,
 ) {
-    for entity in courier_query.iter() {
+    for entity in query.iter() {
         commands.entity(entity).despawn_recursive();
     }
 }
@@ -593,29 +617,41 @@ fn formidable_dog_dialog_starts(
     }
 }
 
-fn spawn_courier(
+fn courier_spawns(
     asset_server: Res<AssetServer>,
-    mut commands: Commands,
-    mut layouts: ResMut<Assets<TextureAtlasLayout>>,
+    commands: Commands,
+    layouts: ResMut<Assets<TextureAtlasLayout>>,
+    current_screen_state: Res<State<EscapeFromHouse>>,
+    courier_query: Query<Entity, With<Courier>>,
 ) {
-    spawn_npc(
-        asset_server,
-        commands,
-        layouts,
-        Courier,
-        "npc/clerk.png".to_string(),
-        120.0,
-        200.0,
-        ON_WALL_OBJECT_Z + 1.5,
-        0.0,
-        0.0,
-    );
+    if !current_screen_state.is_changed() {
+        return;
+    }
+    match current_screen_state.get() {
+        EscapeFromHouse::Courier => {
+            spawn_npc(
+                asset_server,
+                commands,
+                layouts,
+                Courier,
+                "npc/clerk.png".to_string(),
+                120.0,
+                200.0,
+                ON_WALL_OBJECT_Z + 1.5,
+                0.0,
+                0.0,
+            );
+        }
+        _ => {
+            despawn_courier(commands, courier_query);
+        }
+    }
 }
 
 fn initial_spawn_formidable_dog(
     asset_server: Res<AssetServer>,
-    mut commands: Commands,
-    mut layouts: ResMut<Assets<TextureAtlasLayout>>,
+    commands: Commands,
+    layouts: ResMut<Assets<TextureAtlasLayout>>,
 ) {
     let x = 105.0;
     let y = -145.0;
