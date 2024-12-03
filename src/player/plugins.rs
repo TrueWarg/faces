@@ -131,8 +131,8 @@ pub fn camera_movement(
 ) {
     let mut camera_transform = camera_query.single_mut();
     let player_transform = player_query.single();
-    camera_transform.translation.x = player_transform.translation.x;
-    camera_transform.translation.y = player_transform.translation.y;
+    // camera_transform.translation.x = player_transform.translation.x;
+    // camera_transform.translation.y = player_transform.translation.y;
 }
 
 fn player_animation(
