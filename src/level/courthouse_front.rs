@@ -16,7 +16,7 @@ use bevy_rapier2d::geometry::Collider;
 use crate::core::collisions::recalculate_z;
 use crate::core::entities::LevelYMax;
 use crate::core::states::GameState;
-use crate::core::z_index::{calculate_z, FLOOR_Z, MIN_RANGE_Z, WALL_Z};
+use crate::core::z_index::{calculate_z, FLOOR_Z, MIN_RANGE_Z, ON_WALL_OBJECT_Z, WALL_Z};
 
 pub struct CourtHouseFrontPlugin<S: States> {
     pub state: S,
@@ -40,9 +40,14 @@ fn load(
     commands.spawn(y_max);
 
     spawn_ground(&mut commands, &asset_server);
-    spawn_court_house(&mut commands, &asset_server, y_max);
+
+    spawn_court_house(&mut commands, &asset_server);
+    spawn_court_doors(&mut commands, &asset_server);
+
     spawn_houses(&mut commands, &asset_server);
+
     spawn_right_forest(&mut commands, &asset_server);
+
     spawn_tree_1(&mut commands, &asset_server, y_max, 230.0, 200.0);
     spawn_tree_3(&mut commands, &asset_server, y_max, 265.0, 215.0);
     spawn_tree_1(&mut commands, &asset_server, y_max, 210.0, 220.0);
@@ -84,18 +89,34 @@ fn spawn_ground(commands: &mut Commands, asset_server: &Res<AssetServer>) {
 fn spawn_court_house(
     commands: &mut Commands,
     asset_server: &Res<AssetServer>,
-    y_max: LevelYMax,
 ) {
     let x = 0.0;
     let y = 421.0;
-    let z = calculate_z(y, y_max.value);
     commands
         .spawn(RigidBody::Fixed)
         .insert(Collider::cuboid(500.0, 65.0))
         .insert(SpriteBundle {
             texture: asset_server.load("courthouse_front/courthouse.png"),
             transform: Transform {
-                translation: Vec3::new(x, y, z),
+                translation: Vec3::new(x, y, WALL_Z),
+                ..Default::default()
+            },
+            ..Default::default()
+        });
+}
+
+fn spawn_court_doors(
+    commands: &mut Commands,
+    asset_server: &Res<AssetServer>,
+) {
+    let x = 0.0;
+    let y = 371.0;
+    commands
+        .spawn(RigidBody::Fixed)
+        .insert(SpriteBundle {
+            texture: asset_server.load("courthouse_front/doors.png"),
+            transform: Transform {
+                translation: Vec3::new(x, y, ON_WALL_OBJECT_Z),
                 ..Default::default()
             },
             ..Default::default()
