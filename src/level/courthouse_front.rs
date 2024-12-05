@@ -71,6 +71,17 @@ fn load(
     spawn_tree_2(&mut commands, &asset_server, y_max, 210.0, -240.0);
     spawn_tree_3(&mut commands, &asset_server, y_max, 225.0, -255.0);
     spawn_tree_2(&mut commands, &asset_server, y_max, 210.0, -215.0);
+
+    spawn_bench(&mut commands, &asset_server, y_max, 80.0, 0.0);
+
+    spawn_bench(&mut commands, &asset_server, y_max, 430.0, 225.0);
+    spawn_bench(&mut commands, &asset_server, y_max, 430.0, 125.0);
+    spawn_bench(&mut commands, &asset_server, y_max, 430.0, 25.0);
+    spawn_bench(&mut commands, &asset_server, y_max, 430.0, -75.0);
+    spawn_bench(&mut commands, &asset_server, y_max, 430.0, -175.0);
+    spawn_bench(&mut commands, &asset_server, y_max, 430.0, -275.0);
+
+
 }
 
 fn spawn_ground(commands: &mut Commands, asset_server: &Res<AssetServer>) {
@@ -238,6 +249,33 @@ fn spawn_tree_3(
                 .spawn(Collider::cuboid(24.0, 20.0))
                 .insert(TransformBundle::from(Transform::from_xyz(
                     0.0, -5.0, z,
+                )));
+        });
+}
+
+fn spawn_bench(
+    commands: &mut Commands,
+    asset_server: &Res<AssetServer>,
+    y_max: LevelYMax,
+    x: f32,
+    y: f32,
+) {
+    let z = calculate_z(y, y_max.value);
+    commands
+        .spawn(RigidBody::Fixed)
+        .insert(SpriteBundle {
+            texture: asset_server.load("courthouse_front/bench.png"),
+            transform: Transform {
+                translation: Vec3::new(x, y, z),
+                ..Default::default()
+            },
+            ..Default::default()
+        })
+        .with_children(|children| {
+            children
+                .spawn(Collider::cuboid(20.0, 40.0))
+                .insert(TransformBundle::from(Transform::from_xyz(
+                    0.0, -2.0, z,
                 )));
         });
 }
