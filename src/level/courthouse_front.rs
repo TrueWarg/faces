@@ -1,8 +1,8 @@
 use bevy::app::{Plugin, Update};
 use bevy::asset::{Assets, AssetServer};
 use bevy::hierarchy::BuildChildren;
-use bevy::math::Vec3;
-use bevy::prelude::{Commands, in_state, IntoSystemConfigs, TransformBundle};
+use bevy::math::{UVec2, Vec3};
+use bevy::prelude::{Commands, in_state, IntoSystemConfigs, Query, TextureAtlas, Timer, TransformBundle};
 use bevy::prelude::OnEnter;
 use bevy::prelude::OnExit;
 use bevy::prelude::Res;
@@ -14,9 +14,11 @@ use bevy::prelude::Transform;
 use bevy_rapier2d::dynamics::RigidBody;
 use bevy_rapier2d::geometry::Collider;
 use crate::core::collisions::recalculate_z;
-use crate::core::entities::LevelYMax;
+use crate::core::entities::{BodyYOffset, LevelYMax};
 use crate::core::states::GameState;
-use crate::core::z_index::{calculate_z, FLOOR_Z, MIN_RANGE_Z, ON_WALL_OBJECT_Z, WALL_Z};
+use crate::core::z_index::{calculate_z, DEFAULT_OBJECT_Z, FLOOR_Z, MIN_RANGE_Z, ON_WALL_OBJECT_Z, WALL_Z};
+use crate::interaction::interactors::{InteractionArea, InteractionSide, PassiveInteractor};
+use crate::npc::IdleAnimation;
 
 pub struct CourtHouseFrontPlugin<S: States> {
     pub state: S,
@@ -26,6 +28,7 @@ impl<S: States> Plugin for CourtHouseFrontPlugin<S> {
     fn build(&self, app: &mut bevy::prelude::App) {
         app.add_systems(OnEnter(self.state.clone()), load)
             .add_systems(OnExit(self.state.clone()), unload)
+            .add_systems(OnEnter(self.state.clone()), spawn_old_woman_drevnira)
             .add_systems(OnExit(GameState::Exploration), unload)
             .add_systems(Update, recalculate_z.run_if(in_state(self.state.clone())));
     }
@@ -277,6 +280,60 @@ fn spawn_bench(
                 .insert(TransformBundle::from(Transform::from_xyz(
                     0.0, -2.0, z,
                 )));
+        });
+}
+
+fn spawn_old_woman_drevnira(
+    asset_server: Res<AssetServer>,
+    mut commands: Commands,
+    mut layouts: ResMut<Assets<TextureAtlasLayout>>,
+    level_y_max: Query<&LevelYMax>,
+) {
+    let default = LevelYMax::create(500.0);
+    let y_max = level_y_max.get_single().unwrap_or(&default);
+    let x = -430.0;
+    let y = -250.0;
+    let z = calculate_z(y, y_max.value);
+
+    let image_handle = asset_server.load("npc/old_woman_drevnira.png");
+    let layout = TextureAtlasLayout::from_grid(
+        UVec2::new(29, 64), 8, 1, None, None,
+    );
+
+    let layout_handle = layouts.add(layout);
+
+    commands
+        .spawn(RigidBody::Fixed)
+        .insert((
+            SpriteBundle {
+                texture: image_handle,
+                ..Default::default()
+            },
+            TextureAtlas {
+                layout: layout_handle.clone(),
+                index: 0,
+            },
+        ))
+        .insert(IdleAnimation {
+            timer: Timer::from_seconds(
+                0.7,
+                bevy::time::TimerMode::Repeating,
+            ),
+        })
+        .insert(TransformBundle::from(Transform::from_xyz(x, y, z)))
+        .insert(BodyYOffset::create(30.0))
+        .with_children(|children| {
+            children
+                .spawn(Collider::cuboid(16.0, 32.0))
+                .insert(TransformBundle::from(Transform::from_xyz(
+                    0.0,
+                    -8.0,
+                    DEFAULT_OBJECT_Z,
+                )));
+        })
+        .insert(PassiveInteractor {
+            area: InteractionArea::from_sizes(16.0, 32.0),
+            side: InteractionSide::Bottom,
         });
 }
 

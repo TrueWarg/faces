@@ -406,7 +406,7 @@ fn sleeping_dog_basic_animation(
     for (mut idle_animation, mut sprite) in animation_query.iter_mut() {
         idle_animation.timer.tick(time.delta());
         if idle_animation.timer.finished() {
-            if sprite.index >= 15 {
+            if sprite.index >= /*15*/ 7  {
                 sprite.index = 0;
             } else {
                 sprite.index += 1;
