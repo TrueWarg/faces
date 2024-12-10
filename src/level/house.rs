@@ -619,8 +619,8 @@ fn formidable_dog_dialog_starts(
 
 fn courier_spawns(
     asset_server: Res<AssetServer>,
-    commands: Commands,
-    layouts: ResMut<Assets<TextureAtlasLayout>>,
+    mut commands: Commands,
+    mut layouts: ResMut<Assets<TextureAtlasLayout>>,
     current_screen_state: Res<State<EscapeFromHouse>>,
     courier_query: Query<Entity, With<Courier>>,
 ) {
@@ -630,9 +630,9 @@ fn courier_spawns(
     match current_screen_state.get() {
         EscapeFromHouse::Courier => {
             spawn_npc(
-                asset_server,
-                commands,
-                layouts,
+                &asset_server,
+                &mut commands,
+                &mut layouts,
                 Courier,
                 "npc/clerk.png".to_string(),
                 120.0,

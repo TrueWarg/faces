@@ -2,7 +2,7 @@ use bevy::app::{Plugin, Update};
 use bevy::asset::{Assets, AssetServer};
 use bevy::hierarchy::BuildChildren;
 use bevy::math::{UVec2, Vec3};
-use bevy::prelude::{Commands, in_state, IntoSystemConfigs, Query, TextureAtlas, Timer, TransformBundle};
+use bevy::prelude::{Commands, DetectChanges, Entity, in_state, IntoSystemConfigs, Query, State, TextureAtlas, Timer, TransformBundle, With};
 use bevy::prelude::OnEnter;
 use bevy::prelude::OnExit;
 use bevy::prelude::Res;
@@ -18,7 +18,8 @@ use crate::core::entities::{BodyYOffset, LevelYMax};
 use crate::core::states::GameState;
 use crate::core::z_index::{calculate_z, DEFAULT_OBJECT_Z, FLOOR_Z, MIN_RANGE_Z, ON_WALL_OBJECT_Z, WALL_Z};
 use crate::interaction::interactors::{InteractionArea, InteractionSide, PassiveInteractor};
-use crate::npc::IdleAnimation;
+use crate::npc::{IdleAnimation, spawn_npc};
+use crate::world_state::EscapeFromHouse;
 
 pub struct CourtHouseFrontPlugin<S: States> {
     pub state: S,
@@ -29,6 +30,9 @@ impl<S: States> Plugin for CourtHouseFrontPlugin<S> {
         app.add_systems(OnEnter(self.state.clone()), load)
             .add_systems(OnExit(self.state.clone()), unload)
             .add_systems(OnEnter(self.state.clone()), spawn_old_woman_drevnira)
+            .add_systems(OnEnter(self.state.clone()), spawn_guardians)
+            .add_systems(OnEnter(self.state.clone()), spawn_gopniks)
+            .add_systems(OnEnter(self.state.clone()), spawn_screaming_man)
             .add_systems(OnExit(GameState::Exploration), unload)
             .add_systems(Update, recalculate_z.run_if(in_state(self.state.clone())));
     }
@@ -83,8 +87,6 @@ fn load(
     spawn_bench(&mut commands, &asset_server, y_max, 430.0, -75.0);
     spawn_bench(&mut commands, &asset_server, y_max, 430.0, -175.0);
     spawn_bench(&mut commands, &asset_server, y_max, 430.0, -275.0);
-
-
 }
 
 fn spawn_ground(commands: &mut Commands, asset_server: &Res<AssetServer>) {
@@ -335,6 +337,128 @@ fn spawn_old_woman_drevnira(
             area: InteractionArea::from_sizes(16.0, 32.0),
             side: InteractionSide::Bottom,
         });
+}
+
+
+fn spawn_guardians(
+    asset_server: Res<AssetServer>,
+    mut commands: Commands,
+    mut layouts: ResMut<Assets<TextureAtlasLayout>>,
+) {
+    spawn_npc(
+        &asset_server,
+        &mut commands,
+        &mut layouts,
+        (),
+        "npc/guardian.png".to_string(),
+        -50.0,
+        370.0,
+        ON_WALL_OBJECT_Z + 1.5,
+        0.0,
+        0.0,
+    );
+
+    spawn_npc(
+        &asset_server,
+        &mut commands,
+        &mut layouts,
+        (),
+        "npc/guardian.png".to_string(),
+        50.0,
+        370.0,
+        ON_WALL_OBJECT_Z + 1.5,
+        0.0,
+        0.0,
+    );
+}
+
+fn spawn_gopniks(
+    asset_server: Res<AssetServer>,
+    mut commands: Commands,
+    mut layouts: ResMut<Assets<TextureAtlasLayout>>,
+    level_y_max: Query<&LevelYMax>,
+) {
+    let default = LevelYMax::create(500.0);
+    let y_max = level_y_max.get_single().unwrap_or(&default);
+
+    let x = 360.0;
+    let y = 250.0;
+    let shifted_y = y - 20.0;
+    let z = calculate_z(shifted_y, y_max.value);
+    spawn_npc(
+        &asset_server,
+        &mut commands,
+        &mut layouts,
+        (),
+        "npc/gopnik_red.png".to_string(),
+        x,
+        y,
+        z,
+        0.0,
+        0.0,
+    );
+
+    let x = 310.0;
+    let y = 250.0;
+    let shifted_y = y - 20.0;
+    let z = calculate_z(shifted_y, y_max.value);
+    spawn_npc(
+        &asset_server,
+        &mut commands,
+        &mut layouts,
+        (),
+        "npc/gopnik_red.png".to_string(),
+        x,
+        y,
+        z,
+        0.0,
+        0.0,
+    );
+
+
+    let x = 335.0;
+    let y = 220.0;
+    let shifted_y = y - 20.0;
+    let z = calculate_z(shifted_y, y_max.value);
+    spawn_npc(
+        &asset_server,
+        &mut commands,
+        &mut layouts,
+        (),
+        "npc/gopnik_red.png".to_string(),
+        x,
+        y,
+        z,
+        0.0,
+        0.0,
+    );
+}
+
+fn spawn_screaming_man(
+    asset_server: Res<AssetServer>,
+    mut commands: Commands,
+    mut layouts: ResMut<Assets<TextureAtlasLayout>>,
+    level_y_max: Query<&LevelYMax>,
+) {
+    let default = LevelYMax::create(500.0);
+    let y_max = level_y_max.get_single().unwrap_or(&default);
+
+    let x = 100.0;
+    let y = -80.0;
+    let shifted_y = y - 20.0;
+    let z = calculate_z(shifted_y, y_max.value);
+    spawn_npc(
+        &asset_server,
+        &mut commands,
+        &mut layouts,
+        (),
+        "npc/clerk_blond.png".to_string(),
+        x,
+        y,
+        z,
+        0.0,
+        0.0,
+    );
 }
 
 fn unload() {}

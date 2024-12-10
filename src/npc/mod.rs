@@ -34,9 +34,9 @@ mod entities;
 mod animations;
 
 pub fn spawn_npc(
-    asset_server: Res<AssetServer>,
-    mut commands: Commands,
-    mut layouts: ResMut<Assets<TextureAtlasLayout>>,
+    asset_server: &Res<AssetServer>,
+    mut commands: &mut Commands,
+    mut layouts: &mut ResMut<Assets<TextureAtlasLayout>>,
     marker: impl Bundle,
     asset_path: String,
     pos_x: f32,
