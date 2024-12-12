@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::dialog::{Branching, Dialog, DialogEffect, DialogId, DialogStick, Replica, Variant};
 
-//   start
+//  START
 //   *
 //   |
 //   ^
@@ -133,7 +133,7 @@ fn sleeping_formidable_dog() -> (usize, HashMap<usize, DialogStick>) {
     return (root_id, pool);
 }
 
-//         start
+//       START
 //         *
 //         |
 //         *
@@ -141,9 +141,9 @@ fn sleeping_formidable_dog() -> (usize, HashMap<usize, DialogStick>) {
 //         *
 //  -->^ ^ ^ ^ ^
 //  |  | | | | |
-//  |  * * * * *->end
+//  |  * * * * * -> END
 //  |  | | | |
-//  ---* * * *->end
+//  ---* * * * -> END
 //  |    | |--
 //  ----^ ^  |
 //  |     |  *
@@ -252,12 +252,12 @@ fn courier_dialog_body() -> (usize, HashMap<usize, DialogStick>) {
                 Variant::create_with_effect(
                     "Хм. Давайте я расписюсь.".to_string(),
                     ok.id,
-                    DialogEffect::EndDialog(Some(crate::level::END_DIALOG_AGENDA_TAKEN)),
+                    DialogEffect::EndDialog(Some(END_DIALOG_AGENDA_TAKEN)),
                 ),
                 Variant::create_with_effect(
                     "[Свернуть шею]".to_string(),
                     twist_neck.id,
-                    DialogEffect::EndDialog(Some(crate::level::END_DIALOG_NECK_TWISTED)),
+                    DialogEffect::EndDialog(Some(END_DIALOG_NECK_TWISTED)),
                 ),
             ],
         }
@@ -273,6 +273,174 @@ fn courier_dialog_body() -> (usize, HashMap<usize, DialogStick>) {
     pool.insert(when_in_court.id, when_in_court);
     pool.insert(ok.id, ok);
     pool.insert(twist_neck.id, twist_neck);
+
+    return (root_id, pool);
+}
+
+//   START
+//     *
+//     |
+//     *
+//     |
+//     *
+//    | |
+//    ^ ^
+//    | |
+//    * * -> END
+//  | | |
+//  ^ ^ ^
+//  | | |
+//  * * * -> END
+//  ---
+//  | |
+//  ^ ^
+//  | |
+//  * * -> END
+pub const DREVNIRA_DIALOG: usize = 3;
+
+pub const END_DIALOG_DREVNIRA_BEATEN: usize = 1;
+
+pub fn old_woman_drevnira_dialog() -> Dialog {
+    let (root_id, sticks) = old_woman_drevnira();
+    return Dialog::from(
+        DialogId(COURIER_DIALOG),
+        "Dialog 1".to_string(),
+        "background/dialog_bg.png".to_string(),
+        "npc/dialog_courier.png".to_string(),
+        root_id,
+        sticks,
+    );
+}
+
+fn old_woman_drevnira() -> (usize, HashMap<usize, DialogStick>) {
+    let mut main_stick = DialogStick::from(0);
+    main_stick.replicas.extend(
+        vec![
+            Replica::from_text("[Перед тобой стоит высокая и тощая старушка с малеькой головой и кланится в какое-то закрытое окно. При этом она говорит...] ".to_string()),
+            Replica::from_text("Перо, дай мне перо, Пьерро. Пьерро, Пьерро, дай мне перо, перо....".to_string()),
+            Replica::from_text("Дай мне перо, Пьерро, дай мне перо, перо, Пьерро, дай мне перо...".to_string()),
+        ]
+    );
+
+    let mut again_talking = DialogStick::from(1);
+    again_talking.replicas.extend(
+        vec![
+            Replica::from_text("[Старушка не обращает на тебя внимание и продолжает...] Да Пьерро, перо, дай мне перо!..".to_string()),
+        ]
+    );
+
+    let mut skip = DialogStick::from(2);
+    skip.replicas.extend(
+        vec![
+            Replica::from_text("Ну Пьерро, дай мне перо...".to_string()),
+        ]
+    );
+
+    let mut i_have = DialogStick::from(3);
+    i_have.replicas.extend(
+        vec![
+            Replica::from_text("Перро, дай мне перо, Пьерро, дай мне перо...".to_string()),
+        ]
+    );
+
+    let mut beaten = DialogStick::from(4);
+    beaten.replicas.extend(
+        vec![
+            Replica::from_text("[Мерзкая старуха ойкнула завалилась на бок. \
+            Ты ее вырубил и теперь она долго будет спать.]".to_string()),
+        ]
+    );
+
+    i_have.branching = Some(Branching {
+        id: 0,
+        variants: vec![
+            Variant::create_with_effect(
+                "[Долбануть бабку головой об окно...]".to_string(),
+                beaten.id,
+                DialogEffect::EndDialog(Some(END_DIALOG_DREVNIRA_BEATEN)),
+            ),
+            Variant::create_with_effect(
+                "[Молча уйти]".to_string(),
+                skip.id,
+                DialogEffect::EndDialog(None),
+            ),
+        ],
+    }
+    );
+
+    let mut go_away = DialogStick::from(5);
+    go_away.replicas.extend(
+        vec![
+            Replica::from_text("[Старушка резко поворачивается к тебе и столь же \
+            резко вопит мерзким голосом:] Иди ты!!!\n[Затем отворачивается к окну и \
+            продолжает...] Перо, мне нужно перо, Пьерро, дай мне перо...".to_string()),
+        ]
+    );
+
+    go_away.branching = Some(Branching {
+        id: 0,
+        variants: vec![
+            Variant::create_with_effect(
+                "ЫЫЫЫУУУУ!!!! [Долбануть бабку головой об окно...]".to_string(),
+                beaten.id,
+                DialogEffect::EndDialog(Some(END_DIALOG_DREVNIRA_BEATEN)),
+            ),
+            Variant::create_with_effect(
+                "Воть и пойду!".to_string(),
+                skip.id,
+                DialogEffect::EndDialog(None),
+            ),
+        ],
+    }
+    );
+
+    again_talking.branching = Some(Branching {
+        id: 0,
+        variants: vec![
+            Variant::create_with_effect(
+                "У меня есть для тебя перо!".to_string(),
+                i_have.id,
+                DialogEffect::ReplaceDialog,
+            ),
+            Variant::create_with_effect(
+                "[Потрогать по плечу]".to_string(),
+                go_away.id,
+                DialogEffect::ReplaceDialog,
+            ),
+            Variant::create_with_effect(
+                "Ай, пойду я.".to_string(),
+                skip.id,
+                DialogEffect::EndDialog(None),
+            ),
+        ],
+    }
+    );
+
+    main_stick.branching = Some(Branching {
+        id: 0,
+        variants: vec![
+            Variant::create_with_effect(
+                "Эй, ти!".to_string(),
+                again_talking.id,
+                DialogEffect::ReplaceDialog,
+            ),
+            Variant::create_with_effect(
+                "[Молча уйти]".to_string(),
+                skip.id,
+                DialogEffect::EndDialog(None),
+            ),
+        ],
+    }
+    );
+
+    let mut pool = HashMap::new();
+    let root_id = main_stick.id;
+    pool.insert(main_stick.id, main_stick);
+    pool.insert(again_talking.id, again_talking);
+    pool.insert(skip.id, skip);
+    pool.insert(beaten.id, beaten);
+    pool.insert(i_have.id, i_have);
+    pool.insert(go_away.id, go_away);
 
     return (root_id, pool);
 }

@@ -98,7 +98,7 @@ impl<S: States> Plugin for HousePlugin<S> {
             .add_systems(
                 Update,
                 (recalculate_z,
-                 escape_from_house_variants_handles,
+                 escape_from_house_variants_handles.run_if(in_state(self.state.clone())),
                  draw_wooden_chest_states.after(transit_to_next_container_state),
                  draw_level_arm_states.after(change_switcher_state),
                 ).run_if(in_state(self.state.clone())),

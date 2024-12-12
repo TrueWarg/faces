@@ -1,8 +1,19 @@
 use bevy::app::{Plugin, Update};
 use bevy::asset::{Assets, AssetServer};
 use bevy::hierarchy::BuildChildren;
+use bevy::input::ButtonInput;
 use bevy::math::{UVec2, Vec3};
-use bevy::prelude::{Commands, DetectChanges, Entity, in_state, IntoSystemConfigs, Query, State, TextureAtlas, Timer, TransformBundle, With};
+use bevy::prelude::Commands;
+use bevy::prelude::Component;
+use bevy::prelude::in_state;
+use bevy::prelude::IntoSystemConfigs;
+use bevy::prelude::KeyCode;
+use bevy::prelude::NextState;
+use bevy::prelude::Query;
+use bevy::prelude::TextureAtlas;
+use bevy::prelude::Timer;
+use bevy::prelude::TransformBundle;
+use bevy::prelude::With;
 use bevy::prelude::OnEnter;
 use bevy::prelude::OnExit;
 use bevy::prelude::Res;
@@ -13,17 +24,32 @@ use bevy::prelude::TextureAtlasLayout;
 use bevy::prelude::Transform;
 use bevy_rapier2d::dynamics::RigidBody;
 use bevy_rapier2d::geometry::Collider;
+
 use crate::core::collisions::recalculate_z;
 use crate::core::entities::{BodyYOffset, LevelYMax};
 use crate::core::states::GameState;
-use crate::core::z_index::{calculate_z, DEFAULT_OBJECT_Z, FLOOR_Z, MIN_RANGE_Z, ON_WALL_OBJECT_Z, WALL_Z};
-use crate::interaction::interactors::{InteractionArea, InteractionSide, PassiveInteractor};
+use crate::core::z_index::calculate_z;
+use crate::core::z_index::DEFAULT_OBJECT_Z;
+use crate::core::z_index::FLOOR_Z;
+use crate::core::z_index::MIN_RANGE_Z;
+use crate::core::z_index::ON_WALL_OBJECT_Z;
+use crate::core::z_index::WALL_Z;
+use crate::dialog::{DialogId, SelectedVariantsSource};
+use crate::interaction::interactors::ActiveInteractor;
+use crate::interaction::interactors::detect_active_interaction;
+use crate::interaction::interactors::InteractionArea;
+use crate::interaction::interactors::InteractionSide;
+use crate::interaction::interactors::PassiveInteractor;
+use crate::level::{DREVNIRA_DIALOG, END_DIALOG_DREVNIRA_BEATEN};
 use crate::npc::{IdleAnimation, spawn_npc};
-use crate::world_state::EscapeFromHouse;
+use crate::world_state::StrangeOldWoman;
 
 pub struct CourtHouseFrontPlugin<S: States> {
     pub state: S,
 }
+
+#[derive(Component)]
+struct Drevnira;
 
 impl<S: States> Plugin for CourtHouseFrontPlugin<S> {
     fn build(&self, app: &mut bevy::prelude::App) {
@@ -34,7 +60,8 @@ impl<S: States> Plugin for CourtHouseFrontPlugin<S> {
             .add_systems(OnEnter(self.state.clone()), spawn_gopniks)
             .add_systems(OnEnter(self.state.clone()), spawn_screaming_man)
             .add_systems(OnExit(GameState::Exploration), unload)
-            .add_systems(Update, recalculate_z.run_if(in_state(self.state.clone())));
+            .add_systems(Update, drevnira_dog_dialog_starts.run_if(in_state(StrangeOldWoman::GiveMeFeather)))
+            .add_systems(Update, (dialog_variants_handles, recalculate_z).run_if(in_state(self.state.clone())));
     }
 }
 
@@ -42,7 +69,9 @@ fn load(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
+    mut drevnira_state: ResMut<NextState<StrangeOldWoman>>,
 ) {
+    drevnira_state.set(StrangeOldWoman::GiveMeFeather);
     let y_max = LevelYMax::create(500.0);
     commands.spawn(y_max);
 
@@ -306,6 +335,7 @@ fn spawn_old_woman_drevnira(
 
     commands
         .spawn(RigidBody::Fixed)
+        .insert(Drevnira)
         .insert((
             SpriteBundle {
                 texture: image_handle,
@@ -459,6 +489,50 @@ fn spawn_screaming_man(
         0.0,
         0.0,
     );
+}
+
+fn drevnira_dog_dialog_starts(
+    mut commands: Commands,
+    keyboard: Res<ButtonInput<KeyCode>>,
+    active: Query<(&ActiveInteractor, &Transform)>,
+    interactors: Query<(&PassiveInteractor, &Transform), With<Drevnira>>,
+    mut dialog_id_query: Query<(&mut DialogId)>,
+    mut next_game_state: ResMut<NextState<GameState>>,
+) {
+    if !(keyboard.pressed(KeyCode::KeyE) && keyboard.just_pressed(KeyCode::KeyE)) {
+        return;
+    }
+    for (interactor, transform) in interactors.iter() {
+        let is_interacting = detect_active_interaction(&active, (interactor, transform));
+        if is_interacting {
+            match dialog_id_query.get_single_mut() {
+                Ok(mut dialog_id) => dialog_id.0 = DREVNIRA_DIALOG,
+                Err(_) => {
+                    commands.spawn(DialogId(DREVNIRA_DIALOG));
+                }
+            }
+            next_game_state.set(GameState::Dialog);
+        }
+    }
+}
+
+fn dialog_variants_handles(
+    mut dialog_variant_source: ResMut<SelectedVariantsSource>,
+    mut drevnira_state: ResMut<NextState<StrangeOldWoman>>,
+) {
+    // todo: it calculates on each frame.
+    // make it when dialog_variant_source updates only.
+    let selected = dialog_variant_source.consume(&DREVNIRA_DIALOG);
+    match selected {
+        None => {}
+        Some(ids) => {
+            for id in ids {
+                if id == END_DIALOG_DREVNIRA_BEATEN {
+                    drevnira_state.set(StrangeOldWoman::Beaten);
+                }
+            }
+        }
+    }
 }
 
 fn unload() {}
