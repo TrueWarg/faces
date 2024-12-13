@@ -303,7 +303,7 @@ pub const END_DIALOG_DREVNIRA_BEATEN: usize = 1;
 pub fn old_woman_drevnira_dialog() -> Dialog {
     let (root_id, sticks) = old_woman_drevnira();
     return Dialog::from(
-        DialogId(COURIER_DIALOG),
+        DialogId(DREVNIRA_DIALOG),
         "Dialog 1".to_string(),
         "background/dialog_bg.png".to_string(),
         "npc/dialog_courier.png".to_string(),
@@ -441,6 +441,299 @@ fn old_woman_drevnira() -> (usize, HashMap<usize, DialogStick>) {
     pool.insert(beaten.id, beaten);
     pool.insert(i_have.id, i_have);
     pool.insert(go_away.id, go_away);
+
+    return (root_id, pool);
+}
+
+//      START
+//        *
+//        |
+//        *
+//        |
+//        *
+//    | | | | |
+//    ^ ^ ^ ^ ^
+//    | | | | |
+//  |>* * * * * -> END
+//  |_|_|_| |
+//         END
+
+pub const BLOND_DIALOG_FIRST: usize = 4;
+
+pub const END_DIALOG_BLOND_FIRST_ACCEPTED: usize = 1;
+pub const END_DIALOG_BLOND_FIRST_DENIED: usize = 2;
+
+pub fn blond_dialog_first() -> Dialog {
+    let (root_id, sticks) = blond_first();
+    return Dialog::from(
+        DialogId(BLOND_DIALOG_FIRST),
+        "Dialog 1".to_string(),
+        "background/dialog_bg.png".to_string(),
+        "npc/dialog_courier.png".to_string(),
+        root_id,
+        sticks,
+    );
+}
+
+fn blond_first() -> (usize, HashMap<usize, DialogStick>) {
+    let mut main_stick = DialogStick::from(0);
+    main_stick.replicas.extend(
+        vec![
+            Replica::from_text("[Ты видишь человека, озабоченно поглядывающего по сторонам. Он одет в разодранный\n\
+            пиджак, на его левом ботинке развязаны шнурки. У человека светлые волосы, легкая щетина на щеказ. Так же ты замечаешь\n\
+            что его верхняя губа приподнята, и мерзко подрагивает. Увидев тебя он закричал...] ".to_string()),
+            Replica::from_text("Сударъ, сударъ! Пожалуйста, судар, вылушайте меня! Мне нужна помощь! Прошу вас!".to_string()),
+            Replica::from_text("Сударъ, на меня напали! Меня избили и забрали мои две пачки пельменей!\n\
+            Пожалуйста, помогите мне! Я вижу, что вы грозный боец и сможете вернуть мне ее у избивных меня негодяев.\
+            Это не за даром, я отдам вам часть пельмений!".to_string()),
+        ]
+    );
+
+    let mut who = DialogStick::from(1);
+    who.replicas.extend(
+        vec![
+            Replica::from_text("Четыре мерзких гопника! Они напали внезано, повалили меня и отпинали!".to_string()),
+        ]
+    );
+
+    let mut wheree = DialogStick::from(2);
+    wheree.replicas.extend(
+        vec![
+            Replica::from_text("На сереро-востоке! Рядом со скамейками в парке! Может даже, что эти уюлюдки все еще там!\n\
+            Уже варят наверное мое пельмени!".to_string()),
+        ]
+    );
+
+    let mut when = DialogStick::from(3);
+    when.replicas.extend(
+        vec![
+            Replica::from_text("Примерно час назад... Ох, главное, чтобы они не сварили мои пельмени! \
+            Хотя, судя по их рожам, они их могут съесть сырыми...".to_string()),
+        ]
+    );
+
+    let mut ok = DialogStick::from(4);
+    ok.replicas.extend(
+        vec![
+            Replica::from_text("Ух, сударъ, благордарю вас! Удачи вам! Ну же, идите на северо-восток к скамейкам!".to_string()),
+        ]
+    );
+
+    let mut deny = DialogStick::from(5);
+    deny.replicas.extend(
+        vec![
+            Replica::from_text("Ну сударъ... Эх.".to_string()),
+        ]
+    );
+
+    main_stick.branching = Some(Branching {
+        id: 0,
+        variants: vec![
+            Variant::create(
+                "Ктё тебя изьбиль и сколько их былё?".to_string(),
+                who.id,
+            ),
+            Variant::create(
+                "Где тебя изьбили?".to_string(),
+                wheree.id,
+            ),
+            Variant::create(
+                "Когдя это произошлё?".to_string(),
+                when.id,
+            ),
+            Variant::create_with_effect(
+                "Лядня, я принесю тебе пельмени.".to_string(),
+                ok.id,
+                DialogEffect::EndDialog(Some(END_DIALOG_BLOND_FIRST_ACCEPTED)),
+            ),
+            Variant::create_with_effect(
+                "У меня неть времени.".to_string(),
+                deny.id,
+                DialogEffect::EndDialog(Some(END_DIALOG_BLOND_FIRST_DENIED)),
+            ),
+        ],
+    }
+    );
+
+    let mut pool = HashMap::new();
+    let root_id = main_stick.id;
+    pool.insert(main_stick.id, main_stick);
+    pool.insert(who.id, who);
+    pool.insert(wheree.id, wheree);
+    pool.insert(when.id, when);
+    pool.insert(ok.id, ok);
+    pool.insert(deny.id, deny);
+
+    return (root_id, pool);
+}
+
+//      START
+//        *
+//        |
+//        *
+//        |
+//        *
+//       | |
+//       ^ ^
+//       | |
+//       * * -> END
+//      | |
+//      ^ ^ -> END
+//      |
+//      *
+//      |
+//      *
+//      |
+//      ^
+//      |
+//      *
+//     | |
+//     ^ ^
+//     | |
+//     * * -> END
+//     |
+//    END
+pub const GOPNIKS_DIALOG: usize = 5;
+
+pub const END_DIALOG_GOPNIKS_DIALOG_FIGHT: usize = 1;
+pub const END_DIALOG_GOPNIKS_DIALOG_ASK_BLOND: usize = 2;
+
+pub fn gopniks_dialog() -> Dialog {
+    let (root_id, sticks) = gopniks();
+    return Dialog::from(
+        DialogId(GOPNIKS_DIALOG),
+        "Dialog 1".to_string(),
+        "background/dialog_bg.png".to_string(),
+        "npc/dialog_courier.png".to_string(),
+        root_id,
+        sticks,
+    );
+}
+
+fn gopniks() -> (usize, HashMap<usize, DialogStick>) {
+    let mut main_stick = DialogStick::from(0);
+    main_stick.replicas.extend(
+        vec![
+            Replica::from_text("[Перед тобой четверо... индивидумов. Один из них сидит на коточках, у него хмурое лицо и сморщеный лоб.\n\
+            Слева от него стоит громадина в красных лосинах. Поодаль ты видишь двух близнецов с глупым выраженим на лицах.\n\
+            Тот, что сидит на корточках, судя по всему, главарь, зло смотрит на тебя из подлобья.]".to_string()),
+            Replica::from_text("Херли тебе надо, а?".to_string()),
+            Replica::from_text("[Гигантсвий гопник в красных лосинах заржал и добавил:] \
+            Гы! Люлей давно не навешивали, фраер? Гы-гы-гы-гы!".to_string()),
+        ]
+    );
+
+    let mut fight = DialogStick::from(1);
+
+    fight.replicas.extend(
+        vec![
+            Replica::from_text("[Главарь:] ПА-ЦА-НЫЫЫЫ!".to_string()),
+        ]
+    );
+
+    let mut wtf = DialogStick::from(2);
+    wtf.replicas.extend(
+        vec![
+            Replica::from_text("[Главарь:] Чё? Какие еще пельмени?".to_string()),
+        ]
+    );
+
+    let mut aaa_blond = DialogStick::from(3);
+    aaa_blond.replicas.extend(
+        vec![
+            Replica::from_text("Ааааа, того блондина!? Хахахахахахаха!".to_string()),
+            Replica::from_text("Да этот уморыш проиграл их нам в нарды! Мы не забирали их у него".to_string()),
+        ]
+    );
+
+    let mut he_attack_us = DialogStick::from(4);
+    he_attack_us.replicas.extend(
+        vec![
+            Replica::from_text("Конечно избили, ведь он после проигрыша взбеился и начал виздать как баба!\n\
+            Нарды нам раскидал, а затем и вовсе взял палку и набросился! Ну и приподали мы ему урок.\
+            \nЧем докажем? А спроси у него самого о оставшихся у него его двух пачек пельмений, которые мы не забрали!\n\
+            Мы оставили у себя только то, что честно выиграли. А его добро не брали.".to_string()),
+        ]
+    );
+
+    let mut go = DialogStick::from(5);
+    go.replicas.extend(
+        vec![
+            Replica::from_text("Вот увидишь, мы не чешим.".to_string()),
+        ]
+    );
+
+    he_attack_us.branching = Some(Branching {
+        id: 0,
+        variants: vec![
+            Variant::create_with_effect(
+                "Ляднё, я проверю.".to_string(),
+                go.id,
+                DialogEffect::EndDialog(Some(END_DIALOG_GOPNIKS_DIALOG_ASK_BLOND)),
+            ),
+            Variant::create_with_effect(
+                "Я не верю, ето чущь!!!".to_string(),
+                fight.id,
+                DialogEffect::EndDialog(Some(END_DIALOG_GOPNIKS_DIALOG_FIGHT)),
+            ),
+        ],
+    }
+    );
+
+    aaa_blond.branching = Some(Branching {
+        id: 0,
+        variants: vec![
+            Variant::create_with_effect(
+                "Чем ви докажете? Вы его избили!".to_string(),
+                he_attack_us.id,
+                DialogEffect::ReplaceDialog,
+            ),
+        ],
+    }
+    );
+
+    wtf.branching = Some(Branching {
+        id: 0,
+        variants: vec![
+            Variant::create_with_effect(
+                "Котёрые вы забрали у тёго блондиня!".to_string(),
+                aaa_blond.id,
+                DialogEffect::ReplaceDialog,
+            ),
+            Variant::create_with_effect(
+                "Ай, вбестольку говорить [Напасть]".to_string(),
+                fight.id,
+                DialogEffect::EndDialog(Some(END_DIALOG_GOPNIKS_DIALOG_FIGHT)),
+            ),
+        ],
+    }
+    );
+
+    main_stick.branching = Some(Branching {
+        id: 0,
+        variants: vec![
+            Variant::create_with_effect(
+                "Отдавайте пельмени!".to_string(),
+                wtf.id,
+                DialogEffect::ReplaceDialog,
+            ),
+            Variant::create_with_effect(
+                "Я присёль свернуть вам щеи.".to_string(),
+                fight.id,
+                DialogEffect::EndDialog(Some(END_DIALOG_GOPNIKS_DIALOG_FIGHT)),
+            ),
+        ],
+    }
+    );
+
+    let mut pool = HashMap::new();
+    let root_id = main_stick.id;
+    pool.insert(main_stick.id, main_stick);
+    pool.insert(fight.id, fight);
+    pool.insert(wtf.id, wtf);
+    pool.insert(aaa_blond.id, aaa_blond);
+    pool.insert(he_attack_us.id, he_attack_us);
+    pool.insert(go.id, go);
 
     return (root_id, pool);
 }

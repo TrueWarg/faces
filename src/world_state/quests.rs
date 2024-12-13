@@ -53,7 +53,7 @@ pub enum StrangeOldWoman {
 }
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
-pub enum Gopniks {
+pub enum BlondAndGopniks {
     #[default]
     None,
     TalkWithBlond,

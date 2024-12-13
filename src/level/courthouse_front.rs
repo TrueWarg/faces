@@ -40,9 +40,9 @@ use crate::interaction::interactors::detect_active_interaction;
 use crate::interaction::interactors::InteractionArea;
 use crate::interaction::interactors::InteractionSide;
 use crate::interaction::interactors::PassiveInteractor;
-use crate::level::{DREVNIRA_DIALOG, END_DIALOG_DREVNIRA_BEATEN};
+use crate::level::{BLOND_DIALOG_FIRST, DREVNIRA_DIALOG, END_DIALOG_BLOND_FIRST_ACCEPTED, END_DIALOG_DREVNIRA_BEATEN, END_DIALOG_GOPNIKS_DIALOG_ASK_BLOND, GOPNIKS_DIALOG};
 use crate::npc::{IdleAnimation, spawn_npc};
-use crate::world_state::StrangeOldWoman;
+use crate::world_state::{BlondAndGopniks, StrangeOldWoman};
 
 pub struct CourtHouseFrontPlugin<S: States> {
     pub state: S,
@@ -51,6 +51,12 @@ pub struct CourtHouseFrontPlugin<S: States> {
 #[derive(Component)]
 struct Drevnira;
 
+#[derive(Component)]
+struct Blond;
+
+#[derive(Component)]
+struct Gopnik;
+
 impl<S: States> Plugin for CourtHouseFrontPlugin<S> {
     fn build(&self, app: &mut bevy::prelude::App) {
         app.add_systems(OnEnter(self.state.clone()), load)
@@ -58,9 +64,11 @@ impl<S: States> Plugin for CourtHouseFrontPlugin<S> {
             .add_systems(OnEnter(self.state.clone()), spawn_old_woman_drevnira)
             .add_systems(OnEnter(self.state.clone()), spawn_guardians)
             .add_systems(OnEnter(self.state.clone()), spawn_gopniks)
-            .add_systems(OnEnter(self.state.clone()), spawn_screaming_man)
+            .add_systems(OnEnter(self.state.clone()), spawn_blond_man)
             .add_systems(OnExit(GameState::Exploration), unload)
             .add_systems(Update, drevnira_dog_dialog_starts.run_if(in_state(StrangeOldWoman::GiveMeFeather)))
+            .add_systems(Update, blond_first_dialog_starts.run_if(in_state(BlondAndGopniks::TalkWithBlond)))
+            .add_systems(Update, gopniks_dialog_starts.run_if(in_state(BlondAndGopniks::TalkWithGopniks)))
             .add_systems(Update, (dialog_variants_handles, recalculate_z).run_if(in_state(self.state.clone())));
     }
 }
@@ -70,8 +78,11 @@ fn load(
     asset_server: Res<AssetServer>,
     texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
     mut drevnira_state: ResMut<NextState<StrangeOldWoman>>,
+    mut blond_state: ResMut<NextState<BlondAndGopniks>>,
 ) {
     drevnira_state.set(StrangeOldWoman::GiveMeFeather);
+    blond_state.set(BlondAndGopniks::TalkWithBlond);
+
     let y_max = LevelYMax::create(500.0);
     commands.spawn(y_max);
 
@@ -419,7 +430,24 @@ fn spawn_gopniks(
         &asset_server,
         &mut commands,
         &mut layouts,
-        (),
+        Gopnik,
+        "npc/gopnik_red.png".to_string(),
+        x,
+        y,
+        z,
+        0.0,
+        0.0,
+    );
+
+    let x = 380.0;
+    let y = 255.0;
+    let shifted_y = y - 20.0;
+    let z = calculate_z(shifted_y, y_max.value);
+    spawn_npc(
+        &asset_server,
+        &mut commands,
+        &mut layouts,
+        Gopnik,
         "npc/gopnik_red.png".to_string(),
         x,
         y,
@@ -436,7 +464,7 @@ fn spawn_gopniks(
         &asset_server,
         &mut commands,
         &mut layouts,
-        (),
+        Gopnik,
         "npc/gopnik_red.png".to_string(),
         x,
         y,
@@ -444,7 +472,6 @@ fn spawn_gopniks(
         0.0,
         0.0,
     );
-
 
     let x = 335.0;
     let y = 220.0;
@@ -454,7 +481,7 @@ fn spawn_gopniks(
         &asset_server,
         &mut commands,
         &mut layouts,
-        (),
+        Gopnik,
         "npc/gopnik_red.png".to_string(),
         x,
         y,
@@ -464,7 +491,7 @@ fn spawn_gopniks(
     );
 }
 
-fn spawn_screaming_man(
+fn spawn_blond_man(
     asset_server: Res<AssetServer>,
     mut commands: Commands,
     mut layouts: ResMut<Assets<TextureAtlasLayout>>,
@@ -481,7 +508,7 @@ fn spawn_screaming_man(
         &asset_server,
         &mut commands,
         &mut layouts,
-        (),
+        Blond,
         "npc/clerk_blond.png".to_string(),
         x,
         y,
@@ -516,9 +543,60 @@ fn drevnira_dog_dialog_starts(
     }
 }
 
+fn blond_first_dialog_starts(
+    mut commands: Commands,
+    keyboard: Res<ButtonInput<KeyCode>>,
+    active: Query<(&ActiveInteractor, &Transform)>,
+    interactors: Query<(&PassiveInteractor, &Transform), With<Blond>>,
+    mut dialog_id_query: Query<(&mut DialogId)>,
+    mut next_game_state: ResMut<NextState<GameState>>,
+) {
+    if !(keyboard.pressed(KeyCode::KeyE) && keyboard.just_pressed(KeyCode::KeyE)) {
+        return;
+    }
+    for (interactor, transform) in interactors.iter() {
+        let is_interacting = detect_active_interaction(&active, (interactor, transform));
+        if is_interacting {
+            match dialog_id_query.get_single_mut() {
+                Ok(mut dialog_id) => dialog_id.0 = BLOND_DIALOG_FIRST,
+                Err(_) => {
+                    commands.spawn(DialogId(BLOND_DIALOG_FIRST));
+                }
+            }
+            next_game_state.set(GameState::Dialog);
+        }
+    }
+}
+
+fn gopniks_dialog_starts(
+    mut commands: Commands,
+    keyboard: Res<ButtonInput<KeyCode>>,
+    active: Query<(&ActiveInteractor, &Transform)>,
+    interactors: Query<(&PassiveInteractor, &Transform), With<Gopnik>>,
+    mut dialog_id_query: Query<(&mut DialogId)>,
+    mut next_game_state: ResMut<NextState<GameState>>,
+) {
+    if !(keyboard.pressed(KeyCode::KeyE) && keyboard.just_pressed(KeyCode::KeyE)) {
+        return;
+    }
+    for (interactor, transform) in interactors.iter() {
+        let is_interacting = detect_active_interaction(&active, (interactor, transform));
+        if is_interacting {
+            match dialog_id_query.get_single_mut() {
+                Ok(mut dialog_id) => dialog_id.0 = GOPNIKS_DIALOG,
+                Err(_) => {
+                    commands.spawn(DialogId(GOPNIKS_DIALOG));
+                }
+            }
+            next_game_state.set(GameState::Dialog);
+        }
+    }
+}
+
 fn dialog_variants_handles(
     mut dialog_variant_source: ResMut<SelectedVariantsSource>,
     mut drevnira_state: ResMut<NextState<StrangeOldWoman>>,
+    mut blond_state: ResMut<NextState<BlondAndGopniks>>,
 ) {
     // todo: it calculates on each frame.
     // make it when dialog_variant_source updates only.
@@ -529,6 +607,34 @@ fn dialog_variants_handles(
             for id in ids {
                 if id == END_DIALOG_DREVNIRA_BEATEN {
                     drevnira_state.set(StrangeOldWoman::Beaten);
+                }
+            }
+        }
+    }
+
+    let selected = dialog_variant_source.consume(&BLOND_DIALOG_FIRST);
+    match selected {
+        None => {}
+        Some(ids) => {
+            for id in ids {
+                if id == END_DIALOG_BLOND_FIRST_ACCEPTED {
+                    blond_state.set(BlondAndGopniks::TalkWithGopniks);
+                } else {
+                    blond_state.set(BlondAndGopniks::Completed);
+                }
+            }
+        }
+    }
+
+    let selected = dialog_variant_source.consume(&GOPNIKS_DIALOG);
+    match selected {
+        None => {}
+        Some(ids) => {
+            for id in ids {
+                if id == END_DIALOG_GOPNIKS_DIALOG_ASK_BLOND {
+                    blond_state.set(BlondAndGopniks::TakeDumplingsFromBlond);
+                } else {
+                    blond_state.set(BlondAndGopniks::GiveDumplingsToBlond);
                 }
             }
         }
