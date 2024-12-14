@@ -2,8 +2,8 @@ use bevy::prelude::Resource;
 use bevy::utils::HashMap;
 
 use crate::dialog::entities::Dialog;
-use crate::level::BLOND_DIALOG_FIRST;
-use crate::level::blond_dialog_first;
+use crate::level::{BLOND_FIRST_DIALOG, BLOND_GIVE_DUMPLINGS_DIALOG, blond_give_dumplings_dialog, BLOND_TAKE_DUMPLINGS_DIALOG, blond_take_dumplings_dialog};
+use crate::level::blond_first_dialog;
 use crate::level::COURIER_DIALOG;
 use crate::level::DREVNIRA_DIALOG;
 use crate::level::gopniks_dialog;
@@ -31,8 +31,10 @@ fn test_dialogs() -> HashMap<usize, Dialog> {
     result.insert(COURIER_DIALOG, courier_dialog());
     result.insert(SLEEPING_FORMIDABLE_DOG_DIALOG, sleeping_formidable_dog_dialog());
     result.insert(DREVNIRA_DIALOG, old_woman_drevnira_dialog());
-    result.insert(BLOND_DIALOG_FIRST, blond_dialog_first());
+    result.insert(BLOND_FIRST_DIALOG, blond_first_dialog());
     result.insert(GOPNIKS_DIALOG, gopniks_dialog());
+    result.insert(BLOND_GIVE_DUMPLINGS_DIALOG, blond_give_dumplings_dialog());
+    result.insert(BLOND_TAKE_DUMPLINGS_DIALOG, blond_take_dumplings_dialog());
     return result;
 }
 
