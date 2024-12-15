@@ -32,7 +32,9 @@ pub enum InCourHall {
 pub enum Court {
     #[default]
     None,
-    Talk,
+    TalkWithGuardian,
+    StopDrevnira,
+    DrevniraStopped,
     Completed,
 }
 

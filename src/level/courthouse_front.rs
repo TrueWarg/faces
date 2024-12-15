@@ -3,25 +3,25 @@ use bevy::asset::{Assets, AssetServer};
 use bevy::hierarchy::BuildChildren;
 use bevy::input::ButtonInput;
 use bevy::math::{UVec2, Vec3};
-use bevy::prelude::{Commands, State};
+use bevy::prelude::Commands;
 use bevy::prelude::Component;
 use bevy::prelude::in_state;
 use bevy::prelude::IntoSystemConfigs;
 use bevy::prelude::KeyCode;
 use bevy::prelude::NextState;
-use bevy::prelude::Query;
-use bevy::prelude::TextureAtlas;
-use bevy::prelude::Timer;
-use bevy::prelude::TransformBundle;
-use bevy::prelude::With;
 use bevy::prelude::OnEnter;
 use bevy::prelude::OnExit;
+use bevy::prelude::Query;
 use bevy::prelude::Res;
 use bevy::prelude::ResMut;
 use bevy::prelude::SpriteBundle;
 use bevy::prelude::States;
+use bevy::prelude::TextureAtlas;
 use bevy::prelude::TextureAtlasLayout;
+use bevy::prelude::Timer;
 use bevy::prelude::Transform;
+use bevy::prelude::TransformBundle;
+use bevy::prelude::With;
 use bevy_rapier2d::dynamics::RigidBody;
 use bevy_rapier2d::geometry::Collider;
 
@@ -40,9 +40,29 @@ use crate::interaction::interactors::detect_active_interaction;
 use crate::interaction::interactors::InteractionArea;
 use crate::interaction::interactors::InteractionSide;
 use crate::interaction::interactors::PassiveInteractor;
-use crate::level::{BLOND_FIRST_DIALOG, BLOND_GIVE_DUMPLINGS_DIALOG, BLOND_TAKE_DUMPLINGS_DIALOG, DREVNIRA_DIALOG, END_DIALOG_BLOND_FIRST_ACCEPTED, END_DIALOG_BLOND_GIVE_DUMPLINGS_COMPLETED, END_DIALOG_BLOND_TAKE_DUMPLINGS_JUST_COMPLETED, END_DIALOG_BLOND_TAKE_DUMPLINGS_NECK_TWISTED, END_DIALOG_DREVNIRA_BEATEN, END_DIALOG_GOPNIKS_DIALOG_ASK_BLOND, GOPNIKS_DIALOG};
+use crate::level::BLOND_FIRST_DIALOG;
+use crate::level::BLOND_GIVE_DUMPLINGS_DIALOG;
+use crate::level::BLOND_TAKE_DUMPLINGS_DIALOG;
+use crate::level::DREVNIRA_DIALOG;
+use crate::level::END_DIALOG_BLOND_FIRST_ACCEPTED;
+use crate::level::END_DIALOG_BLOND_GIVE_DUMPLINGS_COMPLETED;
+use crate::level::END_DIALOG_BLOND_TAKE_DUMPLINGS_JUST_COMPLETED;
+use crate::level::END_DIALOG_BLOND_TAKE_DUMPLINGS_NECK_TWISTED;
+use crate::level::END_DIALOG_DREVNIRA_BEATEN;
+use crate::level::END_DIALOG_GOPNIKS_DIALOG_ASK_BLOND;
+use crate::level::END_DIALOG_GUARDIAN_FIRST_BEATEN;
+use crate::level::END_DIALOG_GUARDIAN_FIRST_DREVNIRA_STOP_ACCEPTED;
+use crate::level::END_DIALOG_GUARDIAN_FIRST_JUST_COMPLETED;
+use crate::level::END_DIALOG_GUARDIAN_SECOND_BEATEN;
+use crate::level::END_DIALOG_GUARDIAN_SECOND_COMPLETED;
+use crate::level::END_DIALOG_GUARDIAN_THIRD_BEATEN;
+use crate::level::END_DIALOG_GUARDIAN_THIRD_COMPLETED;
+use crate::level::GOPNIKS_DIALOG;
+use crate::level::GUARDIAN_FIRST_DIALOG;
+use crate::level::GUARDIAN_SECOND_DIALOG;
+use crate::level::GUARDIAN_THIRD_DIALOG;
 use crate::npc::{IdleAnimation, spawn_npc};
-use crate::world_state::{BlondAndGopniks, StrangeOldWoman};
+use crate::world_state::{BlondAndGopniks, Court, StrangeOldWoman};
 
 pub struct CourtHouseFrontPlugin<S: States> {
     pub state: S,
@@ -56,6 +76,9 @@ struct Blond;
 
 #[derive(Component)]
 struct Gopnik;
+
+#[derive(Component)]
+struct Guardian;
 
 impl<S: States> Plugin for CourtHouseFrontPlugin<S> {
     fn build(&self, app: &mut bevy::prelude::App) {
@@ -71,6 +94,9 @@ impl<S: States> Plugin for CourtHouseFrontPlugin<S> {
             .add_systems(Update, gopniks_dialog_starts.run_if(in_state(BlondAndGopniks::TalkWithGopniks)))
             .add_systems(Update, blond_give_dumplings_dialog_starts.run_if(in_state(BlondAndGopniks::GiveDumplingsToBlond)))
             .add_systems(Update, blond_take_dumplings_dialog_starts.run_if(in_state(BlondAndGopniks::TakeDumplingsFromBlond)))
+            .add_systems(Update, guardian_first_dialog_starts.run_if(in_state(Court::TalkWithGuardian)))
+            .add_systems(Update, guardian_second_dialog_starts.run_if(in_state(Court::StopDrevnira)))
+            .add_systems(Update, guardian_third_dialog_starts.run_if(in_state(Court::DrevniraStopped)))
             .add_systems(Update, (dialog_variants_handles, recalculate_z).run_if(in_state(self.state.clone())));
     }
 }
@@ -81,9 +107,11 @@ fn load(
     texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
     mut drevnira_state: ResMut<NextState<StrangeOldWoman>>,
     mut blond_state: ResMut<NextState<BlondAndGopniks>>,
+    mut court_state: ResMut<NextState<Court>>,
 ) {
     drevnira_state.set(StrangeOldWoman::GiveMeFeather);
     blond_state.set(BlondAndGopniks::TalkWithBlond);
+    court_state.set(Court::TalkWithGuardian);
 
     let y_max = LevelYMax::create(500.0);
     commands.spawn(y_max);
@@ -336,7 +364,7 @@ fn spawn_old_woman_drevnira(
     let default = LevelYMax::create(500.0);
     let y_max = level_y_max.get_single().unwrap_or(&default);
     let x = -430.0;
-    let y = -250.0;
+    let y = 250.0;
     let z = calculate_z(y, y_max.value);
 
     let image_handle = asset_server.load("npc/old_woman_drevnira.png");
@@ -392,7 +420,7 @@ fn spawn_guardians(
         &asset_server,
         &mut commands,
         &mut layouts,
-        (),
+        Guardian,
         "npc/guardian.png".to_string(),
         -50.0,
         370.0,
@@ -405,7 +433,7 @@ fn spawn_guardians(
         &asset_server,
         &mut commands,
         &mut layouts,
-        (),
+        Guardian,
         "npc/guardian.png".to_string(),
         50.0,
         370.0,
@@ -645,10 +673,86 @@ fn gopniks_dialog_starts(
     }
 }
 
+fn guardian_first_dialog_starts(
+    mut commands: Commands,
+    keyboard: Res<ButtonInput<KeyCode>>,
+    active: Query<(&ActiveInteractor, &Transform)>,
+    interactors: Query<(&PassiveInteractor, &Transform), With<Guardian>>,
+    mut dialog_id_query: Query<(&mut DialogId)>,
+    mut next_game_state: ResMut<NextState<GameState>>,
+) {
+    if !(keyboard.pressed(KeyCode::KeyE) && keyboard.just_pressed(KeyCode::KeyE)) {
+        return;
+    }
+    for (interactor, transform) in interactors.iter() {
+        let is_interacting = detect_active_interaction(&active, (interactor, transform));
+        if is_interacting {
+            match dialog_id_query.get_single_mut() {
+                Ok(mut dialog_id) => dialog_id.0 = GUARDIAN_FIRST_DIALOG,
+                Err(_) => {
+                    commands.spawn(DialogId(GUARDIAN_FIRST_DIALOG));
+                }
+            }
+            next_game_state.set(GameState::Dialog);
+        }
+    }
+}
+
+fn guardian_second_dialog_starts(
+    mut commands: Commands,
+    keyboard: Res<ButtonInput<KeyCode>>,
+    active: Query<(&ActiveInteractor, &Transform)>,
+    interactors: Query<(&PassiveInteractor, &Transform), With<Guardian>>,
+    mut dialog_id_query: Query<(&mut DialogId)>,
+    mut next_game_state: ResMut<NextState<GameState>>,
+) {
+    if !(keyboard.pressed(KeyCode::KeyE) && keyboard.just_pressed(KeyCode::KeyE)) {
+        return;
+    }
+    for (interactor, transform) in interactors.iter() {
+        let is_interacting = detect_active_interaction(&active, (interactor, transform));
+        if is_interacting {
+            match dialog_id_query.get_single_mut() {
+                Ok(mut dialog_id) => dialog_id.0 = GUARDIAN_SECOND_DIALOG,
+                Err(_) => {
+                    commands.spawn(DialogId(GUARDIAN_SECOND_DIALOG));
+                }
+            }
+            next_game_state.set(GameState::Dialog);
+        }
+    }
+}
+
+fn guardian_third_dialog_starts(
+    mut commands: Commands,
+    keyboard: Res<ButtonInput<KeyCode>>,
+    active: Query<(&ActiveInteractor, &Transform)>,
+    interactors: Query<(&PassiveInteractor, &Transform), With<Guardian>>,
+    mut dialog_id_query: Query<(&mut DialogId)>,
+    mut next_game_state: ResMut<NextState<GameState>>,
+) {
+    if !(keyboard.pressed(KeyCode::KeyE) && keyboard.just_pressed(KeyCode::KeyE)) {
+        return;
+    }
+    for (interactor, transform) in interactors.iter() {
+        let is_interacting = detect_active_interaction(&active, (interactor, transform));
+        if is_interacting {
+            match dialog_id_query.get_single_mut() {
+                Ok(mut dialog_id) => dialog_id.0 = GUARDIAN_THIRD_DIALOG,
+                Err(_) => {
+                    commands.spawn(DialogId(GUARDIAN_THIRD_DIALOG));
+                }
+            }
+            next_game_state.set(GameState::Dialog);
+        }
+    }
+}
+
 fn dialog_variants_handles(
     mut dialog_variant_source: ResMut<SelectedVariantsSource>,
     mut drevnira_state: ResMut<NextState<StrangeOldWoman>>,
     mut blond_state: ResMut<NextState<BlondAndGopniks>>,
+    mut court_state: ResMut<NextState<Court>>,
 ) {
     // todo: it calculates on each frame.
     // make it when dialog_variant_source updates only.
@@ -659,6 +763,7 @@ fn dialog_variants_handles(
             for id in ids {
                 if id == END_DIALOG_DREVNIRA_BEATEN {
                     drevnira_state.set(StrangeOldWoman::Beaten);
+                    court_state.set(Court::DrevniraStopped)
                 }
             }
         }
@@ -714,6 +819,54 @@ fn dialog_variants_handles(
                 }
                 if id == END_DIALOG_BLOND_TAKE_DUMPLINGS_NECK_TWISTED {
                     blond_state.set(BlondAndGopniks::Completed);
+                }
+            }
+        }
+    }
+
+    let selected = dialog_variant_source.consume(&GUARDIAN_FIRST_DIALOG);
+    match selected {
+        None => {}
+        Some(ids) => {
+            for id in ids {
+                if id == END_DIALOG_GUARDIAN_FIRST_JUST_COMPLETED {
+                    court_state.set(Court::Completed)
+                }
+                if id == END_DIALOG_GUARDIAN_FIRST_BEATEN {
+                    court_state.set(Court::Completed)
+                }
+                if id == END_DIALOG_GUARDIAN_FIRST_DREVNIRA_STOP_ACCEPTED {
+                    court_state.set(Court::StopDrevnira)
+                }
+            }
+        }
+    }
+
+    let selected = dialog_variant_source.consume(&GUARDIAN_SECOND_DIALOG);
+    match selected {
+        None => {}
+        Some(ids) => {
+            for id in ids {
+                if id == END_DIALOG_GUARDIAN_SECOND_COMPLETED {
+                    court_state.set(Court::Completed)
+                }
+                if id == END_DIALOG_GUARDIAN_SECOND_BEATEN {
+                    court_state.set(Court::Completed)
+                }
+            }
+        }
+    }
+
+    let selected = dialog_variant_source.consume(&GUARDIAN_THIRD_DIALOG);
+    match selected {
+        None => {}
+        Some(ids) => {
+            for id in ids {
+                if id == END_DIALOG_GUARDIAN_THIRD_COMPLETED {
+                    court_state.set(Court::Completed)
+                }
+                if id == END_DIALOG_GUARDIAN_THIRD_BEATEN {
+                    court_state.set(Court::Completed)
                 }
             }
         }

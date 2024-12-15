@@ -929,3 +929,383 @@ fn blond_take_dumplings() -> (usize, HashMap<usize, DialogStick>) {
 
     return (root_id, pool);
 }
+
+//      START
+//        *
+//        |
+//        *
+//        |
+// -> ^ ^ ^ ^ ^
+// |  | | | | |
+//  --*-*-* * * -> END
+//          |
+//          *
+//   -> ^ ^ ^ ^ ^ ^
+//   |  | | | | | |
+//    --*-*-* * * * -> END
+//            | |
+//            END
+
+pub const GUARDIAN_FIRST_DIALOG: usize = 8;
+
+pub const END_DIALOG_GUARDIAN_FIRST_JUST_COMPLETED: usize = 1;
+pub const END_DIALOG_GUARDIAN_FIRST_BEATEN: usize = 2;
+pub const END_DIALOG_GUARDIAN_FIRST_DREVNIRA_STOP_ACCEPTED: usize = 3;
+
+pub fn guardian_first_dialog() -> Dialog {
+    let (root_id, sticks) = guardian_first();
+    return Dialog::from(
+        DialogId(GUARDIAN_FIRST_DIALOG),
+        "Dialog 1".to_string(),
+        "background/dialog_bg.png".to_string(),
+        "npc/dialog_courier.png".to_string(),
+        root_id,
+        sticks,
+    );
+}
+
+fn guardian_first() -> (usize, HashMap<usize, DialogStick>) {
+    let mut main_stick = DialogStick::from(0);
+    main_stick.replicas.extend(
+        vec![
+            Replica::from_text("[Перед тобой стоят двое охранников с дубинками. Откуда-то слышно монотонное повторение \"Перро, дай мне перо\",\n\
+            и одного из охранников на каждую фразу дергается веко. Второй охранник поворачивается к тебе и говорит...]".to_string()),
+            Replica::from_text("Прохода нет!".to_string()),
+        ]
+    );
+
+    let mut is_it_court = DialogStick::from(1);
+
+    is_it_court.replicas.extend(
+        vec![
+            Replica::from_text("Дааа, даааа, это здание суда. Скоро как раз начнется закрытое заседание.".to_string()),
+        ]
+    );
+
+    let mut why_i_cant = DialogStick::from(2);
+
+    why_i_cant.replicas.extend(
+        vec![
+            Replica::from_text("Нам приказано не кого не пускать, потому что это закрытое заседание.".to_string()),
+        ]
+    );
+
+    let mut i_have_docs = DialogStick::from(3);
+
+    i_have_docs.replicas.extend(
+        vec![
+            Replica::from_text("В самом деле? Ну, что же вы опаздываете? Вы должны были прийти за 2 часа до начала. Заседание начнется уже через час.\n\
+            Наверное, без вас. Мы вас, не пустим, приказ есть приказ.".to_string()),
+        ]
+    );
+
+    let mut fight = DialogStick::from(4);
+
+    fight.replicas.extend(
+        vec![
+            Replica::from_text("[Другой охранник:] Хех, как раз кости разомнем!".to_string()),
+        ]
+    );
+
+    let mut but_i_need = DialogStick::from(5);
+
+    but_i_need.replicas.extend(
+        vec![
+            Replica::from_text("[Другой охранник шепнул тому, с кем ты говоришь:] Слушай, а может это... Попросим его об этом деле?".to_string()),
+            Replica::from_text("Ааа, черт, давай. Короче, гражданин, у нас к тебе дело. Заткни вон ту конченную старужку,\
+            которая все трындит со свои \"Перо\"\nА мы тебя тогда, так уж и быть, пропустим, нарушим приказ, что уж... Что скажешь?".to_string()),
+        ]
+    );
+
+    let mut who_is_old_woman = DialogStick::from(6);
+
+    who_is_old_woman.replicas.extend(
+        vec![
+            Replica::from_text("Её зовут Древрина. Она сумасшедшая и с ней невозможно вступить в диалог. Сам увидишь.".to_string()),
+        ]
+    );
+
+    let mut what_she_does = DialogStick::from(7);
+
+    what_she_does.replicas.extend(
+        vec![
+            Replica::from_text("Ну ты слышешь это \"Пьерро, дай мне перо\"!? А вот представь какого нам тут стоять и слушать это постоянно!\n\
+            У моего товарища уже нервный тик началася! Постой с нами хотя-бы час и все поймешь.".to_string()),
+        ]
+    );
+
+    let mut where_is_she = DialogStick::from(8);
+
+    where_is_she.replicas.extend(
+        vec![
+            Replica::from_text("[Другой охранник:] О, её легко найти: просто идешь на зву \"перо, перо\". Иди вдоль здания на запад и звук усилится.\n\
+            Там увидишь её".to_string()),
+        ]
+    );
+
+    let mut i_will_do = DialogStick::from(9);
+
+    i_will_do.replicas.extend(
+        vec![
+            Replica::from_text("Да, просим тебя. Сделай так, чтобы она заткнулась.".to_string()),
+        ]
+    );
+
+    let mut i_will_complain = DialogStick::from(10);
+
+    i_will_complain.replicas.extend(
+        vec![
+            Replica::from_text("Эээээ... Ладно, а можешь ты не скажешь никому, а мы тебя пропустим? Проходи.".to_string()),
+        ]
+    );
+
+    but_i_need.branching = Some(Branching {
+        id: 0,
+        variants: vec![
+            Variant::create(
+                "Кто ета старушка?".to_string(),
+                who_is_old_woman.id,
+            ),
+            Variant::create(
+                "Чем она вам конкретно мещает?".to_string(),
+                what_she_does.id,
+            ),
+            Variant::create(
+                "Где она находиться?".to_string(),
+                where_is_she.id,
+            ),
+            Variant::create_with_effect(
+                "Лядно, я посмотрю, что можно сделать.".to_string(),
+                i_will_do.id,
+                DialogEffect::EndDialog(Some(END_DIALOG_GUARDIAN_FIRST_DREVNIRA_STOP_ACCEPTED)),
+            ),
+            Variant::create_with_effect(
+                "[Языкастость] А может я просто расскажу как вы превышаете полномочия, да еще и вовлекаете гражданьских лиц?".to_string(),
+                i_will_complain.id,
+                DialogEffect::EndDialog(Some(END_DIALOG_GUARDIAN_FIRST_JUST_COMPLETED)),
+            ),
+            Variant::create_with_effect(
+                "[Атаковать] Я не собираюсь иметь делё с ней, лучше вам щеи сверню!".to_string(),
+                fight.id,
+                DialogEffect::EndDialog(Some(END_DIALOG_GUARDIAN_FIRST_BEATEN)),
+            ),
+        ],
+    }
+    );
+
+    main_stick.branching = Some(Branching {
+        id: 0,
+        variants: vec![
+            Variant::create(
+                "Ето же здание суда?".to_string(),
+                is_it_court.id,
+            ),
+            Variant::create(
+                "Ыыыу, почему нельзя пройти!?".to_string(),
+                why_i_cant.id,
+            ),
+            Variant::create(
+                "У мнея повестка в сюд!".to_string(),
+                i_have_docs.id,
+            ),
+            Variant::create_with_effect(
+                "Ето нелепо!. Мне нюжно пройти сюда!".to_string(),
+                but_i_need.id,
+                DialogEffect::ReplaceDialog,
+            ),
+            Variant::create_with_effect(
+                "[Атаковать] Ыыыыу!!! Вон с моей дороги!".to_string(),
+                fight.id,
+                DialogEffect::EndDialog(Some(END_DIALOG_GUARDIAN_FIRST_BEATEN)),
+            ),
+        ],
+    }
+    );
+
+    let mut pool = HashMap::new();
+    let root_id = main_stick.id;
+    pool.insert(main_stick.id, main_stick);
+    pool.insert(is_it_court.id, is_it_court);
+    pool.insert(why_i_cant.id, why_i_cant);
+    pool.insert(i_have_docs.id, i_have_docs);
+    pool.insert(fight.id, fight);
+    pool.insert(but_i_need.id, but_i_need);
+    pool.insert(who_is_old_woman.id, who_is_old_woman);
+    pool.insert(what_she_does.id, what_she_does);
+    pool.insert(where_is_she.id, where_is_she);
+    pool.insert(i_will_do.id, i_will_do);
+    pool.insert(i_will_complain.id, i_will_complain);
+
+    return (root_id, pool);
+}
+
+
+//      START
+//        *
+//        |
+//      ^ ^ ^
+//      | | |
+//      * * *
+//       END
+
+pub const GUARDIAN_SECOND_DIALOG: usize = 9;
+
+pub const END_DIALOG_GUARDIAN_SECOND_COMPLETED: usize = 1;
+pub const END_DIALOG_GUARDIAN_SECOND_BEATEN: usize = 2;
+
+
+pub fn guardian_second_dialog() -> Dialog {
+    let (root_id, sticks) = guardian_second();
+    return Dialog::from(
+        DialogId(GUARDIAN_SECOND_DIALOG),
+        "Dialog 1".to_string(),
+        "background/dialog_bg.png".to_string(),
+        "npc/dialog_courier.png".to_string(),
+        root_id,
+        sticks,
+    );
+}
+
+fn guardian_second() -> (usize, HashMap<usize, DialogStick>) {
+    let mut main_stick = DialogStick::from(0);
+    main_stick.replicas.extend(
+        vec![
+            Replica::from_text("Ну как, ты разделался со старухой?".to_string()),
+        ]
+    );
+
+    let mut not_yet = DialogStick::from(1);
+
+    not_yet.replicas.extend(
+        vec![
+            Replica::from_text("Поторопись, а то мы с ума сойдем.".to_string()),
+        ]
+    );
+
+    let mut i_will_complain = DialogStick::from(2);
+
+    i_will_complain.replicas.extend(
+        vec![
+            Replica::from_text("Эээээ... Ладно, а можешь ты не скажешь никому, а мы тебя пропустим? Проходи.".to_string()),
+        ]
+    );
+
+    let mut fight = DialogStick::from(3);
+
+    fight.replicas.extend(
+        vec![
+            Replica::from_text("Ряяяяя!!! Говнюк!!!".to_string()),
+        ]
+    );
+
+
+    main_stick.branching = Some(Branching {
+        id: 0,
+        variants: vec![
+            Variant::create_with_effect(
+                "Еще неть.".to_string(),
+                not_yet.id,
+                DialogEffect::EndDialog(None),
+            ),
+            Variant::create_with_effect(
+                "[Языкастость] А может я просто расскажу как вы превышаете полномочия, да еще и вовлекаете гражданьских лиц?".to_string(),
+                i_will_complain.id,
+                DialogEffect::EndDialog(Some(END_DIALOG_GUARDIAN_SECOND_COMPLETED)),
+            ),
+            Variant::create_with_effect(
+                "[Атаковать] Я передумал. Пожалуй, я простё сверню вам щеи!".to_string(),
+                fight.id,
+                DialogEffect::EndDialog(Some(END_DIALOG_GUARDIAN_SECOND_BEATEN)),
+            ),
+        ],
+    }
+    );
+
+    let mut pool = HashMap::new();
+    let root_id = main_stick.id;
+    pool.insert(main_stick.id, main_stick);
+    pool.insert(not_yet.id, not_yet);
+    pool.insert(i_will_complain.id, i_will_complain);
+    pool.insert(fight.id, fight);
+
+    return (root_id, pool);
+}
+
+
+//      START
+//        *
+//        |
+//        *
+//        |
+//       | |
+//       ^ ^
+//       | |
+//       * *
+//       END
+pub const GUARDIAN_THIRD_DIALOG: usize = 10;
+
+pub const END_DIALOG_GUARDIAN_THIRD_COMPLETED: usize = 1;
+pub const END_DIALOG_GUARDIAN_THIRD_BEATEN: usize = 2;
+
+pub fn guardian_third_dialog() -> Dialog {
+    let (root_id, sticks) = guardian_third();
+    return Dialog::from(
+        DialogId(GUARDIAN_SECOND_DIALOG),
+        "Dialog 1".to_string(),
+        "background/dialog_bg.png".to_string(),
+        "npc/dialog_courier.png".to_string(),
+        root_id,
+        sticks,
+    );
+}
+
+fn guardian_third() -> (usize, HashMap<usize, DialogStick>) {
+    let mut main_stick = DialogStick::from(0);
+    main_stick.replicas.extend(
+        vec![
+            Replica::from_text("[На лицах охранников блаженство. Они улыбнулись тебе, когда ты подошел, и один из них сказал...]".to_string()),
+            Replica::from_text("Ох, спасибо тебе огромное! Эта старуха нас так достала своими монотонными речами, ужас!\
+            \nИ мы видили как ты с ней разделался, ха! Можете свободно проходить!".to_string()),
+        ]
+    );
+
+    let mut you_can_go = DialogStick::from(1);
+    you_can_go.replicas.extend(
+        vec![
+            Replica::from_text("Давайте, проходите!".to_string()),
+        ]
+    );
+
+    let mut fight = DialogStick::from(2);
+
+    fight.replicas.extend(
+        vec![
+            Replica::from_text("Ах ты, говнюк!".to_string()),
+        ]
+    );
+
+    main_stick.branching = Some(Branching {
+        id: 0,
+        variants: vec![
+            Variant::create_with_effect(
+                "Ыу.".to_string(),
+                you_can_go.id,
+                DialogEffect::EndDialog(Some(END_DIALOG_GUARDIAN_THIRD_COMPLETED)),
+            ),
+            Variant::create_with_effect(
+                "[Атаковать] А я вамь все равнё сеи посворачиваю.".to_string(),
+                fight.id,
+                DialogEffect::EndDialog(Some(END_DIALOG_GUARDIAN_THIRD_BEATEN)),
+            ),
+        ],
+    }
+    );
+
+    let mut pool = HashMap::new();
+    let root_id = main_stick.id;
+    pool.insert(main_stick.id, main_stick);
+    pool.insert(you_can_go.id, you_can_go);
+    pool.insert(fight.id, fight);
+
+    return (root_id, pool);
+}
