@@ -1,6 +1,39 @@
 use std::collections::HashMap;
+use bevy::input::ButtonInput;
+use bevy::prelude::{Commands, Component, KeyCode, NextState, Query, Res, ResMut, Transform};
+use crate::core::states::GameState;
 
 use crate::dialog::{Branching, Dialog, DialogEffect, DialogId, DialogStick, Replica, Variant};
+use crate::interaction::interactors::{ActiveInteractor, detect_active_interaction, PassiveInteractor};
+
+pub trait HasDialogId {
+    fn dialog_id(&self) -> usize;
+}
+
+pub fn dialog_starts<T : HasDialogId + Component>(
+    mut commands: Commands,
+    keyboard: Res<ButtonInput<KeyCode>>,
+    active: Query<(&ActiveInteractor, &Transform)>,
+    interactors: Query<(&PassiveInteractor, &Transform, &T)>,
+    mut dialog_id_query: Query<(&mut DialogId)>,
+    mut next_game_state: ResMut<NextState<GameState>>,
+) {
+    if !(keyboard.pressed(KeyCode::KeyE) && keyboard.just_pressed(KeyCode::KeyE)) {
+        return;
+    }
+    for (interactor, transform, has_dialog) in interactors.iter() {
+        let is_interacting = detect_active_interaction(&active, (interactor, transform));
+        if is_interacting {
+            match dialog_id_query.get_single_mut() {
+                Ok(mut dialog_id) => dialog_id.0 = has_dialog.dialog_id(),
+                Err(_) => {
+                    commands.spawn(DialogId(has_dialog.dialog_id()));
+                }
+            }
+            next_game_state.set(GameState::Dialog);
+        }
+    }
+}
 
 //  START
 //   *

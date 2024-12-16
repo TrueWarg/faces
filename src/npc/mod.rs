@@ -1,9 +1,8 @@
+use bevy::app::{Plugin, Update};
 use bevy::asset::{Assets, AssetServer};
 use bevy::hierarchy::BuildChildren;
-use bevy::input::ButtonInput;
 use bevy::math::UVec2;
-use bevy::prelude::{Bundle, Commands};
-use bevy::prelude::KeyCode;
+use bevy::prelude::{Bundle, Commands, IntoSystemConfigs};
 use bevy::prelude::Query;
 use bevy::prelude::Res;
 use bevy::prelude::ResMut;
@@ -14,7 +13,6 @@ use bevy::prelude::Time;
 use bevy::prelude::Timer;
 use bevy::prelude::Transform;
 use bevy::prelude::TransformBundle;
-use bevy::prelude::With;
 use bevy_rapier2d::dynamics::GravityScale;
 use bevy_rapier2d::dynamics::LockedAxes;
 use bevy_rapier2d::dynamics::RigidBody;
@@ -29,12 +27,25 @@ use crate::core::z_index::DEFAULT_OBJECT_Z;
 use crate::interaction::interactors::{InteractionArea, InteractionSide, PassiveInteractor};
 use crate::movement;
 use crate::movement::entities::MoveAgent;
+use crate::movement::routes::route_build;
 pub use crate::npc::entities::{IdleAnimation, MoveAnimation, Npc};
 
 mod entities;
 mod animations;
 
-pub fn spawn_npc(
+pub struct NpcPlugin;
+
+impl Plugin for NpcPlugin {
+    fn build(&self, app: &mut bevy::prelude::App) {
+        app.add_systems(Update, route_build)
+            .add_systems(Update, idle_animation)
+            .add_systems(Update, move_agent_moves.after(route_build))
+            .add_systems(Update, npc_animation.after(move_agent_moves))
+            .add_systems(Update, npc_basic_animation);
+    }
+}
+
+pub fn spawn_fixed_npc(
     asset_server: &Res<AssetServer>,
     mut commands: &mut Commands,
     mut layouts: &mut ResMut<Assets<TextureAtlasLayout>>,
@@ -43,8 +54,6 @@ pub fn spawn_npc(
     pos_x: f32,
     pos_y: f32,
     pos_z: f32,
-    speed: f32,
-    gravity_scale: f32,
 ) {
     let start_move_direction = MoveDirection::ForwardIdle;
 
@@ -80,22 +89,13 @@ pub fn spawn_npc(
         .insert(animations)
         .insert(Velocity::zero())
         .insert(LockedAxes::ROTATION_LOCKED)
-        .insert(GravityScale(gravity_scale))
-        .insert(TransformBundle::from(Transform::from_xyz(
-            pos_x,
-            pos_y,
-            pos_z,
-        )))
-        .insert(Npc { speed, move_direction: movement::entities::MoveDirection::TopIdle })
+        .insert(TransformBundle::from(Transform::from_xyz(pos_x, pos_y, pos_z)))
+        .insert(Npc { speed: 0.0, move_direction: movement::entities::MoveDirection::TopIdle })
         .insert(BodyYOffset::create(20.0))
         .with_children(|children| {
             children
                 .spawn(Collider::cuboid(8.0, 4.0))
-                .insert(TransformBundle::from(Transform::from_xyz(
-                    0.0,
-                    -16.0,
-                    DEFAULT_OBJECT_Z,
-                )));
+                .insert(TransformBundle::from(Transform::from_xyz(0.0, -16.0, DEFAULT_OBJECT_Z)));
         })
         .insert(PassiveInteractor {
             area: InteractionArea::from_sizes(8.0, 20.0),
@@ -149,21 +149,13 @@ pub fn spawn_formidable_dog(
         .insert(Velocity::zero())
         .insert(LockedAxes::ROTATION_LOCKED)
         .insert(GravityScale(gravity_scale))
-        .insert(TransformBundle::from(Transform::from_xyz(
-            pos_x,
-            pos_y,
-            pos_z,
-        )))
+        .insert(TransformBundle::from(Transform::from_xyz(pos_x, pos_y, pos_z)))
         .insert(Npc { speed, move_direction: movement::entities::MoveDirection::TopIdle })
         .insert(BodyYOffset::create(8.0))
         .with_children(|children| {
             children
                 .spawn(Collider::cuboid(8.0, 4.0))
-                .insert(TransformBundle::from(Transform::from_xyz(
-                    0.0,
-                    -8.0,
-                    DEFAULT_OBJECT_Z,
-                )));
+                .insert(TransformBundle::from(Transform::from_xyz(0.0, -8.0, DEFAULT_OBJECT_Z)));
         })
         .insert(PassiveInteractor {
             area: InteractionArea::from_sizes(8.0, 20.0),
@@ -289,61 +281,6 @@ pub fn move_agent_moves(
     }
 }
 
-pub fn test_npc_animation(
-    keyboard_input: Res<ButtonInput<KeyCode>>,
-    mut npc_query: Query<
-        (
-            &mut MoveAnimation,
-            &mut TextureAtlas,
-            &NpcAnimations,
-            &Velocity,
-        ),
-        With<Npc>,
-    >,
-) {
-    for (mut move_animation, mut sprite, character_animations, rb_vels) in
-        npc_query.iter_mut()
-    {
-        let mut restart_animation = false;
-        if rb_vels.linvel.x == 0.0 && rb_vels.linvel.y == 0.0 {
-            if keyboard_input.just_released(KeyCode::KeyA) {
-                move_animation.direction = MoveDirection::LeftIdle;
-                restart_animation = true;
-            } else if keyboard_input.just_released(KeyCode::KeyD) {
-                move_animation.direction = MoveDirection::RightIdle;
-                restart_animation = true;
-            } else if keyboard_input.just_released(KeyCode::KeyW) {
-                move_animation.direction = MoveDirection::BackwardIdle;
-                restart_animation = true;
-            } else if keyboard_input.just_released(KeyCode::KeyS) {
-                move_animation.direction = MoveDirection::ForwardIdle;
-                restart_animation = true;
-            }
-        }
-
-        if keyboard_input.just_pressed(KeyCode::KeyA) {
-            move_animation.direction = MoveDirection::LeftMove;
-            restart_animation = true;
-        } else if keyboard_input.just_pressed(KeyCode::KeyD) {
-            move_animation.direction = MoveDirection::RightMove;
-            restart_animation = true;
-        } else if keyboard_input.just_pressed(KeyCode::KeyW) {
-            move_animation.direction = MoveDirection::BackwardMove;
-            restart_animation = true;
-        } else if keyboard_input.just_pressed(KeyCode::KeyS) {
-            move_animation.direction = MoveDirection::ForwardMove;
-            restart_animation = true;
-        }
-
-        if restart_animation {
-            let sprite_part = character_animations.moves[&move_animation.direction];
-            sprite.index = sprite_part.0 as usize;
-            move_animation.timer =
-                Timer::from_seconds(sprite_part.2, bevy::time::TimerMode::Repeating);
-        }
-    }
-}
-
 pub fn npc_basic_animation(
     time: Res<Time>,
     mut animation_query: Query<(&mut MoveAnimation, &mut TextureAtlas, &NpcAnimations)>,
@@ -355,6 +292,22 @@ pub fn npc_basic_animation(
             let animation_idxs = character_animations.moves[&move_animation.direction];
             if sprite.index >= animation_idxs.1 as usize {
                 sprite.index = animation_idxs.0 as usize;
+            } else {
+                sprite.index += 1;
+            }
+        }
+    }
+}
+
+fn idle_animation(
+    time: Res<Time>,
+    mut animation_query: Query<(&mut IdleAnimation, &mut TextureAtlas)>,
+) {
+    for (mut idle_animation, mut sprite) in animation_query.iter_mut() {
+        idle_animation.timer.tick(time.delta());
+        if idle_animation.timer.finished() {
+            if sprite.index >= idle_animation.frames_count - 1 {
+                sprite.index = 0;
             } else {
                 sprite.index += 1;
             }
