@@ -1,6 +1,5 @@
 use std::cmp::{max, min};
 
-
 #[derive(Clone, Copy, Debug)]
 pub struct BBox {
     pub left: f32,

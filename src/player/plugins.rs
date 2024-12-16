@@ -1,15 +1,30 @@
 use bevy::{
-    prelude::{
-        Assets, AssetServer, BuildChildren, ButtonInput, Commands, IntoSystemConfigs, KeyCode,
-        Plugin, Query, Res, ResMut, Startup, Transform, Update, With,
-    },
+    prelude::Assets,
+    prelude::AssetServer,
+    prelude::BuildChildren,
+    prelude::ButtonInput,
+    prelude::Commands,
+    prelude::IntoSystemConfigs,
+    prelude::KeyCode,
+    prelude::Plugin,
+    prelude::Query,
+    prelude::Res,
+    prelude::ResMut,
+    prelude::Startup,
+    prelude::Transform,
+    prelude::Update,
+    prelude::With,
     sprite::{TextureAtlas, TextureAtlasLayout},
     time::{Time, Timer},
 };
 use bevy::math::UVec2;
 use bevy::prelude::{TransformBundle, Without};
 use bevy::sprite::SpriteBundle;
-use bevy_rapier2d::prelude::{Collider, GravityScale, LockedAxes, RigidBody, Velocity};
+use bevy_rapier2d::prelude::Collider;
+use bevy_rapier2d::prelude::GravityScale;
+use bevy_rapier2d::prelude::LockedAxes;
+use bevy_rapier2d::prelude::RigidBody;
+use bevy_rapier2d::prelude::Velocity;
 
 use crate::{
     animation::entities::MoveDirection,

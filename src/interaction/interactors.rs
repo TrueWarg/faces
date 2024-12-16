@@ -111,8 +111,8 @@ pub struct InteractionArea {
 impl InteractionArea {
     pub fn from_sizes(half_w: f32, half_h: f32) -> InteractionArea {
         return InteractionArea {
-            half_w: half_w,
-            half_h: half_h,
+            half_w,
+            half_h,
             offset_x: 0.0,
             offset_y: 0.0,
         };
@@ -120,10 +120,10 @@ impl InteractionArea {
 
     pub fn create(half_w: f32, half_h: f32, offset_x: f32, offset_y: f32) -> InteractionArea {
         return InteractionArea {
-            half_w: half_w,
-            half_h: half_h,
-            offset_x: offset_x,
-            offset_y: offset_y,
+            half_w,
+            half_h,
+            offset_x,
+            offset_y,
         };
     }
 

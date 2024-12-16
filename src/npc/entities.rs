@@ -14,7 +14,7 @@ pub struct Npc {
 pub struct MoveAnimation {
     pub timer: Timer,
     pub direction: MoveDirection,
-    // todo: remove it, find more convential method to get particular sheets
+    // todo: remove it, find more conventional method to get particular sheets
     pub sheet_handle: Handle<TextureAtlasLayout>,
 }
 

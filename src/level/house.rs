@@ -1,22 +1,36 @@
 use bevy::{
     asset::Assets,
-    ecs::{
-        entity::Entity,
-        query::With,
-        schedule::IntoSystemConfigs,
-        system::{Query, ResMut},
-    },
-    input::{ButtonInput, keyboard::KeyCode}
-    ,
-    prelude::{
-        AssetServer, BuildChildren, Commands, Plugin, Res, Transform, Update, Vec3,
-    },
+    ecs::entity::Entity,
+    ecs::query::With,
+    ecs::schedule::IntoSystemConfigs,
+    ecs::system::Query,
+    ecs::system::ResMut,
+    input::ButtonInput,
+    input::keyboard::KeyCode,
+    prelude::AssetServer,
+    prelude::BuildChildren,
+    prelude::Commands,
+    prelude::Plugin,
+    prelude::Res,
+    prelude::Transform,
+    prelude::Update,
+    prelude::Vec3,
     sprite::{SpriteBundle, TextureAtlas, TextureAtlasLayout},
     time::Timer,
 };
 use bevy::hierarchy::DespawnRecursiveExt;
 use bevy::math::UVec2;
-use bevy::prelude::{AppExtStates, Component, DetectChanges, in_state, NextState, OnEnter, OnExit, State, States, Time, TransformBundle};
+use bevy::prelude::AppExtStates;
+use bevy::prelude::Component;
+use bevy::prelude::DetectChanges;
+use bevy::prelude::in_state;
+use bevy::prelude::NextState;
+use bevy::prelude::OnEnter;
+use bevy::prelude::OnExit;
+use bevy::prelude::State;
+use bevy::prelude::States;
+use bevy::prelude::Time;
+use bevy::prelude::TransformBundle;
 use bevy_rapier2d::prelude::{Collider, RigidBody};
 
 use crate::{

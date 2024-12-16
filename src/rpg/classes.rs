@@ -1,4 +1,10 @@
-use crate::rpg::{Agility, Charisma, Fortitude, NeckGnawing, NeckTwisting, Stamina, Strength};
+use crate::rpg::Agility;
+use crate::rpg::Charisma;
+use crate::rpg::Fortitude;
+use crate::rpg::NeckGnawing;
+use crate::rpg::NeckTwisting;
+use crate::rpg::Stamina;
+use crate::rpg::Strength;
 
 pub enum Class {
     FormidableFace {

@@ -22,13 +22,14 @@ use bevy_rapier2d::dynamics::Velocity;
 use bevy_rapier2d::geometry::Collider;
 
 pub use animations::NpcAnimations;
+
 use crate::animation::entities::MoveDirection;
 use crate::core::entities::BodyYOffset;
 use crate::core::z_index::DEFAULT_OBJECT_Z;
 use crate::interaction::interactors::{InteractionArea, InteractionSide, PassiveInteractor};
 use crate::movement;
-use crate::movement::entities::{MoveAgent, Target};
-pub use crate::npc::entities::{MoveAnimation, Npc, IdleAnimation};
+use crate::movement::entities::MoveAgent;
+pub use crate::npc::entities::{IdleAnimation, MoveAnimation, Npc};
 
 mod entities;
 mod animations;

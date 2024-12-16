@@ -1,7 +1,9 @@
-use bevy::app::{App, Plugin, Update};
-use bevy::prelude::{AppExtStates, DetectChanges, NextState, Res, ResMut, State};
+use bevy::app::{App, Plugin};
+use bevy::prelude::{AppExtStates, DetectChanges};
 
-use crate::core::states::GameState;
+pub use dialogs::*;
+
+use crate::level::courthouse_front::CourtHouseFrontPlugin;
 use crate::level::house::HousePlugin;
 use crate::level::states::Level;
 
@@ -11,9 +13,6 @@ pub mod sprites;
 pub(crate) mod states;
 mod dialogs;
 mod courthouse_front;
-
-pub use dialogs::*;
-use crate::level::courthouse_front::CourtHouseFrontPlugin;
 
 pub struct LevelNavPlugin;
 

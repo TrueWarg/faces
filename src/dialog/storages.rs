@@ -2,7 +2,17 @@ use bevy::prelude::Resource;
 use bevy::utils::HashMap;
 
 use crate::dialog::entities::Dialog;
-use crate::level::{BLOND_FIRST_DIALOG, BLOND_GIVE_DUMPLINGS_DIALOG, blond_give_dumplings_dialog, BLOND_TAKE_DUMPLINGS_DIALOG, blond_take_dumplings_dialog, GUARDIAN_FIRST_DIALOG, guardian_first_dialog, GUARDIAN_SECOND_DIALOG, guardian_second_dialog, guardian_third_dialog, GUARDIAN_THIRD_DIALOG};
+use crate::level::BLOND_FIRST_DIALOG;
+use crate::level::BLOND_GIVE_DUMPLINGS_DIALOG;
+use crate::level::blond_give_dumplings_dialog;
+use crate::level::BLOND_TAKE_DUMPLINGS_DIALOG;
+use crate::level::blond_take_dumplings_dialog;
+use crate::level::GUARDIAN_FIRST_DIALOG;
+use crate::level::guardian_first_dialog;
+use crate::level::GUARDIAN_SECOND_DIALOG;
+use crate::level::guardian_second_dialog;
+use crate::level::guardian_third_dialog;
+use crate::level::GUARDIAN_THIRD_DIALOG;
 use crate::level::blond_first_dialog;
 use crate::level::COURIER_DIALOG;
 use crate::level::DREVNIRA_DIALOG;

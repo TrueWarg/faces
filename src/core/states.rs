@@ -13,6 +13,5 @@ pub enum GameState {
     Journal,
     CatScene,
     GameOver,
-    // #[default]
     DevSetting,
 }
