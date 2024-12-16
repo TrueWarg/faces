@@ -1276,7 +1276,14 @@ fn guardian_third() -> (usize, HashMap<usize, DialogStick>) {
         ]
     );
 
-    let mut fight = DialogStick::from(2);
+    let mut tease = DialogStick::from(2);
+    tease.replicas.extend(
+        vec![
+            Replica::from_text("РЯЯЯЯЯЯЯЯ!!!!! ТЫ ПОЛУЧИШЬ!".to_string()),
+        ]
+    );
+
+    let mut fight = DialogStick::from(3);
 
     fight.replicas.extend(
         vec![
@@ -1293,6 +1300,11 @@ fn guardian_third() -> (usize, HashMap<usize, DialogStick>) {
                 DialogEffect::EndDialog(Some(END_DIALOG_GUARDIAN_THIRD_COMPLETED)),
             ),
             Variant::create_with_effect(
+                "[Спровацировать] Пьерро, дай мне перо, перо...".to_string(),
+                tease.id,
+                DialogEffect::EndDialog(Some(END_DIALOG_GUARDIAN_THIRD_BEATEN)),
+            ),
+            Variant::create_with_effect(
                 "[Атаковать] А я вамь все равнё сеи посворачиваю.".to_string(),
                 fight.id,
                 DialogEffect::EndDialog(Some(END_DIALOG_GUARDIAN_THIRD_BEATEN)),
@@ -1305,6 +1317,7 @@ fn guardian_third() -> (usize, HashMap<usize, DialogStick>) {
     let root_id = main_stick.id;
     pool.insert(main_stick.id, main_stick);
     pool.insert(you_can_go.id, you_can_go);
+    pool.insert(tease.id, tease);
     pool.insert(fight.id, fight);
 
     return (root_id, pool);
