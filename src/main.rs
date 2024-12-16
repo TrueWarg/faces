@@ -17,6 +17,7 @@ use crate::gui::UiPlugin;
 use crate::interaction::BaseInteractionPlugin;
 use crate::level::LevelNavPlugin;
 use crate::menu::MainMenuPlugin;
+use crate::npc::NpcPlugin;
 use crate::party::PartyPlugin;
 use crate::player::plugins::PlayerPlugin;
 use crate::world_state::WorldStatePlugin;
@@ -54,6 +55,7 @@ fn main() {
             MainMenuPlugin,
             DevSettingsPlugin,
             PlayerPlugin,
+            NpcPlugin,
             LevelNavPlugin,
             FightPlugin,
             PartyPlugin,

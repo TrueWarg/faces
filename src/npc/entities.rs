@@ -21,4 +21,5 @@ pub struct MoveAnimation {
 #[derive(Component)]
 pub struct IdleAnimation {
     pub timer: Timer,
+    pub frames_count: usize,
 }

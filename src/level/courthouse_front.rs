@@ -1,13 +1,11 @@
 use bevy::app::{Plugin, Update};
 use bevy::asset::{Assets, AssetServer};
 use bevy::hierarchy::BuildChildren;
-use bevy::input::ButtonInput;
 use bevy::math::{UVec2, Vec3};
 use bevy::prelude::Commands;
 use bevy::prelude::Component;
 use bevy::prelude::in_state;
 use bevy::prelude::IntoSystemConfigs;
-use bevy::prelude::KeyCode;
 use bevy::prelude::NextState;
 use bevy::prelude::OnEnter;
 use bevy::prelude::OnExit;
@@ -21,7 +19,6 @@ use bevy::prelude::TextureAtlasLayout;
 use bevy::prelude::Timer;
 use bevy::prelude::Transform;
 use bevy::prelude::TransformBundle;
-use bevy::prelude::With;
 use bevy_rapier2d::dynamics::RigidBody;
 use bevy_rapier2d::geometry::Collider;
 
@@ -34,13 +31,11 @@ use crate::core::z_index::FLOOR_Z;
 use crate::core::z_index::MIN_RANGE_Z;
 use crate::core::z_index::ON_WALL_OBJECT_Z;
 use crate::core::z_index::WALL_Z;
-use crate::dialog::{DialogId, SelectedVariantsSource};
-use crate::interaction::interactors::ActiveInteractor;
-use crate::interaction::interactors::detect_active_interaction;
+use crate::dialog::SelectedVariantsSource;
 use crate::interaction::interactors::InteractionArea;
 use crate::interaction::interactors::InteractionSide;
 use crate::interaction::interactors::PassiveInteractor;
-use crate::level::BLOND_FIRST_DIALOG;
+use crate::level::{BLOND_FIRST_DIALOG, dialog_starts, HasDialogId};
 use crate::level::BLOND_GIVE_DUMPLINGS_DIALOG;
 use crate::level::BLOND_TAKE_DUMPLINGS_DIALOG;
 use crate::level::DREVNIRA_DIALOG;
@@ -61,7 +56,8 @@ use crate::level::GOPNIKS_DIALOG;
 use crate::level::GUARDIAN_FIRST_DIALOG;
 use crate::level::GUARDIAN_SECOND_DIALOG;
 use crate::level::GUARDIAN_THIRD_DIALOG;
-use crate::npc::{IdleAnimation, spawn_npc};
+use crate::level::objects::spawn_object;
+use crate::npc::{IdleAnimation, spawn_fixed_npc};
 use crate::world_state::{BlondAndGopniks, Court, StrangeOldWoman};
 
 pub struct CourtHouseFrontPlugin<S: States> {
@@ -71,14 +67,74 @@ pub struct CourtHouseFrontPlugin<S: States> {
 #[derive(Component)]
 struct Drevnira;
 
+impl HasDialogId for Drevnira {
+    fn dialog_id(&self) -> usize {
+        return DREVNIRA_DIALOG
+    }
+}
+
 #[derive(Component)]
-struct Blond;
+struct BlondStart;
+
+impl HasDialogId for BlondStart {
+    fn dialog_id(&self) -> usize {
+        return BLOND_FIRST_DIALOG
+    }
+}
+
+#[derive(Component)]
+struct BlondGiveDumplings;
+
+impl HasDialogId for BlondGiveDumplings {
+    fn dialog_id(&self) -> usize {
+        return BLOND_GIVE_DUMPLINGS_DIALOG
+    }
+}
+
+#[derive(Component)]
+struct BlondTakeDumplings;
+
+impl HasDialogId for BlondTakeDumplings {
+    fn dialog_id(&self) -> usize {
+        return BLOND_TAKE_DUMPLINGS_DIALOG
+    }
+}
 
 #[derive(Component)]
 struct Gopnik;
 
+impl HasDialogId for Gopnik {
+    fn dialog_id(&self) -> usize {
+        return GOPNIKS_DIALOG
+    }
+}
+
 #[derive(Component)]
-struct Guardian;
+struct GuardianFirstStage;
+
+impl HasDialogId for GuardianFirstStage {
+    fn dialog_id(&self) -> usize {
+        return GUARDIAN_FIRST_DIALOG
+    }
+}
+
+#[derive(Component)]
+struct GuardianSecondStage;
+
+impl HasDialogId for GuardianSecondStage {
+    fn dialog_id(&self) -> usize {
+        return GUARDIAN_SECOND_DIALOG
+    }
+}
+
+#[derive(Component)]
+struct GuardianThirdStage;
+
+impl HasDialogId for GuardianThirdStage {
+    fn dialog_id(&self) -> usize {
+        return GUARDIAN_THIRD_DIALOG
+    }
+}
 
 impl<S: States> Plugin for CourtHouseFrontPlugin<S> {
     fn build(&self, app: &mut bevy::prelude::App) {
@@ -89,14 +145,14 @@ impl<S: States> Plugin for CourtHouseFrontPlugin<S> {
             .add_systems(OnEnter(self.state.clone()), spawn_gopniks)
             .add_systems(OnEnter(self.state.clone()), spawn_blond_man)
             .add_systems(OnExit(GameState::Exploration), unload)
-            .add_systems(Update, drevnira_dog_dialog_starts.run_if(in_state(StrangeOldWoman::GiveMeFeather)))
-            .add_systems(Update, blond_first_dialog_starts.run_if(in_state(BlondAndGopniks::TalkWithBlond)))
-            .add_systems(Update, gopniks_dialog_starts.run_if(in_state(BlondAndGopniks::TalkWithGopniks)))
-            .add_systems(Update, blond_give_dumplings_dialog_starts.run_if(in_state(BlondAndGopniks::GiveDumplingsToBlond)))
-            .add_systems(Update, blond_take_dumplings_dialog_starts.run_if(in_state(BlondAndGopniks::TakeDumplingsFromBlond)))
-            .add_systems(Update, guardian_first_dialog_starts.run_if(in_state(Court::TalkWithGuardian)))
-            .add_systems(Update, guardian_second_dialog_starts.run_if(in_state(Court::StopDrevnira)))
-            .add_systems(Update, guardian_third_dialog_starts.run_if(in_state(Court::DrevniraStopped)))
+            .add_systems(Update, dialog_starts::<Drevnira>.run_if(in_state(StrangeOldWoman::GiveMeFeather)))
+            .add_systems(Update, dialog_starts::<BlondStart>.run_if(in_state(BlondAndGopniks::TalkWithBlond)))
+            .add_systems(Update, dialog_starts::<Gopnik>.run_if(in_state(BlondAndGopniks::TalkWithGopniks)))
+            .add_systems(Update, dialog_starts::<BlondGiveDumplings>.run_if(in_state(BlondAndGopniks::GiveDumplingsToBlond)))
+            .add_systems(Update, dialog_starts::<BlondTakeDumplings>.run_if(in_state(BlondAndGopniks::TakeDumplingsFromBlond)))
+            .add_systems(Update, dialog_starts::<GuardianFirstStage>.run_if(in_state(Court::TalkWithGuardian)))
+            .add_systems(Update, dialog_starts::<GuardianSecondStage>.run_if(in_state(Court::StopDrevnira)))
+            .add_systems(Update, dialog_starts::<GuardianThirdStage>.run_if(in_state(Court::DrevniraStopped)))
             .add_systems(Update, (dialog_variants_handles, recalculate_z).run_if(in_state(self.state.clone())));
     }
 }
@@ -118,45 +174,151 @@ fn load(
 
     spawn_ground(&mut commands, &asset_server);
 
-    spawn_court_house(&mut commands, &asset_server);
+    let courthouse = asset_server.load("courthouse_front/courthouse.png");
+    spawn_object(&mut commands, courthouse, 0.0, 421.0, WALL_Z, 500.0, 65.0, 0.0);
+
     spawn_court_doors(&mut commands, &asset_server);
 
-    spawn_houses(&mut commands, &asset_server);
+    let left_houses = asset_server.load("courthouse_front/houses.png");
+    spawn_object(&mut commands, left_houses, -470.0, -75.0, WALL_Z, 33.0, 450.0, 0.0);
 
-    spawn_right_forest(&mut commands, &asset_server);
+    let right_forest = asset_server.load("courthouse_front/vertical_forest_0.png");
+    spawn_object(&mut commands, right_forest, 480.0, 0.0, MIN_RANGE_Z, 20.0, 500.0, 0.0);
 
-    spawn_tree_1(&mut commands, &asset_server, y_max, 230.0, 200.0);
-    spawn_tree_3(&mut commands, &asset_server, y_max, 265.0, 215.0);
-    spawn_tree_1(&mut commands, &asset_server, y_max, 210.0, 220.0);
-    spawn_tree_1(&mut commands, &asset_server, y_max, 253.0, 225.0);
+    let tree_1 = asset_server.load("courthouse_front/tree_1.png");
+    let x = 230.0;
+    let y = 200.0;
+    let z = calculate_z(y, y_max.value);
+    spawn_object(&mut commands, tree_1, x, y, z, 31.0, 20.0, -5.0);
 
-    spawn_tree_3(&mut commands, &asset_server, y_max, 105.0, 155.0);
+    // -------------------------------------------------------------------
+    let tree_3 = asset_server.load("courthouse_front/tree_3.png");
+    let x = 265.0;
+    let y = 215.0;
+    let z = calculate_z(y, y_max.value);
+    spawn_object(&mut commands, tree_3, x, y, z, 24.0, 20.0, -5.0);
 
-    spawn_tree_2(&mut commands, &asset_server, y_max, -285.0, 45.0);
+    let tree_1 = asset_server.load("courthouse_front/tree_1.png");
+    let x = 210.0;
+    let y = 220.0;
+    let z = calculate_z(y, y_max.value);
+    spawn_object(&mut commands, tree_1, x, y, z, 31.0, 20.0, -5.0);
 
-    spawn_tree_2(&mut commands, &asset_server, y_max, -295.0, 295.0);
-    spawn_tree_3(&mut commands, &asset_server, y_max, -280.0, 275.0);
+    let tree_1 = asset_server.load("courthouse_front/tree_1.png");
+    let x = 253.0;
+    let y = 225.0;
+    let z = calculate_z(y, y_max.value);
+    spawn_object(&mut commands, tree_1, x, y, z, 31.0, 20.0, -5.0);
+    // -------------------------------------------------------------------
 
-    spawn_tree_1(&mut commands, &asset_server, y_max, -320.0, -70.0);
+    let tree_3 = asset_server.load("courthouse_front/tree_3.png");
+    let x = 95.0;
+    let y = 165.0;
+    let z = calculate_z(y, y_max.value);
+    spawn_object(&mut commands, tree_3, x, y, z, 24.0, 20.0, -5.0);
 
-    spawn_tree_1(&mut commands, &asset_server, y_max, -350.0, -170.0);
-    spawn_tree_3(&mut commands, &asset_server, y_max, -340.0, -150.0);
+    let tree_2 = asset_server.load("courthouse_front/tree_2.png");
+    let x = 105.0;
+    let y = 155.0;
+    let z = calculate_z(y, y_max.value);
+    spawn_object(&mut commands, tree_2, x, y, z, 23.0, 20.0, -5.0);
 
-    spawn_tree_3(&mut commands, &asset_server, y_max, 235.0, -60.0);
+    // -------------------------------------------------------------------
+    let tree_2 = asset_server.load("courthouse_front/tree_2.png");
+    let x = -295.0;
+    let y = 295.0;
+    let z = calculate_z(y, y_max.value);
+    spawn_object(&mut commands, tree_2, x, y, z, 23.0, 20.0, -5.0);
 
-    spawn_tree_2(&mut commands, &asset_server, y_max, 220.0, -245.0);
-    spawn_tree_2(&mut commands, &asset_server, y_max, 210.0, -240.0);
-    spawn_tree_3(&mut commands, &asset_server, y_max, 225.0, -255.0);
-    spawn_tree_2(&mut commands, &asset_server, y_max, 210.0, -215.0);
+    let tree_3 = asset_server.load("courthouse_front/tree_3.png");
+    let x = -280.0;
+    let y = 275.0;
+    let z = calculate_z(y, y_max.value);
+    spawn_object(&mut commands, tree_3, x, y, z, 24.0, 20.0, -5.0);
+    // -------------------------------------------------------------------
 
-    spawn_bench(&mut commands, &asset_server, y_max, 80.0, 0.0);
+    let tree_1 = asset_server.load("courthouse_front/tree_1.png");
+    let x = -320.0;
+    let y = -70.0;
+    let z = calculate_z(y, y_max.value);
+    spawn_object(&mut commands, tree_1, x, y, z, 31.0, 20.0, -5.0);
 
-    spawn_bench(&mut commands, &asset_server, y_max, 430.0, 225.0);
-    spawn_bench(&mut commands, &asset_server, y_max, 430.0, 125.0);
-    spawn_bench(&mut commands, &asset_server, y_max, 430.0, 25.0);
-    spawn_bench(&mut commands, &asset_server, y_max, 430.0, -75.0);
-    spawn_bench(&mut commands, &asset_server, y_max, 430.0, -175.0);
-    spawn_bench(&mut commands, &asset_server, y_max, 430.0, -275.0);
+    // -------------------------------------------------------------------
+    let tree_1 = asset_server.load("courthouse_front/tree_1.png");
+    let x = -350.0;
+    let y = -170.0;
+    let z = calculate_z(y, y_max.value);
+    spawn_object(&mut commands, tree_1, x, y, z, 31.0, 20.0, -5.0);
+
+    let tree_3 = asset_server.load("courthouse_front/tree_3.png");
+    let x = -340.0;
+    let y = -150.0;
+    let z = calculate_z(y, y_max.value);
+    spawn_object(&mut commands, tree_3, x, y, z, 24.0, 20.0, -5.0);
+    // -------------------------------------------------------------------
+
+    let tree_3 = asset_server.load("courthouse_front/tree_3.png");
+    let x = 235.0;
+    let y = -60.0;
+    let z = calculate_z(y, y_max.value);
+    spawn_object(&mut commands, tree_3, x, y, z, 24.0, 20.0, -5.0);
+
+    // -------------------------------------------------------------------
+    let tree_2 = asset_server.load("courthouse_front/tree_2.png");
+    let x = 220.0;
+    let y = -245.0;
+    let z = calculate_z(y, y_max.value);
+    spawn_object(&mut commands, tree_2, x, y, z, 23.0, 20.0, -5.0);
+
+    let tree_2 = asset_server.load("courthouse_front/tree_2.png");
+    let x = 210.0;
+    let y = -240.0;
+    let z = calculate_z(y, y_max.value);
+    spawn_object(&mut commands, tree_2, x, y, z, 23.0, 20.0, -5.0);
+
+    let tree_3 = asset_server.load("courthouse_front/tree_3.png");
+    let x = 225.0;
+    let y = -255.0;
+    let z = calculate_z(y, y_max.value);
+    spawn_object(&mut commands, tree_3, x, y, z, 24.0, 20.0, -5.0);
+
+    let tree_2 = asset_server.load("courthouse_front/tree_2.png");
+    let x = 210.0;
+    let y = -215.0;
+    let z = calculate_z(y, y_max.value);
+    spawn_object(&mut commands, tree_2, x, y, z, 23.0, 20.0, -5.0);
+    // -------------------------------------------------------------------
+
+    let bench = asset_server.load("courthouse_front/bench.png");
+    let x = 80.0;
+    let y = 0.0;
+    let z = calculate_z(y, y_max.value);
+    spawn_object(&mut commands, bench.clone(), x, y, z, 20.0, 40.0, -2.0);
+
+    let x = 430.0;
+    let y = 225.0;
+    let z = calculate_z(y, y_max.value);
+    spawn_object(&mut commands, bench.clone(), x, y, z, 20.0, 40.0, -2.0);
+
+    let y = 125.0;
+    let z = calculate_z(y, y_max.value);
+    spawn_object(&mut commands, bench.clone(), x, y, z, 20.0, 40.0, -2.0);
+
+    let y = 25.0;
+    let z = calculate_z(y, y_max.value);
+    spawn_object(&mut commands, bench.clone(), x, y, z, 20.0, 40.0, -2.0);
+
+    let y = -75.0;
+    let z = calculate_z(y, y_max.value);
+    spawn_object(&mut commands, bench.clone(), x, y, z, 20.0, 40.0, -2.0);
+
+    let y = -175.0;
+    let z = calculate_z(y, y_max.value);
+    spawn_object(&mut commands, bench.clone(), x, y, z, 20.0, 40.0, -2.0);
+
+    let y = -275.0;
+    let z = calculate_z(y, y_max.value);
+    spawn_object(&mut commands, bench.clone(), x, y, z, 20.0, 40.0, -2.0);
 }
 
 fn spawn_ground(commands: &mut Commands, asset_server: &Res<AssetServer>) {
@@ -166,25 +328,6 @@ fn spawn_ground(commands: &mut Commands, asset_server: &Res<AssetServer>) {
             texture: asset_server.load("courthouse_front/ground.png"),
             transform: Transform {
                 translation: Vec3::new(0.0, 0.0, FLOOR_Z),
-                ..Default::default()
-            },
-            ..Default::default()
-        });
-}
-
-fn spawn_court_house(
-    commands: &mut Commands,
-    asset_server: &Res<AssetServer>,
-) {
-    let x = 0.0;
-    let y = 421.0;
-    commands
-        .spawn(RigidBody::Fixed)
-        .insert(Collider::cuboid(500.0, 65.0))
-        .insert(SpriteBundle {
-            texture: asset_server.load("courthouse_front/courthouse.png"),
-            transform: Transform {
-                translation: Vec3::new(x, y, WALL_Z),
                 ..Default::default()
             },
             ..Default::default()
@@ -206,152 +349,6 @@ fn spawn_court_doors(
                 ..Default::default()
             },
             ..Default::default()
-        });
-}
-
-fn spawn_houses(
-    commands: &mut Commands,
-    asset_server: &Res<AssetServer>,
-) {
-    let x = -470.0;
-    let y = -75.0;
-    commands
-        .spawn(RigidBody::Fixed)
-        .insert(Collider::cuboid(33.0, 450.0))
-        .insert(SpriteBundle {
-            texture: asset_server.load("courthouse_front/houses.png"),
-            transform: Transform {
-                translation: Vec3::new(x, y, WALL_Z),
-                ..Default::default()
-            },
-            ..Default::default()
-        });
-}
-
-fn spawn_right_forest(
-    commands: &mut Commands,
-    asset_server: &Res<AssetServer>,
-) {
-    let x = 480.0;
-    let y = 0.0;
-    commands
-        .spawn(RigidBody::Fixed)
-        .insert(Collider::cuboid(20.0, 500.0))
-        .insert(SpriteBundle {
-            texture: asset_server.load("courthouse_front/vertical_forest_0.png"),
-            transform: Transform {
-                translation: Vec3::new(x, y, MIN_RANGE_Z),
-                ..Default::default()
-            },
-            ..Default::default()
-        });
-}
-
-fn spawn_tree_1(
-    commands: &mut Commands,
-    asset_server: &Res<AssetServer>,
-    y_max: LevelYMax,
-    x: f32,
-    y: f32,
-) {
-    let z = calculate_z(y, y_max.value);
-    commands
-        .spawn(RigidBody::Fixed)
-        .insert(SpriteBundle {
-            texture: asset_server.load("courthouse_front/tree_1.png"),
-            transform: Transform {
-                translation: Vec3::new(x, y, z),
-                ..Default::default()
-            },
-            ..Default::default()
-        })
-        .with_children(|children| {
-            children
-                .spawn(Collider::cuboid(31.0, 20.0))
-                .insert(TransformBundle::from(Transform::from_xyz(
-                    0.0, -5.0, z,
-                )));
-        });
-}
-
-fn spawn_tree_2(
-    commands: &mut Commands,
-    asset_server: &Res<AssetServer>,
-    y_max: LevelYMax,
-    x: f32,
-    y: f32,
-) {
-    let z = calculate_z(y, y_max.value);
-    commands
-        .spawn(RigidBody::Fixed)
-        .insert(SpriteBundle {
-            texture: asset_server.load("courthouse_front/tree_2.png"),
-            transform: Transform {
-                translation: Vec3::new(x, y, z),
-                ..Default::default()
-            },
-            ..Default::default()
-        })
-        .with_children(|children| {
-            children
-                .spawn(Collider::cuboid(23.0, 20.0))
-                .insert(TransformBundle::from(Transform::from_xyz(
-                    0.0, -5.0, z,
-                )));
-        });
-}
-
-fn spawn_tree_3(
-    commands: &mut Commands,
-    asset_server: &Res<AssetServer>,
-    y_max: LevelYMax,
-    x: f32,
-    y: f32,
-) {
-    let z = calculate_z(y, y_max.value);
-    commands
-        .spawn(RigidBody::Fixed)
-        .insert(SpriteBundle {
-            texture: asset_server.load("courthouse_front/tree_3.png"),
-            transform: Transform {
-                translation: Vec3::new(x, y, z),
-                ..Default::default()
-            },
-            ..Default::default()
-        })
-        .with_children(|children| {
-            children
-                .spawn(Collider::cuboid(24.0, 20.0))
-                .insert(TransformBundle::from(Transform::from_xyz(
-                    0.0, -5.0, z,
-                )));
-        });
-}
-
-fn spawn_bench(
-    commands: &mut Commands,
-    asset_server: &Res<AssetServer>,
-    y_max: LevelYMax,
-    x: f32,
-    y: f32,
-) {
-    let z = calculate_z(y, y_max.value);
-    commands
-        .spawn(RigidBody::Fixed)
-        .insert(SpriteBundle {
-            texture: asset_server.load("courthouse_front/bench.png"),
-            transform: Transform {
-                translation: Vec3::new(x, y, z),
-                ..Default::default()
-            },
-            ..Default::default()
-        })
-        .with_children(|children| {
-            children
-                .spawn(Collider::cuboid(20.0, 40.0))
-                .insert(TransformBundle::from(Transform::from_xyz(
-                    0.0, -2.0, z,
-                )));
         });
 }
 
@@ -392,6 +389,7 @@ fn spawn_old_woman_drevnira(
                 0.7,
                 bevy::time::TimerMode::Repeating,
             ),
+            frames_count: 8,
         })
         .insert(TransformBundle::from(Transform::from_xyz(x, y, z)))
         .insert(BodyYOffset::create(30.0))
@@ -416,30 +414,26 @@ fn spawn_guardians(
     mut commands: Commands,
     mut layouts: ResMut<Assets<TextureAtlasLayout>>,
 ) {
-    spawn_npc(
+    spawn_fixed_npc(
         &asset_server,
         &mut commands,
         &mut layouts,
-        Guardian,
+        (GuardianFirstStage, GuardianSecondStage, GuardianThirdStage),
         "npc/guardian.png".to_string(),
         -50.0,
         370.0,
         ON_WALL_OBJECT_Z + 1.5,
-        0.0,
-        0.0,
     );
 
-    spawn_npc(
+    spawn_fixed_npc(
         &asset_server,
         &mut commands,
         &mut layouts,
-        Guardian,
+        (GuardianFirstStage, GuardianSecondStage, GuardianThirdStage),
         "npc/guardian.png".to_string(),
         50.0,
         370.0,
         ON_WALL_OBJECT_Z + 1.5,
-        0.0,
-        0.0,
     );
 }
 
@@ -456,7 +450,7 @@ fn spawn_gopniks(
     let y = 250.0;
     let shifted_y = y - 20.0;
     let z = calculate_z(shifted_y, y_max.value);
-    spawn_npc(
+    spawn_fixed_npc(
         &asset_server,
         &mut commands,
         &mut layouts,
@@ -465,15 +459,13 @@ fn spawn_gopniks(
         x,
         y,
         z,
-        0.0,
-        0.0,
     );
 
     let x = 380.0;
     let y = 255.0;
     let shifted_y = y - 20.0;
     let z = calculate_z(shifted_y, y_max.value);
-    spawn_npc(
+    spawn_fixed_npc(
         &asset_server,
         &mut commands,
         &mut layouts,
@@ -482,15 +474,13 @@ fn spawn_gopniks(
         x,
         y,
         z,
-        0.0,
-        0.0,
     );
 
     let x = 310.0;
     let y = 250.0;
     let shifted_y = y - 20.0;
     let z = calculate_z(shifted_y, y_max.value);
-    spawn_npc(
+    spawn_fixed_npc(
         &asset_server,
         &mut commands,
         &mut layouts,
@@ -499,15 +489,13 @@ fn spawn_gopniks(
         x,
         y,
         z,
-        0.0,
-        0.0,
     );
 
     let x = 335.0;
     let y = 220.0;
     let shifted_y = y - 20.0;
     let z = calculate_z(shifted_y, y_max.value);
-    spawn_npc(
+    spawn_fixed_npc(
         &asset_server,
         &mut commands,
         &mut layouts,
@@ -516,8 +504,6 @@ fn spawn_gopniks(
         x,
         y,
         z,
-        0.0,
-        0.0,
     );
 }
 
@@ -534,218 +520,16 @@ fn spawn_blond_man(
     let y = -80.0;
     let shifted_y = y - 20.0;
     let z = calculate_z(shifted_y, y_max.value);
-    spawn_npc(
+    spawn_fixed_npc(
         &asset_server,
         &mut commands,
         &mut layouts,
-        Blond,
+        (BlondStart, BlondGiveDumplings, BlondTakeDumplings),
         "npc/clerk_blond.png".to_string(),
         x,
         y,
         z,
-        0.0,
-        0.0,
     );
-}
-
-fn drevnira_dog_dialog_starts(
-    mut commands: Commands,
-    keyboard: Res<ButtonInput<KeyCode>>,
-    active: Query<(&ActiveInteractor, &Transform)>,
-    interactors: Query<(&PassiveInteractor, &Transform), With<Drevnira>>,
-    mut dialog_id_query: Query<(&mut DialogId)>,
-    mut next_game_state: ResMut<NextState<GameState>>,
-) {
-    if !(keyboard.pressed(KeyCode::KeyE) && keyboard.just_pressed(KeyCode::KeyE)) {
-        return;
-    }
-    for (interactor, transform) in interactors.iter() {
-        let is_interacting = detect_active_interaction(&active, (interactor, transform));
-        if is_interacting {
-            match dialog_id_query.get_single_mut() {
-                Ok(mut dialog_id) => dialog_id.0 = DREVNIRA_DIALOG,
-                Err(_) => {
-                    commands.spawn(DialogId(DREVNIRA_DIALOG));
-                }
-            }
-            next_game_state.set(GameState::Dialog);
-        }
-    }
-}
-
-fn blond_first_dialog_starts(
-    mut commands: Commands,
-    keyboard: Res<ButtonInput<KeyCode>>,
-    active: Query<(&ActiveInteractor, &Transform)>,
-    interactors: Query<(&PassiveInteractor, &Transform), With<Blond>>,
-    mut dialog_id_query: Query<(&mut DialogId)>,
-    mut next_game_state: ResMut<NextState<GameState>>,
-) {
-    if !(keyboard.pressed(KeyCode::KeyE) && keyboard.just_pressed(KeyCode::KeyE)) {
-        return;
-    }
-    for (interactor, transform) in interactors.iter() {
-        let is_interacting = detect_active_interaction(&active, (interactor, transform));
-        if is_interacting {
-            match dialog_id_query.get_single_mut() {
-                Ok(mut dialog_id) => dialog_id.0 = BLOND_FIRST_DIALOG,
-                Err(_) => {
-                    commands.spawn(DialogId(BLOND_FIRST_DIALOG));
-                }
-            }
-            next_game_state.set(GameState::Dialog);
-        }
-    }
-}
-
-fn blond_give_dumplings_dialog_starts(
-    mut commands: Commands,
-    keyboard: Res<ButtonInput<KeyCode>>,
-    active: Query<(&ActiveInteractor, &Transform)>,
-    interactors: Query<(&PassiveInteractor, &Transform), With<Blond>>,
-    mut dialog_id_query: Query<(&mut DialogId)>,
-    mut next_game_state: ResMut<NextState<GameState>>,
-) {
-    if !(keyboard.pressed(KeyCode::KeyE) && keyboard.just_pressed(KeyCode::KeyE)) {
-        return;
-    }
-    for (interactor, transform) in interactors.iter() {
-        let is_interacting = detect_active_interaction(&active, (interactor, transform));
-        if is_interacting {
-            match dialog_id_query.get_single_mut() {
-                Ok(mut dialog_id) => dialog_id.0 = BLOND_GIVE_DUMPLINGS_DIALOG,
-                Err(_) => {
-                    commands.spawn(DialogId(BLOND_GIVE_DUMPLINGS_DIALOG));
-                }
-            }
-            next_game_state.set(GameState::Dialog);
-        }
-    }
-}
-
-fn blond_take_dumplings_dialog_starts(
-    mut commands: Commands,
-    keyboard: Res<ButtonInput<KeyCode>>,
-    active: Query<(&ActiveInteractor, &Transform)>,
-    interactors: Query<(&PassiveInteractor, &Transform), With<Blond>>,
-    mut dialog_id_query: Query<(&mut DialogId)>,
-    mut next_game_state: ResMut<NextState<GameState>>,
-) {
-    if !(keyboard.pressed(KeyCode::KeyE) && keyboard.just_pressed(KeyCode::KeyE)) {
-        return;
-    }
-    for (interactor, transform) in interactors.iter() {
-        let is_interacting = detect_active_interaction(&active, (interactor, transform));
-        if is_interacting {
-            match dialog_id_query.get_single_mut() {
-                Ok(mut dialog_id) => dialog_id.0 = BLOND_TAKE_DUMPLINGS_DIALOG,
-                Err(_) => {
-                    commands.spawn(DialogId(BLOND_TAKE_DUMPLINGS_DIALOG));
-                }
-            }
-            next_game_state.set(GameState::Dialog);
-        }
-    }
-}
-
-fn gopniks_dialog_starts(
-    mut commands: Commands,
-    keyboard: Res<ButtonInput<KeyCode>>,
-    active: Query<(&ActiveInteractor, &Transform)>,
-    interactors: Query<(&PassiveInteractor, &Transform), With<Gopnik>>,
-    mut dialog_id_query: Query<(&mut DialogId)>,
-    mut next_game_state: ResMut<NextState<GameState>>,
-) {
-    if !(keyboard.pressed(KeyCode::KeyE) && keyboard.just_pressed(KeyCode::KeyE)) {
-        return;
-    }
-    for (interactor, transform) in interactors.iter() {
-        let is_interacting = detect_active_interaction(&active, (interactor, transform));
-        if is_interacting {
-            match dialog_id_query.get_single_mut() {
-                Ok(mut dialog_id) => dialog_id.0 = GOPNIKS_DIALOG,
-                Err(_) => {
-                    commands.spawn(DialogId(GOPNIKS_DIALOG));
-                }
-            }
-            next_game_state.set(GameState::Dialog);
-        }
-    }
-}
-
-fn guardian_first_dialog_starts(
-    mut commands: Commands,
-    keyboard: Res<ButtonInput<KeyCode>>,
-    active: Query<(&ActiveInteractor, &Transform)>,
-    interactors: Query<(&PassiveInteractor, &Transform), With<Guardian>>,
-    mut dialog_id_query: Query<(&mut DialogId)>,
-    mut next_game_state: ResMut<NextState<GameState>>,
-) {
-    if !(keyboard.pressed(KeyCode::KeyE) && keyboard.just_pressed(KeyCode::KeyE)) {
-        return;
-    }
-    for (interactor, transform) in interactors.iter() {
-        let is_interacting = detect_active_interaction(&active, (interactor, transform));
-        if is_interacting {
-            match dialog_id_query.get_single_mut() {
-                Ok(mut dialog_id) => dialog_id.0 = GUARDIAN_FIRST_DIALOG,
-                Err(_) => {
-                    commands.spawn(DialogId(GUARDIAN_FIRST_DIALOG));
-                }
-            }
-            next_game_state.set(GameState::Dialog);
-        }
-    }
-}
-
-fn guardian_second_dialog_starts(
-    mut commands: Commands,
-    keyboard: Res<ButtonInput<KeyCode>>,
-    active: Query<(&ActiveInteractor, &Transform)>,
-    interactors: Query<(&PassiveInteractor, &Transform), With<Guardian>>,
-    mut dialog_id_query: Query<(&mut DialogId)>,
-    mut next_game_state: ResMut<NextState<GameState>>,
-) {
-    if !(keyboard.pressed(KeyCode::KeyE) && keyboard.just_pressed(KeyCode::KeyE)) {
-        return;
-    }
-    for (interactor, transform) in interactors.iter() {
-        let is_interacting = detect_active_interaction(&active, (interactor, transform));
-        if is_interacting {
-            match dialog_id_query.get_single_mut() {
-                Ok(mut dialog_id) => dialog_id.0 = GUARDIAN_SECOND_DIALOG,
-                Err(_) => {
-                    commands.spawn(DialogId(GUARDIAN_SECOND_DIALOG));
-                }
-            }
-            next_game_state.set(GameState::Dialog);
-        }
-    }
-}
-
-fn guardian_third_dialog_starts(
-    mut commands: Commands,
-    keyboard: Res<ButtonInput<KeyCode>>,
-    active: Query<(&ActiveInteractor, &Transform)>,
-    interactors: Query<(&PassiveInteractor, &Transform), With<Guardian>>,
-    mut dialog_id_query: Query<(&mut DialogId)>,
-    mut next_game_state: ResMut<NextState<GameState>>,
-) {
-    if !(keyboard.pressed(KeyCode::KeyE) && keyboard.just_pressed(KeyCode::KeyE)) {
-        return;
-    }
-    for (interactor, transform) in interactors.iter() {
-        let is_interacting = detect_active_interaction(&active, (interactor, transform));
-        if is_interacting {
-            match dialog_id_query.get_single_mut() {
-                Ok(mut dialog_id) => dialog_id.0 = GUARDIAN_THIRD_DIALOG,
-                Err(_) => {
-                    commands.spawn(DialogId(GUARDIAN_THIRD_DIALOG));
-                }
-            }
-            next_game_state.set(GameState::Dialog);
-        }
-    }
 }
 
 fn dialog_variants_handles(

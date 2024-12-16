@@ -29,7 +29,6 @@ use bevy::prelude::OnEnter;
 use bevy::prelude::OnExit;
 use bevy::prelude::State;
 use bevy::prelude::States;
-use bevy::prelude::Time;
 use bevy::prelude::TransformBundle;
 use bevy_rapier2d::prelude::{Collider, RigidBody};
 
@@ -54,8 +53,7 @@ use crate::interaction::interactors::change_switcher_state;
 use crate::interaction::interactors::detect_active_interaction;
 use crate::interaction::interactors::transit_to_next_container_state;
 use crate::level::house::FormidableDogState::Wakefulness;
-use crate::movement::routes::route_build;
-use crate::npc::{IdleAnimation, move_agent_moves, npc_animation, npc_basic_animation, spawn_formidable_dog, spawn_npc};
+use crate::npc::{IdleAnimation, spawn_formidable_dog, spawn_fixed_npc};
 use crate::world_state::EscapeFromHouse;
 use crate::world_state::EscapeFromHouse::{CallDog, Escape, GoSleep};
 
@@ -102,17 +100,12 @@ impl<S: States> Plugin for HousePlugin<S> {
             .add_systems(Update, sleeping_formidable_dog_spawns.run_if(in_state(self.state.clone())))
             .add_systems(OnExit(self.state.clone()), despawn_sleeping_dog)
             .add_systems(OnEnter(Wakefulness), initial_spawn_formidable_dog)
-            .add_systems(Update, route_build)
-            .add_systems(Update, move_agent_moves.after(route_build))
-            .add_systems(Update, npc_animation.after(move_agent_moves))
-            .add_systems(Update, npc_basic_animation)
             .add_systems(Update, courier_dialog_starts.run_if(in_state(EscapeFromHouse::Courier)))
             .add_systems(Update, formidable_dog_dialog_starts.run_if(in_state(CallDog)))
-            .add_systems(Update, sleeping_dog_basic_animation.run_if(in_state(FormidableDogState::Sleep)))
             .add_systems(
                 Update,
                 (recalculate_z,
-                 escape_from_house_variants_handles.run_if(in_state(self.state.clone())),
+                 escape_from_house_variants_handles,
                  draw_wooden_chest_states.after(transit_to_next_container_state),
                  draw_level_arm_states.after(change_switcher_state),
                 ).run_if(in_state(self.state.clone())),
@@ -386,6 +379,7 @@ fn spawn_sleeping_formidable_dog(
                 0.4,
                 bevy::time::TimerMode::Repeating,
             ),
+            frames_count: 16,
         })
         .insert(TransformBundle::from(Transform::from_xyz(x, y, z)))
         .insert(BodyYOffset::create(20.0))
@@ -410,22 +404,6 @@ fn despawn_sleeping_dog(
 ) {
     for entity in query.iter() {
         commands.entity(entity).despawn_recursive();
-    }
-}
-
-fn sleeping_dog_basic_animation(
-    time: Res<Time>,
-    mut animation_query: Query<(&mut IdleAnimation, &mut TextureAtlas)>,
-) {
-    for (mut idle_animation, mut sprite) in animation_query.iter_mut() {
-        idle_animation.timer.tick(time.delta());
-        if idle_animation.timer.finished() {
-            if sprite.index >= /*15*/ 7  {
-                sprite.index = 0;
-            } else {
-                sprite.index += 1;
-            }
-        }
     }
 }
 
@@ -643,7 +621,7 @@ fn courier_spawns(
     }
     match current_screen_state.get() {
         EscapeFromHouse::Courier => {
-            spawn_npc(
+            spawn_fixed_npc(
                 &asset_server,
                 &mut commands,
                 &mut layouts,
@@ -652,8 +630,6 @@ fn courier_spawns(
                 120.0,
                 200.0,
                 ON_WALL_OBJECT_Z + 1.5,
-                0.0,
-                0.0,
             );
         }
         _ => {
