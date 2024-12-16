@@ -29,7 +29,6 @@ use bevy::prelude::OnEnter;
 use bevy::prelude::OnExit;
 use bevy::prelude::State;
 use bevy::prelude::States;
-use bevy::prelude::Time;
 use bevy::prelude::TransformBundle;
 use bevy_rapier2d::prelude::{Collider, RigidBody};
 
@@ -48,18 +47,15 @@ use crate::{
 use crate::core::entities::BodyYOffset;
 use crate::core::states::GameState;
 use crate::core::z_index::DEFAULT_OBJECT_Z;
-use crate::dialog::{DialogId, SelectedVariantsSource};
-use crate::interaction::interactors::ActiveInteractor;
+use crate::dialog::SelectedVariantsSource;
 use crate::interaction::interactors::change_switcher_state;
-use crate::interaction::interactors::detect_active_interaction;
 use crate::interaction::interactors::transit_to_next_container_state;
 use crate::level::house::FormidableDogState::Wakefulness;
-use crate::movement::routes::route_build;
-use crate::npc::{IdleAnimation, move_agent_moves, npc_animation, npc_basic_animation, spawn_formidable_dog, spawn_npc};
+use crate::npc::{IdleAnimation, spawn_fixed_npc, spawn_formidable_dog};
 use crate::world_state::EscapeFromHouse;
 use crate::world_state::EscapeFromHouse::{CallDog, Escape, GoSleep};
 
-use super::{END_DIALOG_AGENDA_TAKEN, END_DIALOG_FORMIDABLE_DOG_JOINED};
+use super::{dialog_starts, END_DIALOG_AGENDA_TAKEN, END_DIALOG_FORMIDABLE_DOG_JOINED, HasDialogId};
 use super::COURIER_DIALOG;
 use super::END_DIALOG_NECK_TWISTED;
 use super::objects::LevelArm;
@@ -73,8 +69,20 @@ struct HouseLevel;
 #[derive(Component)]
 struct Courier;
 
+impl HasDialogId for Courier {
+    fn dialog_id(&self) -> usize {
+        return COURIER_DIALOG;
+    }
+}
+
 #[derive(Component)]
 struct SleepingFormidableDog;
+
+impl HasDialogId for SleepingFormidableDog {
+    fn dialog_id(&self) -> usize {
+        return SLEEPING_FORMIDABLE_DOG_DIALOG;
+    }
+}
 
 #[derive(Component)]
 struct FormidableDog;
@@ -102,17 +110,12 @@ impl<S: States> Plugin for HousePlugin<S> {
             .add_systems(Update, sleeping_formidable_dog_spawns.run_if(in_state(self.state.clone())))
             .add_systems(OnExit(self.state.clone()), despawn_sleeping_dog)
             .add_systems(OnEnter(Wakefulness), initial_spawn_formidable_dog)
-            .add_systems(Update, route_build)
-            .add_systems(Update, move_agent_moves.after(route_build))
-            .add_systems(Update, npc_animation.after(move_agent_moves))
-            .add_systems(Update, npc_basic_animation)
-            .add_systems(Update, courier_dialog_starts.run_if(in_state(EscapeFromHouse::Courier)))
-            .add_systems(Update, formidable_dog_dialog_starts.run_if(in_state(CallDog)))
-            .add_systems(Update, sleeping_dog_basic_animation.run_if(in_state(FormidableDogState::Sleep)))
+            .add_systems(Update, dialog_starts::<Courier>.run_if(in_state(EscapeFromHouse::Courier)))
+            .add_systems(Update, dialog_starts::<SleepingFormidableDog>.run_if(in_state(CallDog)))
             .add_systems(
                 Update,
                 (recalculate_z,
-                 escape_from_house_variants_handles.run_if(in_state(self.state.clone())),
+                 escape_from_house_variants_handles,
                  draw_wooden_chest_states.after(transit_to_next_container_state),
                  draw_level_arm_states.after(change_switcher_state),
                 ).run_if(in_state(self.state.clone())),
@@ -386,6 +389,7 @@ fn spawn_sleeping_formidable_dog(
                 0.4,
                 bevy::time::TimerMode::Repeating,
             ),
+            frames_count: 16,
         })
         .insert(TransformBundle::from(Transform::from_xyz(x, y, z)))
         .insert(BodyYOffset::create(20.0))
@@ -410,22 +414,6 @@ fn despawn_sleeping_dog(
 ) {
     for entity in query.iter() {
         commands.entity(entity).despawn_recursive();
-    }
-}
-
-fn sleeping_dog_basic_animation(
-    time: Res<Time>,
-    mut animation_query: Query<(&mut IdleAnimation, &mut TextureAtlas)>,
-) {
-    for (mut idle_animation, mut sprite) in animation_query.iter_mut() {
-        idle_animation.timer.tick(time.delta());
-        if idle_animation.timer.finished() {
-            if sprite.index >= /*15*/ 7  {
-                sprite.index = 0;
-            } else {
-                sprite.index += 1;
-            }
-        }
     }
 }
 
@@ -581,56 +569,6 @@ fn spawn_walls(commands: &mut Commands, asset_server: &Res<AssetServer>) {
         });
 }
 
-fn courier_dialog_starts(
-    mut commands: Commands,
-    keyboard: Res<ButtonInput<KeyCode>>,
-    active: Query<(&ActiveInteractor, &Transform)>,
-    interactors: Query<(&PassiveInteractor, &Transform), With<Courier>>,
-    mut dialog_id_query: Query<(&mut DialogId)>,
-    mut next_game_state: ResMut<NextState<GameState>>,
-) {
-    if !(keyboard.pressed(KeyCode::KeyE) && keyboard.just_pressed(KeyCode::KeyE)) {
-        return;
-    }
-    for (interactor, transform) in interactors.iter() {
-        let is_interacting = detect_active_interaction(&active, (interactor, transform));
-        if is_interacting {
-            match dialog_id_query.get_single_mut() {
-                Ok(mut dialog_id) => dialog_id.0 = COURIER_DIALOG,
-                Err(_) => {
-                    commands.spawn(DialogId(COURIER_DIALOG));
-                }
-            }
-            next_game_state.set(GameState::Dialog);
-        }
-    }
-}
-
-fn formidable_dog_dialog_starts(
-    mut commands: Commands,
-    keyboard: Res<ButtonInput<KeyCode>>,
-    active: Query<(&ActiveInteractor, &Transform)>,
-    interactors: Query<(&PassiveInteractor, &Transform), With<SleepingFormidableDog>>,
-    mut dialog_id_query: Query<(&mut DialogId)>,
-    mut next_game_state: ResMut<NextState<GameState>>,
-) {
-    if !(keyboard.pressed(KeyCode::KeyE) && keyboard.just_pressed(KeyCode::KeyE)) {
-        return;
-    }
-    for (interactor, transform) in interactors.iter() {
-        let is_interacting = detect_active_interaction(&active, (interactor, transform));
-        if is_interacting {
-            match dialog_id_query.get_single_mut() {
-                Ok(mut dialog_id) => dialog_id.0 = SLEEPING_FORMIDABLE_DOG_DIALOG,
-                Err(_) => {
-                    commands.spawn(DialogId(SLEEPING_FORMIDABLE_DOG_DIALOG));
-                }
-            }
-            next_game_state.set(GameState::Dialog);
-        }
-    }
-}
-
 fn courier_spawns(
     asset_server: Res<AssetServer>,
     mut commands: Commands,
@@ -643,7 +581,7 @@ fn courier_spawns(
     }
     match current_screen_state.get() {
         EscapeFromHouse::Courier => {
-            spawn_npc(
+            spawn_fixed_npc(
                 &asset_server,
                 &mut commands,
                 &mut layouts,
@@ -652,8 +590,6 @@ fn courier_spawns(
                 120.0,
                 200.0,
                 ON_WALL_OBJECT_Z + 1.5,
-                0.0,
-                0.0,
             );
         }
         _ => {
