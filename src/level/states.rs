@@ -6,5 +6,6 @@ pub enum Level {
     None,
     House,
     CourtHouseFront,
+    CourtHouseHall,
     Court,
 }

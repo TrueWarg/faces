@@ -4,6 +4,7 @@ use bevy::prelude::{AppExtStates, DetectChanges};
 pub use dialogs::*;
 
 use crate::level::courthouse_front::CourtHouseFrontPlugin;
+use crate::level::courthouse_hall::CourtHouseHallPlugin;
 use crate::level::house::HousePlugin;
 use crate::level::states::Level;
 
@@ -13,6 +14,7 @@ pub mod sprites;
 pub(crate) mod states;
 mod dialogs;
 mod courthouse_front;
+mod courthouse_hall;
 
 pub struct LevelNavPlugin;
 
@@ -21,7 +23,8 @@ impl Plugin for LevelNavPlugin {
         app
             .add_plugins((
                 HousePlugin { state: Level::House },
-                CourtHouseFrontPlugin { state: Level::CourtHouseFront }
+                CourtHouseFrontPlugin { state: Level::CourtHouseFront },
+                CourtHouseHallPlugin { state: Level::CourtHouseHall },
             )
             )
             .init_state::<Level>();

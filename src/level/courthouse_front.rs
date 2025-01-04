@@ -160,7 +160,6 @@ impl<S: States> Plugin for CourtHouseFrontPlugin<S> {
 fn load(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
-    texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
     mut drevnira_state: ResMut<NextState<StrangeOldWoman>>,
     mut blond_state: ResMut<NextState<BlondAndGopniks>>,
     mut court_state: ResMut<NextState<Court>>,
@@ -177,7 +176,7 @@ fn load(
     let courthouse = asset_server.load("courthouse_front/courthouse.png");
     spawn_object(&mut commands, courthouse, 0.0, 421.0, WALL_Z, 500.0, 65.0, 0.0);
 
-    spawn_court_doors(&mut commands, &asset_server);
+    spawn_court_doors(&mut commands, &asset_server, 0.0, 371.0);
 
     let left_houses = asset_server.load("courthouse_front/houses.png");
     spawn_object(&mut commands, left_houses, -470.0, -75.0, WALL_Z, 33.0, 450.0, 0.0);
@@ -337,9 +336,9 @@ fn spawn_ground(commands: &mut Commands, asset_server: &Res<AssetServer>) {
 fn spawn_court_doors(
     commands: &mut Commands,
     asset_server: &Res<AssetServer>,
+    x: f32,
+    y: f32,
 ) {
-    let x = 0.0;
-    let y = 371.0;
     commands
         .spawn(RigidBody::Fixed)
         .insert(SpriteBundle {
