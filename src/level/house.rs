@@ -44,6 +44,7 @@ use crate::{
         PassiveInteractor, Switcher, SwitcherState,
     },
 };
+use crate::animation::entities::MoveDirection;
 use crate::core::entities::BodyYOffset;
 use crate::core::states::GameState;
 use crate::core::z_index::DEFAULT_OBJECT_Z;
@@ -587,6 +588,7 @@ fn courier_spawns(
                 &mut layouts,
                 Courier,
                 "npc/clerk.png".to_string(),
+                MoveDirection::ForwardIdle,
                 120.0,
                 200.0,
                 ON_WALL_OBJECT_Z + 1.5,

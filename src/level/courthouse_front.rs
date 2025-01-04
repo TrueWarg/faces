@@ -21,6 +21,7 @@ use bevy::prelude::Transform;
 use bevy::prelude::TransformBundle;
 use bevy_rapier2d::dynamics::RigidBody;
 use bevy_rapier2d::geometry::Collider;
+use crate::animation::entities::MoveDirection;
 
 use crate::core::collisions::recalculate_z;
 use crate::core::entities::{BodyYOffset, LevelYMax};
@@ -419,6 +420,7 @@ fn spawn_guardians(
         &mut layouts,
         (GuardianFirstStage, GuardianSecondStage, GuardianThirdStage),
         "npc/guardian.png".to_string(),
+        MoveDirection::ForwardIdle,
         -50.0,
         370.0,
         ON_WALL_OBJECT_Z + 1.5,
@@ -430,6 +432,7 @@ fn spawn_guardians(
         &mut layouts,
         (GuardianFirstStage, GuardianSecondStage, GuardianThirdStage),
         "npc/guardian.png".to_string(),
+        MoveDirection::ForwardIdle,
         50.0,
         370.0,
         ON_WALL_OBJECT_Z + 1.5,
@@ -455,6 +458,7 @@ fn spawn_gopniks(
         &mut layouts,
         Gopnik,
         "npc/gopnik_red.png".to_string(),
+        MoveDirection::ForwardIdle,
         x,
         y,
         z,
@@ -470,6 +474,7 @@ fn spawn_gopniks(
         &mut layouts,
         Gopnik,
         "npc/gopnik_red.png".to_string(),
+        MoveDirection::ForwardIdle,
         x,
         y,
         z,
@@ -485,6 +490,7 @@ fn spawn_gopniks(
         &mut layouts,
         Gopnik,
         "npc/gopnik_red.png".to_string(),
+        MoveDirection::ForwardIdle,
         x,
         y,
         z,
@@ -500,6 +506,7 @@ fn spawn_gopniks(
         &mut layouts,
         Gopnik,
         "npc/gopnik_red.png".to_string(),
+        MoveDirection::ForwardIdle,
         x,
         y,
         z,
@@ -525,6 +532,7 @@ fn spawn_blond_man(
         &mut layouts,
         (BlondStart, BlondGiveDumplings, BlondTakeDumplings),
         "npc/clerk_blond.png".to_string(),
+        MoveDirection::ForwardIdle,
         x,
         y,
         z,

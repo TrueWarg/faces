@@ -51,11 +51,11 @@ pub fn spawn_fixed_npc(
     mut layouts: &mut ResMut<Assets<TextureAtlasLayout>>,
     marker: impl Bundle,
     asset_path: String,
+    move_direction: MoveDirection,
     pos_x: f32,
     pos_y: f32,
     pos_z: f32,
 ) {
-    let start_move_direction = MoveDirection::ForwardIdle;
 
     let moves_handle = asset_server.load(asset_path);
     let move_layout = TextureAtlasLayout::from_grid(
@@ -80,10 +80,10 @@ pub fn spawn_fixed_npc(
         ))
         .insert(MoveAnimation {
             timer: Timer::from_seconds(
-                animations.moves[&start_move_direction].2,
+                animations.moves[&move_direction].2,
                 bevy::time::TimerMode::Repeating,
             ),
-            direction: start_move_direction,
+            direction: move_direction,
             sheet_handle: move_layout_handle,
         })
         .insert(animations)
