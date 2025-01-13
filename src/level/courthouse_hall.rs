@@ -1,7 +1,18 @@
 use bevy::app::{Plugin, Update};
 use bevy::asset::{Assets, AssetServer};
 use bevy::math::Vec3;
-use bevy::prelude::{Commands, in_state, IntoSystemConfigs, OnEnter, OnExit, Query, Res, ResMut, SpriteBundle, States, TextureAtlasLayout, Transform};
+use bevy::prelude::Commands;
+use bevy::prelude::in_state;
+use bevy::prelude::IntoSystemConfigs;
+use bevy::prelude::OnEnter;
+use bevy::prelude::OnExit;
+use bevy::prelude::Query;
+use bevy::prelude::Res;
+use bevy::prelude::ResMut;
+use bevy::prelude::SpriteBundle;
+use bevy::prelude::States;
+use bevy::prelude::TextureAtlasLayout;
+use bevy::prelude::Transform;
 use bevy_rapier2d::dynamics::RigidBody;
 use crate::animation::entities::MoveDirection;
 use crate::core::collisions::recalculate_z;
@@ -37,7 +48,7 @@ fn load(
     spawn_floor(&mut commands, &asset_server);
 
     let wall_top = asset_server.load("courthouse_hall/wall_top.png");
-    spawn_object(&mut commands, wall_top, 0.0, 359.0, WALL_Z, 256.0, 30.0, 0.0);
+    spawn_object(&mut commands, wall_top, 0.0, y_max.value, WALL_Z, 256.0, 30.0, 0.0);
 
     spawn_doors(&mut commands, &asset_server, 0.0, 351.0);
 

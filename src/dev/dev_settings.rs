@@ -149,6 +149,9 @@ fn mouse_input_handle(
                         if button.payload == COURTHOUSE_HALL_LEVEL_ID {
                             next_level_state.set(Level::CourtHouseHall);
                         }
+                        if button.payload == COURTHOUSE_COURT_LEVEL_ID {
+                            next_level_state.set(Level::Court);
+                        }
                         next_game_state.set(GameState::Exploration);
                         return;
                     }
@@ -277,6 +280,7 @@ fn spawn_levels_list(
             parent.text_button("House", HOUSE_LEVEL_BUTTON_ID);
             parent.text_button("Courthouse front", COURTHOUSE_FRONT_LEVEL_ID);
             parent.text_button("Courthouse hall", COURTHOUSE_HALL_LEVEL_ID);
+            parent.text_button("Court", COURTHOUSE_COURT_LEVEL_ID);
         })
         .insert(LevelsList)
         .style()
@@ -305,3 +309,4 @@ const LEVEL_SAMPLES_BUTTON_ID: SettingsId = SettingsId(3);
 const HOUSE_LEVEL_BUTTON_ID: SettingsId = SettingsId(11);
 const COURTHOUSE_FRONT_LEVEL_ID: SettingsId = SettingsId(12);
 const COURTHOUSE_HALL_LEVEL_ID: SettingsId = SettingsId(13);
+const COURTHOUSE_COURT_LEVEL_ID: SettingsId = SettingsId(14);
