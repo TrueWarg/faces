@@ -10,7 +10,7 @@ pub trait HasDialogId {
     fn dialog_id(&self) -> usize;
 }
 
-pub fn dialog_starts<T : HasDialogId + Component>(
+pub fn dialog_starts<T: HasDialogId + Component>(
     mut commands: Commands,
     keyboard: Res<ButtonInput<KeyCode>>,
     active: Query<(&ActiveInteractor, &Transform)>,
@@ -1270,10 +1270,10 @@ fn guardian_second() -> (usize, HashMap<usize, DialogStick>) {
 //        |
 //        *
 //        |
-//       | |
-//       ^ ^
-//       | |
-//       * *
+//      | | |
+//      ^ ^ ^
+//      | | |
+//      * * *
 //       END
 pub const GUARDIAN_THIRD_DIALOG: usize = 10;
 
@@ -1283,7 +1283,7 @@ pub const END_DIALOG_GUARDIAN_THIRD_BEATEN: usize = 2;
 pub fn guardian_third_dialog() -> Dialog {
     let (root_id, sticks) = guardian_third();
     return Dialog::from(
-        DialogId(GUARDIAN_SECOND_DIALOG),
+        DialogId(GUARDIAN_THIRD_DIALOG),
         "Dialog 1".to_string(),
         "background/dialog_bg.png".to_string(),
         "npc/dialog_courier.png".to_string(),
@@ -1355,3 +1355,371 @@ fn guardian_third() -> (usize, HashMap<usize, DialogStick>) {
 
     return (root_id, pool);
 }
+
+//      START
+//        *
+//        |
+//        *
+//        |
+//       | |
+//       ^ ^
+//       | |
+//       * *
+//       END
+pub const HALL_GUARDIAN_FIRST_DIALOG: usize = 11;
+
+pub const HALL_GUARDIAN_FIRST_DIALOG_COMPLETED: usize = 1;
+pub const HALL_GUARDIAN_FIRST_DIALOG_BEATEN: usize = 2;
+
+pub fn hall_guardian_first_dialog() -> Dialog {
+    let (root_id, sticks) = hall_guardian_first();
+    return Dialog::from(
+        DialogId(HALL_GUARDIAN_FIRST_DIALOG),
+        "Dialog 1".to_string(),
+        "background/dialog_bg.png".to_string(),
+        "npc/dialog_courier.png".to_string(),
+        root_id,
+        sticks,
+    );
+}
+
+fn hall_guardian_first() -> (usize, HashMap<usize, DialogStick>) {
+    let mut main_stick = DialogStick::from(0);
+    main_stick.replicas.extend(
+        vec![
+            Replica::from_text("[Перед тобой двое мощных охранников.]".to_string()),
+            Replica::from_text("Вход пока закрыт. Жди.".to_string()),
+        ]
+    );
+
+    let mut just_wait = DialogStick::from(1);
+    just_wait.replicas.extend(
+        vec![
+            Replica::from_text("Подождите немного. Побродите, пообщайтесь.".to_string()),
+        ]
+    );
+
+    let mut fight = DialogStick::from(2);
+
+    fight.replicas.extend(
+        vec![
+            Replica::from_text("Ах ты, говнюк!".to_string()),
+        ]
+    );
+
+    main_stick.branching = Some(Branching {
+        id: 0,
+        variants: vec![
+            Variant::create_with_effect(
+                "Но мене надо войти!".to_string(),
+                just_wait.id,
+                DialogEffect::EndDialog(Some(HALL_GUARDIAN_FIRST_DIALOG_COMPLETED)),
+            ),
+            Variant::create_with_effect(
+                "[Атаковать] Вон с дороги!!!".to_string(),
+                fight.id,
+                DialogEffect::EndDialog(Some(HALL_GUARDIAN_FIRST_DIALOG_BEATEN)),
+            ),
+        ],
+    }
+    );
+
+    let mut pool = HashMap::new();
+    let root_id = main_stick.id;
+    pool.insert(main_stick.id, main_stick);
+    pool.insert(just_wait.id, just_wait);
+    pool.insert(fight.id, fight);
+
+    return (root_id, pool);
+}
+
+
+//      START
+//        *
+//        |
+//        ^
+//        |
+//        *
+//       END
+pub const HALL_GUARDIAN_SECOND_DIALOG: usize = 12;
+
+pub const HALL_GUARDIAN_SECOND_COMPLETED: usize = 1;
+
+pub fn hall_guardian_second_dialog() -> Dialog {
+    let (root_id, sticks) = hall_guardian_second();
+    return Dialog::from(
+        DialogId(HALL_GUARDIAN_SECOND_DIALOG),
+        "Dialog 1".to_string(),
+        "background/dialog_bg.png".to_string(),
+        "npc/dialog_courier.png".to_string(),
+        root_id,
+        sticks,
+    );
+}
+
+fn hall_guardian_second() -> (usize, HashMap<usize, DialogStick>) {
+    let mut main_stick = DialogStick::from(0);
+    main_stick.replicas.extend(
+        vec![
+            Replica::from_text("Проходи, не задерживайся.".to_string()),
+        ]
+    );
+
+    let mut what = DialogStick::from(1);
+    what.replicas.extend(
+        vec![
+            Replica::from_text("...".to_string()),
+        ]
+    );
+
+    main_stick.branching = Some(Branching {
+        id: 0,
+        variants: vec![
+            Variant::create_with_effect(
+                "Чё?".to_string(),
+                what.id,
+                DialogEffect::EndDialog(Some(HALL_GUARDIAN_SECOND_COMPLETED)),
+            ),
+        ],
+    }
+    );
+
+    let mut pool = HashMap::new();
+    let root_id = main_stick.id;
+    pool.insert(main_stick.id, main_stick);
+
+    return (root_id, pool);
+}
+
+//      START
+//        *
+//        |
+//      ^ ^ ^
+//      | | |
+//      * * *
+//       END
+pub const TABLE_1_DIALOG: usize = 13;
+
+pub const TABLE_1_COMPLETED: usize = 1;
+
+pub fn table_1_dialog() -> Dialog {
+    let (root_id, sticks) = table_1();
+    return Dialog::from(
+        DialogId(TABLE_1_DIALOG),
+        "Dialog 1".to_string(),
+        "background/dialog_bg.png".to_string(),
+        "npc/dialog_courier.png".to_string(),
+        root_id,
+        sticks,
+    );
+}
+
+fn table_1() -> (usize, HashMap<usize, DialogStick>) {
+    let mut main_stick = DialogStick::from(0);
+    main_stick.replicas.extend(
+        vec![
+            Replica::from_text("Сударь, я не занимаюсь делами посетителей, обратитесь к столику с номером 2.".to_string()),
+        ]
+    );
+
+    let mut where_second = DialogStick::from(1);
+    where_second.replicas.extend(
+        vec![
+            Replica::from_text("Справа от меня.".to_string()),
+        ]
+    );
+
+    let mut get_out_here = DialogStick::from(2);
+    get_out_here.replicas.extend(
+        vec![
+            Replica::from_text("Еще раз, я не занимаюсь посетителями, обратитесь к столику 2, сударь!".to_string()),
+        ]
+    );
+
+    let mut go_go = DialogStick::from(3);
+
+    go_go.replicas.extend(
+        vec![
+            Replica::from_text("...".to_string()),
+        ]
+    );
+
+    main_stick.branching = Some(Branching {
+        id: 0,
+        variants: vec![
+            Variant::create_with_effect(
+                "Где столик номер 2?".to_string(),
+                where_second.id,
+                DialogEffect::EndDialog(Some(TABLE_1_COMPLETED)),
+            ),
+            Variant::create_with_effect(
+                "Да я только спросить...".to_string(),
+                get_out_here.id,
+                DialogEffect::EndDialog(Some(TABLE_1_COMPLETED)),
+            ),
+            Variant::create_with_effect(
+                "Ыу, мне все равнё рожя твоя не понравилясь.".to_string(),
+                go_go.id,
+                DialogEffect::EndDialog(Some(TABLE_1_COMPLETED)),
+            ),
+        ],
+    }
+    );
+
+    let mut pool = HashMap::new();
+    let root_id = main_stick.id;
+    pool.insert(main_stick.id, main_stick);
+    pool.insert(where_second.id, where_second);
+    pool.insert(get_out_here.id, get_out_here);
+    pool.insert(go_go.id, go_go);
+
+    return (root_id, pool);
+}
+
+//      START
+//        *
+//        |
+//       ^ ^
+//       | |
+//       * *
+//       END
+pub const TABLE_2_DIALOG: usize = 14;
+
+pub const TABLE_2_COMPLETED: usize = 1;
+
+pub fn table_2_dialog() -> Dialog {
+    let (root_id, sticks) = table_2();
+    return Dialog::from(
+        DialogId(TABLE_3_DIALOG),
+        "Dialog 1".to_string(),
+        "background/dialog_bg.png".to_string(),
+        "npc/dialog_courier.png".to_string(),
+        root_id,
+        sticks,
+    );
+}
+
+fn table_2() -> (usize, HashMap<usize, DialogStick>) {
+    let mut main_stick = DialogStick::from(0);
+    main_stick.replicas.extend(
+        vec![
+            Replica::from_text("Сударь, я не занимаюсь посетителями. Обратитесь к столику номер 3.".to_string()),
+        ]
+    );
+
+    let mut where_second = DialogStick::from(1);
+    where_second.replicas.extend(
+        vec![
+            Replica::from_text("Вон, справа от меня.".to_string()),
+        ]
+    );
+
+    let mut go_go = DialogStick::from(3);
+
+    go_go.replicas.extend(
+        vec![
+            Replica::from_text("Хм.".to_string()),
+        ]
+    );
+
+    main_stick.branching = Some(Branching {
+        id: 0,
+        variants: vec![
+            Variant::create_with_effect(
+                "Ну где столик номер 3?".to_string(),
+                where_second.id,
+                DialogEffect::EndDialog(Some(TABLE_2_COMPLETED)),
+            ),
+            Variant::create_with_effect(
+                "Ыу, подозрительно.".to_string(),
+                go_go.id,
+                DialogEffect::EndDialog(Some(TABLE_2_COMPLETED)),
+            ),
+        ],
+    }
+    );
+
+    let mut pool = HashMap::new();
+    let root_id = main_stick.id;
+    pool.insert(main_stick.id, main_stick);
+    pool.insert(where_second.id, where_second);
+    pool.insert(go_go.id, go_go);
+
+    return (root_id, pool);
+}
+
+
+//      START
+//        *
+//        |
+//       ^ ^
+//       | |
+//       * *
+//       END
+
+pub const TABLE_3_DIALOG: usize = 15;
+
+pub const TABLE_3_COMPLETED: usize = 1;
+
+
+pub fn table_3_dialog() -> Dialog {
+    let (root_id, sticks) = table_2();
+    return Dialog::from(
+        DialogId(TABLE_2_DIALOG),
+        "Dialog 1".to_string(),
+        "background/dialog_bg.png".to_string(),
+        "npc/dialog_courier.png".to_string(),
+        root_id,
+        sticks,
+    );
+}
+
+fn table_3() -> (usize, HashMap<usize, DialogStick>) {
+    let mut main_stick = DialogStick::from(0);
+    main_stick.replicas.extend(
+        vec![
+            Replica::from_text("Здравствуйте. Что вы хотели?".to_string()),
+        ]
+    );
+
+    let mut go_to_first = DialogStick::from(1);
+    go_to_first.replicas.extend(
+        vec![
+            Replica::from_text("А. Ну, я не занимаюсь такими вопросами, обратитесь к столику с номером 1".to_string()),
+        ]
+    );
+
+    let mut how_you_guess = DialogStick::from(3);
+
+    how_you_guess.replicas.extend(
+        vec![
+            Replica::from_text("Хмм, как вы угадали? Я действительно не занимаюсь. Такими вопросами. Обратиесь к столику номер 1.".to_string()),
+        ]
+    );
+
+    main_stick.branching = Some(Branching {
+        id: 0,
+        variants: vec![
+            Variant::create_with_effect(
+                "Когда меня пустять в заль судя?".to_string(),
+                go_to_first.id,
+                DialogEffect::EndDialog(Some(TABLE_3_COMPLETED)),
+            ),
+            Variant::create_with_effect(
+                "Дяй угадяю: ти не занимаесся вопросями посетителей?".to_string(),
+                how_you_guess.id,
+                DialogEffect::EndDialog(Some(TABLE_3_COMPLETED)),
+            ),
+        ],
+    }
+    );
+
+    let mut pool = HashMap::new();
+    let root_id = main_stick.id;
+    pool.insert(main_stick.id, main_stick);
+    pool.insert(go_to_first.id, go_to_first);
+    pool.insert(how_you_guess.id, how_you_guess);
+
+    return (root_id, pool);
+}
+
