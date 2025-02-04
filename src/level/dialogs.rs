@@ -1661,7 +1661,6 @@ pub const TABLE_3_DIALOG: usize = 15;
 
 pub const TABLE_3_COMPLETED: usize = 1;
 
-
 pub fn table_3_dialog() -> Dialog {
     let (root_id, sticks) = table_2();
     return Dialog::from(
@@ -1723,3 +1722,332 @@ fn table_3() -> (usize, HashMap<usize, DialogStick>) {
     return (root_id, pool);
 }
 
+//       START
+//         *
+//         |
+//         *
+//         |
+//    ^----------^
+//    |          |
+//    *          *
+//    |        |   |
+//    *<-------^   ^
+//    |            |
+// ^ ^ ^ ^ ^       *
+//   |     |      | |
+//   *     *      ^ ^
+//  | |<-  |      | |
+//  ^ ^ |  *      * *
+//  | | ^ ^ ^ ^ ^ END
+//  * * |       |
+//  END --|     *
+//        |     |
+//        |     *
+//         ^ ^ ^ ^ ^ ^
+//                 |
+//                 *
+//                | |
+//                ^ ^
+//                | |
+//                * *
+
+pub const STRANGE_MAN_DIALOG: usize = 16;
+
+pub const STRANGE_MAN_DIALOG_COMPLETED: usize = 1;
+pub const STRANGE_MAN_DIALOG_BEATEN: usize = 2;
+
+pub fn strange_man_dialog() -> Dialog {
+    let (root_id, sticks) = table_2();
+    return Dialog::from(
+        DialogId(STRANGE_MAN_DIALOG),
+        "Dialog 1".to_string(),
+        "background/dialog_bg.png".to_string(),
+        "npc/dialog_courier.png".to_string(),
+        root_id,
+        sticks,
+    );
+}
+
+fn strange_man() -> (usize, HashMap<usize, DialogStick>) {
+    let mut main_stick = DialogStick::from(0);
+    main_stick.replicas.extend(
+        vec![
+            Replica::from_text("Ххха! Вижу тебе не чем заняться? Не хочешь скоротать время?".to_string()),
+            Replica::from_text("У меня есть несколько загадок, не хочешь поодгадывать?".to_string()),
+        ]
+    );
+
+    let mut guess_start = DialogStick::from(1);
+    guess_start.replicas.extend(
+        vec![
+            Replica::from_text("Хххааа! Ну давай, давай, посмотрим на сколько ты умен!".to_string()),
+            Replica::from_text("В рот его мне надо взять,\nЧтобы смачно пососать.\nСладко стало наконец,\nВедь во рту он,...".to_string()),
+        ]
+    );
+
+
+    let mut wrong_answer = DialogStick::from(2);
+    wrong_answer.replicas.extend(
+        vec![
+            Replica::from_text("Хахахахахах! Вот, ты ишак! Неправльный ответ, лалка ты!".to_string()),
+        ]
+    );
+
+    let mut go_get_out_here = DialogStick::from(3);
+    go_get_out_here.replicas.extend(
+        vec![
+            Replica::from_text("Вали, вали. Ххааа!".to_string()),
+        ]
+    );
+
+
+    let mut figth = DialogStick::from(4);
+    figth.replicas.extend(
+        vec![
+            Replica::from_text("Ххххха! Да я тебе твоя язык вправлю!".to_string()),
+        ]
+    );
+
+    wrong_answer.branching = Some(Branching {
+        id: 0,
+        variants: vec![
+            Variant::create_with_effect(
+                "Ай, нафиг твои загадки.".to_string(),
+                go_get_out_here.id,
+                DialogEffect::EndDialog(Some(STRANGE_MAN_DIALOG_COMPLETED)),
+            ),
+            Variant::create_with_effect(
+                "ЫЫЫЫУУУУ, щею свреню!!!".to_string(),
+                figth.id,
+                DialogEffect::EndDialog(Some(STRANGE_MAN_DIALOG_BEATEN)),
+            ),
+        ],
+    }
+    );
+
+    let mut right_answer_1 = DialogStick::from(5);
+    right_answer_1.replicas.extend(
+        vec![
+            Replica::from_text("Хм. Верно! Возможно, ты не такой тупой, как на первый взляд! Следующая...".to_string()),
+            Replica::from_text("Эти круглые две штучки\nВсех притягивают взор,\nИми мы весь мир увидим,\nРасширяем кругозор.".to_string()),
+        ]
+    );
+
+    let mut right_answer_2 = DialogStick::from(6);
+    right_answer_2.replicas.extend(
+        vec![
+            Replica::from_text("Да ты не перестаешь меня удивлять! Правильно! Ну и последняя...".to_string()),
+            Replica::from_text("Их тридцать три, плюс один генерал,\nКак бы ты их в три слова назвал?".to_string()),
+        ]
+    );
+
+    let mut right_answer_3 = DialogStick::from(7);
+    right_answer_3.replicas.extend(
+        vec![
+            Replica::from_text("Да! Это зубы и ЯЗЫК! ТЫК В ЯЗЫК [Показывает пальцев в твой язык, но не дотрагивается.".to_string()),
+        ]
+    );
+
+    let mut bye = DialogStick::from(8);
+    bye.replicas.extend(
+        vec![
+            Replica::from_text("Ххааа! Давай, покеда.".to_string()),
+        ]
+    );
+
+    right_answer_3.branching = Some(Branching {
+        id: 0,
+        variants: vec![
+            Variant::create_with_effect(
+                "Мдя. Я ухожу.".to_string(),
+                bye.id,
+                DialogEffect::EndDialog(Some(STRANGE_MAN_DIALOG_COMPLETED)),
+            ),
+            Variant::create_with_effect(
+                "[Напасть] И щея твоя КХЫК!".to_string(),
+                figth.id,
+                DialogEffect::EndDialog(Some(STRANGE_MAN_DIALOG_BEATEN)),
+            ),
+        ],
+    });
+
+    right_answer_2.branching = Some(Branching {
+        id: 0,
+        variants: vec![
+            Variant::create_with_effect(
+                "33 ПЕЛЬМЕНЯ И Я".to_string(),
+                wrong_answer.id,
+                DialogEffect::ReplaceDialog,
+            ),
+            Variant::create_with_effect(
+                "Зубы и язык".to_string(),
+                right_answer_3.id,
+                DialogEffect::ReplaceDialog,
+            ),
+            Variant::create_with_effect(
+                "Сольдати?".to_string(),
+                wrong_answer.id,
+                DialogEffect::ReplaceDialog,
+            ),
+            Variant::create_with_effect(
+                "Ыыыыу, надоели твои загадки.".to_string(),
+                wrong_answer.id,
+                DialogEffect::ReplaceDialog,
+            ),
+            Variant::create_with_effect(
+                "Букви?".to_string(),
+                wrong_answer.id,
+                DialogEffect::ReplaceDialog,
+            ),
+            Variant::create_with_effect(
+                "Ну, етё просто: зюбы и рот.".to_string(),
+                wrong_answer.id,
+                DialogEffect::ReplaceDialog,
+            ),
+        ],
+    });
+
+    right_answer_1.branching = Some(Branching {
+        id: 0,
+        variants: vec![
+            Variant::create_with_effect(
+                "ПЕЛЬМЕНИ".to_string(),
+                wrong_answer.id,
+                DialogEffect::ReplaceDialog,
+            ),
+            Variant::create_with_effect(
+                "Очки!".to_string(),
+                wrong_answer.id,
+                DialogEffect::ReplaceDialog,
+            ),
+            Variant::create_with_effect(
+                "Титьки...".to_string(),
+                wrong_answer.id,
+                DialogEffect::ReplaceDialog,
+            ),
+            Variant::create_with_effect(
+                "Иди ты!".to_string(),
+                wrong_answer.id,
+                DialogEffect::ReplaceDialog,
+            ),
+            Variant::create_with_effect(
+                "Глазя?".to_string(),
+                right_answer_2.id,
+                DialogEffect::ReplaceDialog,
+            ),
+        ],
+    });
+
+    guess_start.branching = Some(Branching {
+        id: 0,
+        variants: vec![
+            Variant::create_with_effect(
+                "Не зняю.".to_string(),
+                wrong_answer.id,
+                DialogEffect::ReplaceDialog,
+            ),
+            Variant::create_with_effect(
+                "Язык.".to_string(),
+                wrong_answer.id,
+                DialogEffect::ReplaceDialog,
+            ),
+            Variant::create_with_effect(
+                "Леденець".to_string(),
+                right_answer_1.id,
+                DialogEffect::ReplaceDialog,
+            ),
+            Variant::create_with_effect(
+                "Пельмени".to_string(),
+                wrong_answer.id,
+                DialogEffect::ReplaceDialog,
+            ),
+            Variant::create_with_effect(
+                "ЫЫЫЫУУУУ, ето не приличнё!".to_string(),
+                wrong_answer.id,
+                DialogEffect::ReplaceDialog,
+            ),
+        ],
+    }
+    );
+
+    let mut dont_want = DialogStick::from(9);
+
+    dont_want.replicas.extend(
+        vec![
+            Replica::from_text("А что? Очкушь да? По тебе видно, что ты очкун.".to_string()),
+        ]
+    );
+
+    let mut just_dont_want = DialogStick::from(10);
+
+    just_dont_want.replicas.extend(
+        vec![
+            Replica::from_text("Хххаааа! Нет! Ты - ОЧКУН - ЕНОТ ПАЛАСКУН!".to_string()),
+        ]
+    );
+
+    just_dont_want.branching = Some(Branching {
+        id: 0,
+        variants: vec![
+            Variant::create_with_effect(
+                "[Уйти] Да мне пофигь.".to_string(),
+                go_get_out_here.id,
+                DialogEffect::EndDialog(Some(STRANGE_MAN_DIALOG_COMPLETED)),
+            ),
+            Variant::create_with_effect(
+                "[Напасть] Пфффхеееее....".to_string(),
+                figth.id,
+                DialogEffect::EndDialog(Some(STRANGE_MAN_DIALOG_BEATEN)),
+            ),
+        ],
+    });
+
+    dont_want.branching = Some(Branching {
+        id: 0,
+        variants: vec![
+            Variant::create_with_effect(
+                "Ляяядно, давай свои зягадьки.".to_string(),
+                guess_start.id,
+                DialogEffect::ReplaceDialog,
+            ),
+            Variant::create_with_effect(
+                "Ниеть, просте не хотю!".to_string(),
+                just_dont_want.id,
+                DialogEffect::ReplaceDialog,
+            ),
+        ],
+    });
+
+    main_stick.branching = Some(Branching {
+        id: 0,
+        variants: vec![
+            Variant::create_with_effect(
+                "Ну дявай.".to_string(),
+                guess_start.id,
+                DialogEffect::ReplaceDialog,
+            ),
+            Variant::create_with_effect(
+                "Нихатю, мне надо на сюд.".to_string(),
+                dont_want.id,
+                DialogEffect::ReplaceDialog,
+            ),
+        ],
+    }
+    );
+
+    let mut pool = HashMap::new();
+    let root_id = main_stick.id;
+    pool.insert(main_stick.id, main_stick);
+    pool.insert(guess_start.id, guess_start);
+    pool.insert(wrong_answer.id, wrong_answer);
+    pool.insert(go_get_out_here.id, go_get_out_here);
+    pool.insert(figth.id, figth);
+    pool.insert(right_answer_1.id, right_answer_1);
+    pool.insert(right_answer_2.id, right_answer_2);
+    pool.insert(right_answer_3.id, right_answer_3);
+    pool.insert(bye.id, bye);
+    pool.insert(dont_want.id, dont_want);
+    pool.insert(just_dont_want.id, just_dont_want);
+
+    return (root_id, pool);
+}
