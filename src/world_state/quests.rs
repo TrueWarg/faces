@@ -64,3 +64,12 @@ pub enum BlondAndGopniks {
     TakeDumplingsFromBlond,
     Completed,
 }
+
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
+pub enum GoIntoCourt {
+    #[default]
+    None,
+    Wait,
+    CanGo,
+    Go,
+}

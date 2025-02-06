@@ -1,7 +1,7 @@
 use bevy::app::{Plugin, Update};
 use bevy::asset::{Assets, AssetServer};
 use bevy::math::Vec3;
-use bevy::prelude::Commands;
+use bevy::prelude::{Commands, Component, NextState};
 use bevy::prelude::in_state;
 use bevy::prelude::IntoSystemConfigs;
 use bevy::prelude::OnEnter;
@@ -14,12 +14,77 @@ use bevy::prelude::States;
 use bevy::prelude::TextureAtlasLayout;
 use bevy::prelude::Transform;
 use bevy_rapier2d::dynamics::RigidBody;
+
 use crate::animation::entities::MoveDirection;
 use crate::core::collisions::recalculate_z;
 use crate::core::entities::LevelYMax;
 use crate::core::z_index::{calculate_z, FLOOR_Z, ON_WALL_OBJECT_Z, WALL_Z};
+use crate::dialog::SelectedVariantsSource;
+use crate::level::CRAZY_MAN_DIALOG_BEATEN;
+use crate::level::CRAZY_MAN_DIALOG_COMPLETED;
+use crate::level::dialog_starts;
+use crate::level::HALL_GUARDIAN_FIRST_DIALOG_BEATEN;
+use crate::level::HALL_GUARDIAN_SECOND_COMPLETED;
+use crate::level::HALL_GUARDIAN_SECOND_DIALOG;
+use crate::level::CRAZY_MAN_DIALOG;
+use crate::level::HALL_GUARDIAN_FIRST_DIALOG;
+use crate::level::HasDialogId;
 use crate::level::objects::spawn_object;
+use crate::level::TABLE_1_DIALOG;
+use crate::level::TABLE_2_DIALOG;
+use crate::level::TABLE_3_DIALOG;
 use crate::npc::spawn_fixed_npc;
+use crate::world_state::GoIntoCourt;
+
+#[derive(Component)]
+struct GuardianFirstStage;
+
+impl HasDialogId for GuardianFirstStage {
+    fn dialog_id(&self) -> usize {
+        return HALL_GUARDIAN_FIRST_DIALOG;
+    }
+}
+
+#[derive(Component)]
+struct GuardianSecondStage;
+
+impl HasDialogId for GuardianSecondStage {
+    fn dialog_id(&self) -> usize {
+        return HALL_GUARDIAN_SECOND_DIALOG;
+    }
+}
+
+#[derive(Component)]
+struct Clerc1;
+
+impl HasDialogId for Clerc1 {
+    fn dialog_id(&self) -> usize {
+        return TABLE_1_DIALOG;
+    }
+}
+
+#[derive(Component)]
+struct Clerc2;
+
+impl HasDialogId for Clerc2 {
+    fn dialog_id(&self) -> usize {
+        return TABLE_2_DIALOG;
+    }
+}
+
+#[derive(Component)]
+struct Clerc3;
+
+impl HasDialogId for Clerc3 {
+    fn dialog_id(&self) -> usize { return TABLE_3_DIALOG; }
+}
+
+#[derive(Component)]
+struct CrazyMan;
+
+impl HasDialogId for CrazyMan {
+    fn dialog_id(&self) -> usize { return CRAZY_MAN_DIALOG; }
+}
 
 pub struct CourtHouseHallPlugin<S: States> {
     pub state: S,
@@ -34,14 +99,22 @@ impl<S: States> Plugin for CourtHouseHallPlugin<S> {
             .add_systems(OnEnter(self.state.clone()), spawn_speaking_clerks)
             .add_systems(OnEnter(self.state.clone()), spawn_visitors)
             .add_systems(OnEnter(self.state.clone()), spawn_crazy_man)
-            .add_systems(Update, (recalculate_z).run_if(in_state(self.state.clone())));
+            .add_systems(Update, dialog_starts::<Clerc1>.run_if(in_state(GoIntoCourt::Wait)))
+            .add_systems(Update, dialog_starts::<Clerc2>.run_if(in_state(GoIntoCourt::Wait)))
+            .add_systems(Update, dialog_starts::<Clerc3>.run_if(in_state(GoIntoCourt::Wait)))
+            .add_systems(Update, dialog_starts::<GuardianFirstStage>.run_if(in_state(GoIntoCourt::Wait)))
+            .add_systems(Update, dialog_starts::<GuardianSecondStage>.run_if(in_state(GoIntoCourt::CanGo)))
+            .add_systems(Update, dialog_starts::<CrazyMan>.run_if(in_state(GoIntoCourt::Wait)))
+            .add_systems(Update, (dialog_variants_handles, recalculate_z).run_if(in_state(self.state.clone())));
     }
 }
 
 fn load(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
+    mut go_into_court_state: ResMut<NextState<GoIntoCourt>>,
 ) {
+    go_into_court_state.set(GoIntoCourt::Wait);
     let y_max = LevelYMax::create(359.0);
     commands.spawn(y_max);
 
@@ -175,7 +248,7 @@ fn spawn_guardians(
         &asset_server,
         &mut commands,
         &mut layouts,
-        (),
+        (GuardianFirstStage, GuardianSecondStage),
         "npc/guardian.png".to_string(),
         MoveDirection::ForwardIdle,
         -50.0,
@@ -187,7 +260,7 @@ fn spawn_guardians(
         &asset_server,
         &mut commands,
         &mut layouts,
-        (),
+        (GuardianFirstStage, GuardianSecondStage),
         "npc/guardian.png".to_string(),
         MoveDirection::ForwardIdle,
         50.0,
@@ -213,7 +286,7 @@ fn spawn_working_clerks(
         &asset_server,
         &mut commands,
         &mut layouts,
-        (),
+        Clerc3,
         "npc/clerk.png".to_string(),
         MoveDirection::LeftIdle,
         x,
@@ -228,7 +301,7 @@ fn spawn_working_clerks(
         &asset_server,
         &mut commands,
         &mut layouts,
-        (),
+        Clerc2,
         "npc/clerk_blond.png".to_string(),
         MoveDirection::LeftIdle,
         x,
@@ -243,7 +316,7 @@ fn spawn_working_clerks(
         &asset_server,
         &mut commands,
         &mut layouts,
-        (),
+        Clerc1,
         "npc/clerk.png".to_string(),
         MoveDirection::LeftIdle,
         x,
@@ -398,13 +471,60 @@ fn spawn_crazy_man(
         &asset_server,
         &mut commands,
         &mut layouts,
-        (),
+        CrazyMan,
         "npc/crazy_man.png".to_string(),
         MoveDirection::ForwardIdle,
         x,
         y,
         z,
     );
+}
+
+fn dialog_variants_handles(
+    mut dialog_variant_source: ResMut<SelectedVariantsSource>,
+    mut go_into_court_state: ResMut<NextState<GoIntoCourt>>,
+) {
+    // todo: it calculates on each frame.
+    // make it when dialog_variant_source updates only.
+    let selected = dialog_variant_source.consume(&HALL_GUARDIAN_FIRST_DIALOG);
+    match selected {
+        None => {}
+        Some(ids) => {
+            for id in ids {
+                if id == HALL_GUARDIAN_FIRST_DIALOG_BEATEN {
+                    go_into_court_state.set(GoIntoCourt::Go);
+                }
+            }
+        }
+    }
+
+    let selected = dialog_variant_source.consume(&HALL_GUARDIAN_SECOND_DIALOG);
+    match selected {
+        None => {}
+        Some(ids) => {
+            for id in ids {
+                if id == HALL_GUARDIAN_SECOND_COMPLETED {
+                    go_into_court_state.set(GoIntoCourt::Go);
+                }
+            }
+        }
+    }
+
+    let selected = dialog_variant_source.consume(&CRAZY_MAN_DIALOG);
+    match selected {
+        None => {}
+        Some(ids) => {
+            for id in ids {
+                if id == CRAZY_MAN_DIALOG_COMPLETED {
+                    go_into_court_state.set(GoIntoCourt::CanGo);
+                }
+
+                if id == CRAZY_MAN_DIALOG_BEATEN {
+                    go_into_court_state.set(GoIntoCourt::CanGo);
+                }
+            }
+        }
+    }
 }
 
 fn unload() {}

@@ -1487,6 +1487,7 @@ fn hall_guardian_second() -> (usize, HashMap<usize, DialogStick>) {
     let mut pool = HashMap::new();
     let root_id = main_stick.id;
     pool.insert(main_stick.id, main_stick);
+    pool.insert(what.id, what);
 
     return (root_id, pool);
 }
@@ -1662,7 +1663,7 @@ pub const TABLE_3_DIALOG: usize = 15;
 pub const TABLE_3_COMPLETED: usize = 1;
 
 pub fn table_3_dialog() -> Dialog {
-    let (root_id, sticks) = table_2();
+    let (root_id, sticks) = table_3();
     return Dialog::from(
         DialogId(TABLE_2_DIALOG),
         "Dialog 1".to_string(),
@@ -1750,16 +1751,17 @@ fn table_3() -> (usize, HashMap<usize, DialogStick>) {
 //                ^ ^
 //                | |
 //                * *
+//                END
 
-pub const STRANGE_MAN_DIALOG: usize = 16;
+pub const CRAZY_MAN_DIALOG: usize = 16;
 
-pub const STRANGE_MAN_DIALOG_COMPLETED: usize = 1;
-pub const STRANGE_MAN_DIALOG_BEATEN: usize = 2;
+pub const CRAZY_MAN_DIALOG_COMPLETED: usize = 1;
+pub const CRAZY_MAN_DIALOG_BEATEN: usize = 2;
 
-pub fn strange_man_dialog() -> Dialog {
-    let (root_id, sticks) = table_2();
+pub fn crazy_man_dialog() -> Dialog {
+    let (root_id, sticks) = crazy_man();
     return Dialog::from(
-        DialogId(STRANGE_MAN_DIALOG),
+        DialogId(CRAZY_MAN_DIALOG),
         "Dialog 1".to_string(),
         "background/dialog_bg.png".to_string(),
         "npc/dialog_courier.png".to_string(),
@@ -1768,7 +1770,7 @@ pub fn strange_man_dialog() -> Dialog {
     );
 }
 
-fn strange_man() -> (usize, HashMap<usize, DialogStick>) {
+fn crazy_man() -> (usize, HashMap<usize, DialogStick>) {
     let mut main_stick = DialogStick::from(0);
     main_stick.replicas.extend(
         vec![
@@ -1814,12 +1816,12 @@ fn strange_man() -> (usize, HashMap<usize, DialogStick>) {
             Variant::create_with_effect(
                 "Ай, нафиг твои загадки.".to_string(),
                 go_get_out_here.id,
-                DialogEffect::EndDialog(Some(STRANGE_MAN_DIALOG_COMPLETED)),
+                DialogEffect::EndDialog(Some(CRAZY_MAN_DIALOG_COMPLETED)),
             ),
             Variant::create_with_effect(
                 "ЫЫЫЫУУУУ, щею свреню!!!".to_string(),
                 figth.id,
-                DialogEffect::EndDialog(Some(STRANGE_MAN_DIALOG_BEATEN)),
+                DialogEffect::EndDialog(Some(CRAZY_MAN_DIALOG_BEATEN)),
             ),
         ],
     }
@@ -1861,12 +1863,12 @@ fn strange_man() -> (usize, HashMap<usize, DialogStick>) {
             Variant::create_with_effect(
                 "Мдя. Я ухожу.".to_string(),
                 bye.id,
-                DialogEffect::EndDialog(Some(STRANGE_MAN_DIALOG_COMPLETED)),
+                DialogEffect::EndDialog(Some(CRAZY_MAN_DIALOG_COMPLETED)),
             ),
             Variant::create_with_effect(
                 "[Напасть] И щея твоя КХЫК!".to_string(),
                 figth.id,
-                DialogEffect::EndDialog(Some(STRANGE_MAN_DIALOG_BEATEN)),
+                DialogEffect::EndDialog(Some(CRAZY_MAN_DIALOG_BEATEN)),
             ),
         ],
     });
@@ -1992,12 +1994,12 @@ fn strange_man() -> (usize, HashMap<usize, DialogStick>) {
             Variant::create_with_effect(
                 "[Уйти] Да мне пофигь.".to_string(),
                 go_get_out_here.id,
-                DialogEffect::EndDialog(Some(STRANGE_MAN_DIALOG_COMPLETED)),
+                DialogEffect::EndDialog(Some(CRAZY_MAN_DIALOG_COMPLETED)),
             ),
             Variant::create_with_effect(
                 "[Напасть] Пфффхеееее....".to_string(),
                 figth.id,
-                DialogEffect::EndDialog(Some(STRANGE_MAN_DIALOG_BEATEN)),
+                DialogEffect::EndDialog(Some(CRAZY_MAN_DIALOG_BEATEN)),
             ),
         ],
     });
