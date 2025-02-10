@@ -2053,3 +2053,207 @@ fn crazy_man() -> (usize, HashMap<usize, DialogStick>) {
 
     return (root_id, pool);
 }
+
+
+//              START
+//                *
+//                |
+//                *
+//                |
+//                *
+//                |
+//                *
+//                |
+//                *
+//             ^----^----^
+//             |    |    |
+//             *    ^----*
+//             |         |
+//             *         |
+//            END        *
+//             ^         |
+//             |   ----------
+//         ----|   |    |   |
+//        |    ----^    ^---^
+//        |              |___|
+//        |                  |
+//        |                  *
+//        |                  |
+//        |                  *
+//        |                  |
+//        |                  *
+//        |                | | -----------|
+//        ---------------- ^ ^            ^
+//        |                  |            |
+//        |                  *            *
+//        |                 | |           |
+//        ------------------^ ^           *
+//        |                   |           |
+//        |                   *     ^  ^  ^  ^  ^
+//        |                  END    |  |  |  |  |
+//        ---------------------------  *  *  *  *
+//        |                          -------------
+//        |                               |
+//        |                               *
+//        |                               |
+//        |                        ^  ^  ^  ^  ^  ^
+//        ------------------------ |  |  |  |  |  |
+//        |                           *  *  *  *  *
+//        |                        ----------------
+//        |                                |
+//        |                                *
+//        |                          ^  ^  ^  ^  ^
+//        |                          |  |  |  |  |
+//        |-------------------------    *  *  *  *
+//        |                          --------------
+//        |                                |
+//        |                                *
+//        |                         ^  ^  ^  ^  ^  ^
+//        ------------------------- |  |  |  |  |  |
+//        |                            *  *  *  *  *
+//        |                            -------------
+//        |                                 |
+//        |                                 *
+//        |                           |  |  |  |  |
+//        | --------------------------   ^  ^  ^  ^
+//        |                              |  |  |  |
+//        |                              *  *  *  *
+//        |                              ----------
+//        |                                  |
+//        |                                  *
+//        |                                  |
+//        |                                  *
+//        |                                | | |
+//        ---------------------------------^ ^ ^
+//                                           | |
+//                                           * *
+//
+//
+pub const JUDGES_FIRST_DIALOG: usize = 17;
+
+pub const JUDGES_FIRST_DIALOG_COMPLETED: usize = 1;
+pub const JUDGES_FIRST_DIALOG_BEATEN: usize = 2;
+
+pub fn judges_first_dialog() -> Dialog {
+    let (root_id, sticks) = crazy_man();
+    return Dialog::from(
+        DialogId(JUDGES_FIRST_DIALOG),
+        "Dialog 1".to_string(),
+        "background/dialog_bg.png".to_string(),
+        "npc/dialog_courier.png".to_string(),
+        root_id,
+        sticks,
+    );
+}
+
+pub fn judges_first() -> (usize, HashMap<usize, DialogStick>) {
+    let mut main_stick = DialogStick::from(0);
+    main_stick.replicas.extend(
+        vec![
+            Replica::from_text("Перед тобой сидят судьи. В центре \
+            Главный Судья, слева от него Жирный, известный своим неумным обжорством, а с права...\n\
+            Пацан! Твой злейший враг, который част крадет у тебя деньги. Что он задумал?".to_string()),
+            Replica::from_text("ТИШИНА В ЗАЛЕ, ТИШИНА! РАССАЖИВАЕМСЯ НА МЕСТА, ЗАСЕДАНИЕ НАЧНЕТСЯ ЧЕРЕЗ РАЗ...".to_string()),
+            Replica::from_text("Пацан: Ххххммммм, два!".to_string()),
+            Replica::from_text("Жирный [молчание]...... А, ж, ой. Четыре!".to_string()),
+            Replica::from_text("ЗАСЕДАНИЕ НАЧИНАЕТСЯ! [СТУЧИТ МОЛОТКОМ]. \
+            ОТКРЫВАЕМ СЛУШАНИЕ ПО ДЕЛО № 5 \"О Доме т.н. Грозн. Л-чк.\"".to_string()),
+        ]
+    );
+
+    let mut fight = DialogStick::from(1);
+
+    fight.replicas.extend(
+        vec![
+            Replica::from_text("ОХРАНА, ВЫШВЫРНЕТЕ ЭТОГО БУЯНА!!".to_string()),
+            Replica::from_text("Одновременно с криком судьи, Пацан выпивает формулу и \
+            превращается в так называемого Рыжего Шипастого Пацана".to_string()),
+        ]
+    );
+
+    let mut pass_1 = DialogStick::from(2);
+    pass_1.replicas.extend(
+        vec![
+            Replica::from_text("Обвинитель: уважаемый Обычный Мальчик. Обвиняемый: Грозный Личик.".to_string()),
+            Replica::from_text("Начинаю зачитывать материалы настоящего дела...".to_string()),
+        ]
+    );
+
+
+    let mut pass_2 = DialogStick::from(3);
+    pass_2.replicas.extend(
+        vec![
+            Replica::from_text("Уважаемый господин Обычный Мальчик утверждает, что физическое \
+            лицо по имени Грозное Лицо.. эм, Личик незаконно завладел его недвижимостью.".to_string()),
+            Replica::from_text("Он требует вернуть его дом, \
+            по праву ему принадлежащий и получить от Грозного Личика денежную компенсацию".to_string()),
+            Replica::from_text("Пацан: Ххммммм, да, денежную!".to_string()),
+        ]
+    );
+
+    let mut pass_3 = DialogStick::from(3);
+
+    pass_3.replicas.extend(
+        vec![
+
+        ]
+    );
+
+    pass_1.branching = Some(Branching {
+        id: 0,
+        variants: vec![
+            Variant::create_with_effect(
+                "[Напасть] Пора заканчивать эту клёунадю.".to_string(),
+                fight.id,
+                DialogEffect::EndDialog(Some(JUDGES_FIRST_DIALOG_BEATEN)),
+            ),
+            Variant::create_with_effect(
+                "Смачно сирануть после слова \"дела\"".to_string(),
+                pass_2.id,
+                DialogEffect::ReplaceDialog,
+            ),
+            Variant::create_with_effect(
+                "[Молчать].".to_string(),
+                pass_2.id,
+                DialogEffect::ReplaceDialog,
+            ),
+        ],
+    }
+    );
+
+    main_stick.branching = Some(Branching {
+        id: 0,
+        variants: vec![
+            Variant::create_with_effect(
+                "[Напасть] ЫЫЫУУУУУ, Пацань!!!!".to_string(),
+                fight.id,
+                DialogEffect::EndDialog(Some(JUDGES_FIRST_DIALOG_BEATEN)),
+            ),
+            Variant::create_with_effect(
+                "Пёрнуть на весь зал.".to_string(),
+                pass_1.id,
+                DialogEffect::ReplaceDialog,
+            ),
+            Variant::create_with_effect(
+                "[Молчать].".to_string(),
+                pass_1.id,
+                DialogEffect::ReplaceDialog,
+            ),
+        ],
+    }
+    );
+
+    let mut pool = HashMap::new();
+    let root_id = main_stick.id;
+    pool.insert(main_stick.id, main_stick);
+
+    return (root_id, pool);
+}
+
+pub const JUDGES_SECOND_DIALOG: usize = 18;
+
+pub const JUDGES_THIRD_DIALOG: usize = 19;
+
+pub const JUDGES_THIRD_DIALOG_COMPLETED: usize = 1;
+pub const JUDGES_THIRD_DIALOG_BEATEN: usize = 2;
+
