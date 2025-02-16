@@ -2139,7 +2139,7 @@ pub const JUDGES_FIRST_DIALOG_COMPLETED: usize = 1;
 pub const JUDGES_FIRST_DIALOG_BEATEN: usize = 2;
 
 pub fn judges_first_dialog() -> Dialog {
-    let (root_id, sticks) = crazy_man();
+    let (root_id, sticks) = judges_first();
     return Dialog::from(
         DialogId(JUDGES_FIRST_DIALOG),
         "Dialog 1".to_string(),
@@ -2169,9 +2169,8 @@ pub fn judges_first() -> (usize, HashMap<usize, DialogStick>) {
 
     fight.replicas.extend(
         vec![
-            Replica::from_text("ОХРАНА, ВЫШВЫРНЕТЕ ЭТОГО БУЯНА!!".to_string()),
-            Replica::from_text("Одновременно с криком судьи, Пацан выпивает формулу и \
-            превращается в так называемого Рыжего Шипастого Пацана".to_string()),
+            Replica::from_text("ОХРАНА, ВЫШВЫРНЕТЕ ЭТОГО БУЯНА!!\n[Одновременно с криком судьи, Пацан выпивает формулу и \
+            превращается в так называемого Рыжего Шипастого Пацана]".to_string()),
         ]
     );
 
@@ -2180,9 +2179,8 @@ pub fn judges_first() -> (usize, HashMap<usize, DialogStick>) {
     fight_with_simple_boy.replicas.extend(
         vec![
             Replica::from_text("[Обычный мальчик заорал] АААААА, на помощь!!".to_string()),
-            Replica::from_text("ОХРАНА, ВЫШВЫРНЕТЕ ЭТОГО БУЯНА!!".to_string()),
-            Replica::from_text("Одновременно с криком судьи, Пацан выпивает формулу и \
-            превращается в так называемого Рыжего Шипастого Пацана".to_string()),
+            Replica::from_text("ОХРАНА, ВЫШВЫРНЕТЕ ЭТОГО БУЯНА!!\n[Одновременно с криком судьи, Пацан выпивает формулу и \
+            превращается в так называемого Рыжего Шипастого Пацана]".to_string()),
         ]
     );
 
@@ -2755,7 +2753,7 @@ pub fn judges_first() -> (usize, HashMap<usize, DialogStick>) {
             ),
             Variant::create_with_effect(
                 "[Молчать].".to_string(),
-                pass_2.id,
+                question1.id,
                 DialogEffect::ReplaceDialog,
             ),
         ],

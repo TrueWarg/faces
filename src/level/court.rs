@@ -2,7 +2,7 @@ use bevy::app::{Plugin, Update};
 use bevy::asset::{Assets, AssetServer};
 use bevy::hierarchy::BuildChildren;
 use bevy::math::{UVec2, Vec3};
-use bevy::prelude::Commands;
+use bevy::prelude::{Commands, Component, NextState};
 use bevy::prelude::in_state;
 use bevy::prelude::IntoSystemConfigs;
 use bevy::prelude::OnEnter;
@@ -23,8 +23,43 @@ use bevy_rapier2d::geometry::Collider;
 use crate::core::collisions::recalculate_z;
 use crate::core::entities::{BodyYOffset, LevelYMax};
 use crate::core::z_index::{calculate_z, DEFAULT_OBJECT_Z, FLOOR_Z, ON_WALL_OBJECT_Z, WALL_Z};
+use crate::dialog::SelectedVariantsSource;
+use crate::interaction::interactors::{InteractionArea, InteractionSide, PassiveInteractor};
+use crate::level::{dialog_starts, JUDGES_FIRST_DIALOG_BEATEN, JUDGES_FIRST_DIALOG_COMPLETED};
+use crate::level::HasDialogId;
+use crate::level::JUDGES_FIRST_DIALOG;
+use crate::level::JUDGES_SECOND_DIALOG;
+use crate::level::JUDGES_THIRD_DIALOG;
 use crate::level::objects::spawn_object;
 use crate::npc::IdleAnimation;
+use crate::world_state::Trial;
+
+#[derive(Component)]
+struct JudgesDialog;
+
+impl HasDialogId for JudgesDialog {
+    fn dialog_id(&self) -> usize {
+        return JUDGES_FIRST_DIALOG;
+    }
+}
+
+#[derive(Component)]
+struct JudgesFormidableFaceWon;
+
+impl HasDialogId for JudgesFormidableFaceWon {
+    fn dialog_id(&self) -> usize {
+        return JUDGES_SECOND_DIALOG;
+    }
+}
+
+#[derive(Component)]
+struct JudgesFormidableFaceFailed;
+
+impl HasDialogId for JudgesFormidableFaceFailed {
+    fn dialog_id(&self) -> usize {
+        return JUDGES_THIRD_DIALOG;
+    }
+}
 
 pub struct CourtPlugin<S: States> {
     pub state: S,
@@ -35,14 +70,19 @@ impl<S: States> Plugin for CourtPlugin<S> {
         app.add_systems(OnEnter(self.state.clone()), load)
             .add_systems(OnExit(self.state.clone()), unload)
             .add_systems(OnEnter(self.state.clone()), spawn_judges)
-            .add_systems(Update, (recalculate_z).run_if(in_state(self.state.clone())));
+            .add_systems(Update, dialog_starts::<JudgesDialog>.run_if(in_state(Trial::SpeakWithJudges)))
+            .add_systems(Update, dialog_starts::<JudgesFormidableFaceWon>.run_if(in_state(Trial::FormidableFaceWon)))
+            .add_systems(Update, dialog_starts::<JudgesFormidableFaceFailed>.run_if(in_state(Trial::FormidableFaceFailed)))
+            .add_systems(Update, (dialog_variants_handles, recalculate_z).run_if(in_state(self.state.clone())));
     }
 }
 
 fn load(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
+    mut trial_state: ResMut<NextState<Trial>>,
 ) {
+    trial_state.set(Trial::SpeakWithJudges);
     let y_max = LevelYMax::create(226.0);
     commands.spawn(y_max);
 
@@ -218,6 +258,7 @@ fn spawn_judges(
                 index: 0,
             },
         ))
+        .insert((JudgesDialog, JudgesFormidableFaceWon, JudgesFormidableFaceFailed))
         .insert(IdleAnimation {
             timer: Timer::from_seconds(
                 0.15,
@@ -235,7 +276,34 @@ fn spawn_judges(
                     -8.0,
                     DEFAULT_OBJECT_Z,
                 )));
+        })
+        .insert(PassiveInteractor {
+            area: InteractionArea::from_sizes(229.0, 54.0),
+            side: InteractionSide::Bottom,
         });
+}
+
+fn dialog_variants_handles(
+    mut dialog_variant_source: ResMut<SelectedVariantsSource>,
+    mut trial_state: ResMut<NextState<Trial>>,
+) {
+    // todo: it calculates on each frame.
+    // make it when dialog_variant_source updates only.
+    let selected = dialog_variant_source.consume(&JUDGES_FIRST_DIALOG);
+    match selected {
+        None => {}
+        Some(ids) => {
+            for id in ids {
+                if id == JUDGES_FIRST_DIALOG_COMPLETED {
+                    trial_state.set(Trial::Wait);
+                }
+
+                if id == JUDGES_FIRST_DIALOG_BEATEN {
+                    trial_state.set(Trial::GoAtHome);
+                }
+            }
+        }
+    }
 }
 
 fn unload() {}

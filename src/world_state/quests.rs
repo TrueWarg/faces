@@ -73,3 +73,14 @@ pub enum GoIntoCourt {
     CanGo,
     Go,
 }
+
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
+pub enum Trial {
+    #[default]
+    None,
+    SpeakWithJudges,
+    Wait,
+    FormidableFaceWon,
+    FormidableFaceFailed,
+    GoAtHome,
+}
