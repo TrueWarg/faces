@@ -1,6 +1,6 @@
 use bevy::app::{App, Plugin};
 use bevy::prelude::AppExtStates;
-use crate::world_state::GoIntoCourt;
+use crate::world_state::{GoIntoCourt, Trial};
 
 use crate::world_state::quests::Court;
 use crate::world_state::quests::BlondAndGopniks;
@@ -22,7 +22,8 @@ impl Plugin for WorldStatePlugin {
             .init_state::<House>()
             .init_state::<StrangeOldWoman>()
             .init_state::<BlondAndGopniks>()
-            .init_state::<GoIntoCourt>();
+            .init_state::<GoIntoCourt>()
+            .init_state::<Trial>();
     }
 }
 

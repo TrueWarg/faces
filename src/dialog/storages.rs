@@ -2,7 +2,7 @@ use bevy::prelude::Resource;
 use bevy::utils::HashMap;
 
 use crate::dialog::entities::Dialog;
-use crate::level::{BLOND_FIRST_DIALOG, CRAZY_MAN_DIALOG, crazy_man_dialog, HALL_GUARDIAN_FIRST_DIALOG, hall_guardian_first_dialog, HALL_GUARDIAN_SECOND_DIALOG, hall_guardian_second_dialog, TABLE_1_DIALOG, table_1_dialog, TABLE_2_DIALOG, table_2_dialog, table_3_dialog, TABLE_3_DIALOG};
+use crate::level::{BLOND_FIRST_DIALOG, CRAZY_MAN_DIALOG, crazy_man_dialog, HALL_GUARDIAN_FIRST_DIALOG, hall_guardian_first_dialog, HALL_GUARDIAN_SECOND_DIALOG, hall_guardian_second_dialog, judges_first_dialog, JUDGES_FIRST_DIALOG, TABLE_1_DIALOG, table_1_dialog, TABLE_2_DIALOG, table_2_dialog, table_3_dialog, TABLE_3_DIALOG};
 use crate::level::BLOND_GIVE_DUMPLINGS_DIALOG;
 use crate::level::blond_give_dumplings_dialog;
 use crate::level::BLOND_TAKE_DUMPLINGS_DIALOG;
@@ -54,6 +54,7 @@ fn test_dialogs() -> HashMap<usize, Dialog> {
     result.insert(TABLE_2_DIALOG, table_2_dialog());
     result.insert(TABLE_3_DIALOG, table_3_dialog());
     result.insert(CRAZY_MAN_DIALOG, crazy_man_dialog());
+    result.insert(JUDGES_FIRST_DIALOG, judges_first_dialog());
 
     return result;
 }
