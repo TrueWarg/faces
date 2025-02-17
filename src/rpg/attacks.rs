@@ -13,6 +13,15 @@ pub enum DirectionalAttack {
     },
 }
 
+impl DirectionalAttack {
+    pub fn damage(&self) -> i32 {
+        return match self {
+            DirectionalAttack::InevitableDamage { damage } => { damage.clone() }
+            DirectionalAttack::Punch { damage } => { damage.clone() }
+        };
+    }
+}
+
 impl DirectionalAction for DirectionalAttack {
     fn apply(&self, target: &mut TargetProps) {
         match self {

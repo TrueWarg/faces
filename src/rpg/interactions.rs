@@ -18,11 +18,11 @@ pub struct RangedProp {
 
 impl RangedProp {
     pub fn decrease(&mut self, value: i32) {
-        self.current = min(self.min, self.current - value)
+        self.current = max(self.min, self.current - value)
     }
 
     pub fn increase(&mut self, value: i32) {
-        self.current = max(self.max, self.current + value)
+        self.current = min(self.max, self.current + value)
     }
 }
 

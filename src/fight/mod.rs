@@ -7,6 +7,7 @@ mod actions_ui;
 mod selector_ui;
 mod mappers;
 mod enemy_ui;
+mod step;
 
 pub use scene::*;
 pub use storages::*;
