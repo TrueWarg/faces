@@ -9,6 +9,7 @@ use bevy::color::Srgba;
 use bevy::hierarchy::Children;
 use bevy::hierarchy::DespawnRecursiveExt;
 use bevy::input::ButtonInput;
+use bevy::log::warn;
 use bevy::prelude::{AlignItems, PositionType};
 use bevy::prelude::AppExtStates;
 use bevy::prelude::BackgroundColor;
@@ -37,7 +38,7 @@ use bevy::prelude::UiImage;
 use bevy::prelude::With;
 use bevy::text::Text;
 use bevy::ui::{UiRect, Val};
-use bevy::utils::{HashMap, HashSet};
+use bevy::utils::{HashMap, HashSet, warn};
 use sickle_ui::prelude::{SetAlignItemsExt, SetLeftExt, SetPositionTypeExt, SetTopExt};
 use sickle_ui::prelude::SetBackgroundColorExt;
 use sickle_ui::prelude::SetHeightExt;
@@ -73,6 +74,7 @@ enum ScreenState {
     SelectEnemyTarget,
     SelectAllyTarget,
     PlayerStepApply,
+    EnemyStepApply,
     EnemyStep,
 }
 
@@ -89,7 +91,7 @@ struct AbilitiesScreen;
 struct ItemsScreen;
 
 #[derive(Component)]
-pub struct SelectedMemberId(pub usize);
+struct SelectedMemberId(Option<usize>);
 
 #[derive(Component)]
 struct Attacks {
@@ -108,7 +110,8 @@ struct Consumables {
 
 #[derive(Component)]
 struct AvailableMembers {
-    ids: HashSet<usize>,
+    all: HashSet<usize>,
+    remaining: HashSet<usize>,
 }
 
 #[derive(Component)]
@@ -121,7 +124,7 @@ struct EnemyTargets {
     items: HashMap<usize, TargetProps>,
 }
 
-#[derive(Component)]
+#[derive(Component, Debug)]
 struct CurrentAllyStep(Option<AllyStep>);
 
 impl CurrentAllyStep {
@@ -129,11 +132,11 @@ impl CurrentAllyStep {
         match &mut self.0 {
             None => {}
             Some(step) => match step {
-                AllyStep::OnEnemy { action, member_id, mut target_id } => {
-                    target_id = Some(id);
+                AllyStep::OnEnemy { action, member_id, target_id } => {
+                    *target_id = Some(id);
                 }
-                AllyStep::OnAlly { action, member_id, mut target_id } => {
-                    target_id = Some(id)
+                AllyStep::OnAlly { action, member_id, target_id } => {
+                    *target_id = Some(id)
                 }
                 AllyStep::Guard => {}
             },
@@ -141,7 +144,7 @@ impl CurrentAllyStep {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Debug)]
 enum AllyStep {
     OnEnemy {
         action: StepAction,
@@ -156,7 +159,7 @@ enum AllyStep {
     Guard,
 }
 
-#[derive(Component)]
+#[derive(Component, Debug)]
 enum StepAction {
     Attack(DirectionalAttack),
     Ability(Ability),
@@ -195,6 +198,9 @@ impl Plugin for FightingScene {
             .add_systems(Update, (selected_consumable_handle, pick_item_handle::<ItemsScreen>)
                 .run_if(in_state(ScreenState::ItemsList)))
 
+            .add_systems(Update, ally_step_handle.run_if(in_state(ScreenState::PlayerStepApply)))
+            .add_systems(Update, enemy_step_handle.run_if(in_state(ScreenState::EnemyStep)))
+
             .add_systems(Update, target_enemy_selection_input_handle.run_if(in_state(ScreenState::SelectEnemyTarget)))
 
             .add_systems(Update, target_ally_selection_input_handle.run_if(in_state(ScreenState::SelectAllyTarget)));
@@ -217,6 +223,7 @@ fn actions_menu_input_handle(
                 *background_color = button.config.hover
             }
             Interaction::Pressed => {
+                *background_color = button.config.idle;
                 if button.payload.0 == ATTACKS_BUTTON_ID.0 {
                     next_state.set(ScreenState::AttacksList);
                 }
@@ -255,14 +262,19 @@ fn party_member_selection_input_handle(
         (Changed<Interaction>, With<MemberId>),
     >,
     mut selected_member_query: Query<(&mut SelectedMemberId)>,
+    available_members_query: Query<(&AvailableMembers)>,
 ) {
     for (member_id, interaction) in &query {
+        let members = available_members_query.single();
+        if !members.remaining.contains(&member_id.0) {
+            return;
+        }
         match interaction {
             Interaction::None => {}
             Interaction::Hovered => {}
             Interaction::Pressed => {
                 let mut new_id = selected_member_query.single_mut();
-                *new_id = SelectedMemberId((*member_id).0);
+                *new_id = SelectedMemberId(Some((*member_id).0));
             }
         }
     }
@@ -272,10 +284,14 @@ fn party_member_selection_state_changes(
     mut query: Query<(&MemberId, &mut BackgroundColor), With<MemberId>>,
     selected_member_query: Query<(&SelectedMemberId), Changed<SelectedMemberId>>,
 ) {
-    for id in selected_member_query.iter() {
+    for selected_member_id in selected_member_query.iter() {
         for (member_id, mut background) in &mut query {
-            if member_id.0 == id.0 {
-                *background = YELLOW.into();
+            if let Some(id) = selected_member_id.0 {
+                if member_id.0 == id {
+                    *background = YELLOW.into();
+                } else {
+                    *background = ANTIQUE_WHITE.into();
+                }
             } else {
                 *background = ANTIQUE_WHITE.into();
             }
@@ -302,6 +318,7 @@ fn target_ally_selection_input_handle(
                 *background = BLUE.into();
             }
             Interaction::Pressed => {
+                *background = ANTIQUE_WHITE.into();
                 let mut step = current_step_query.single_mut();
                 step.set_target_id(id.0);
                 next_state.set(ScreenState::PlayerStepApply);
@@ -312,8 +329,41 @@ fn target_ally_selection_input_handle(
 
 fn ally_step_handle(
     mut next_state: ResMut<NextState<ScreenState>>,
+    mut selected_member_query: Query<(&mut SelectedMemberId)>,
     mut current_step_query: Query<(&mut CurrentAllyStep)>,
-) {}
+    mut available_members_query: Query<(&mut AvailableMembers)>,
+) {
+    for curr_step in current_step_query.iter() {
+        match &curr_step.0 {
+            None => { warn!("Step is empty!") }
+            Some(step) => {
+                println!("!!! step = {:?}", step);
+                let mut selected_member = selected_member_query.single_mut();
+                if selected_member.0.is_none() {
+                    panic!("No selected member found")
+                }
+                let mut available_members = available_members_query.single_mut();
+                available_members.remaining.remove(&selected_member.0.unwrap());
+                *selected_member = SelectedMemberId(None);
+                if available_members.remaining.is_empty() {
+                    next_state.set(ScreenState::EnemyStep);
+                } else {
+                    next_state.set(ScreenState::Main);
+                };
+            }
+        }
+    }
+}
+
+fn enemy_step_handle(
+    mut next_state: ResMut<NextState<ScreenState>>,
+    mut available_members_query: Query<(&mut AvailableMembers)>,
+) {
+    let mut available_members = available_members_query.single_mut();
+    let all = &available_members.all;
+    available_members.remaining = all.clone();
+    next_state.set(ScreenState::Main);
+}
 
 fn party_state_changes(
     parent_query: Query<(&PartyMember, &Children), Changed<PartyMember>>,
@@ -344,7 +394,7 @@ fn target_enemy_selection_input_handle(
                 *background = HOVER_BUTTON_COLOR.into();
             }
             Interaction::Pressed => {
-                *background = HOVER_BUTTON_COLOR.into();
+                *background = Color::NONE.into();
                 let mut step = current_step_query.single_mut();
                 step.set_target_id(id.0);
                 next_state.set(ScreenState::PlayerStepApply);
@@ -358,16 +408,19 @@ fn spawn_attacks_list(
     selected_member_query: Query<(&SelectedMemberId)>,
     attacks_query: Query<(&Attacks)>,
 ) {
-    let selected_member = selected_member_query.single();
-    let attacks = &attacks_query.single().items[&selected_member.0];
-    let items = attacks.iter().map(|attack| { attack.selector_item() }).collect();
+    for selected_member in selected_member_query.iter() {
+        if let Some(id) = selected_member.0 {
+            let attacks = &attacks_query.single().items[&id];
+            let items = attacks.iter().map(|attack| { attack.selector_item() }).collect();
 
-    commands
-        .ui_builder(UiRoot)
-        .selector(items)
-        .insert(AttacksScreen)
-        .style()
-        .size(Val::Percent(100.0));
+            commands
+                .ui_builder(UiRoot)
+                .selector(items)
+                .insert(AttacksScreen)
+                .style()
+                .size(Val::Percent(100.0));
+        }
+    }
 }
 
 fn selected_attacks_handle(
@@ -381,16 +434,21 @@ fn selected_attacks_handle(
         match holder.take_away() {
             None => {}
             Some(value) => {
-                let selected_member = selected_member_query.single();
-                let attacks = &attacks_query.single().items[&selected_member.0];
-                let attack = &attacks[value];
-                let mut current_step = current_step_query.single_mut();
-                current_step.0 = Some(AllyStep::OnEnemy {
-                    action: StepAction::Attack(attack.clone()),
-                    member_id: selected_member.0,
-                    target_id: None,
-                });
-                next_state.set(ScreenState::SelectEnemyTarget);
+                for selected_member in selected_member_query.iter() {
+                    if selected_member.0.is_none() {
+                        return;
+                    }
+                    let selected_member_id = selected_member.0.unwrap();
+                    let attacks = &attacks_query.single().items[&selected_member_id];
+                    let attack = &attacks[value];
+                    let mut current_step = current_step_query.single_mut();
+                    current_step.0 = Some(AllyStep::OnEnemy {
+                        action: StepAction::Attack(attack.clone()),
+                        member_id: selected_member_id,
+                        target_id: None,
+                    });
+                    next_state.set(ScreenState::SelectEnemyTarget);
+                }
             }
         }
     }
@@ -407,27 +465,32 @@ fn selected_ability_handle(
         match holder.take_away() {
             None => {}
             Some(value) => {
-                let selected_member = selected_member_query.single();
-                let abilities = &abilities_query.single().items[&selected_member.0];
-                let ability = &abilities[value];
-                let mut current_step = current_step_query.single_mut();
-                let target_direction = ability.action_target();
-                match target_direction {
-                    ActionTarget::Enemy => {
-                        current_step.0 = Some(AllyStep::OnEnemy {
-                            action: StepAction::Ability(ability.clone()),
-                            member_id: selected_member.0,
-                            target_id: None,
-                        });
-                        next_state.set(ScreenState::SelectEnemyTarget);
+                for selected_member in selected_member_query.iter() {
+                    if selected_member.0.is_none() {
+                        return;
                     }
-                    ActionTarget::Ally => {
-                        current_step.0 = Some(AllyStep::OnAlly {
-                            action: StepAction::Ability(ability.clone()),
-                            member_id: selected_member.0,
-                            target_id: None,
-                        });
-                        next_state.set(ScreenState::SelectAllyTarget);
+                    let selected_member_id = selected_member.0.unwrap();
+                    let abilities = &abilities_query.single().items[&selected_member_id];
+                    let ability = &abilities[value];
+                    let mut current_step = current_step_query.single_mut();
+                    let target_direction = ability.action_target();
+                    match target_direction {
+                        ActionTarget::Enemy => {
+                            current_step.0 = Some(AllyStep::OnEnemy {
+                                action: StepAction::Ability(ability.clone()),
+                                member_id: selected_member_id,
+                                target_id: None,
+                            });
+                            next_state.set(ScreenState::SelectEnemyTarget);
+                        }
+                        ActionTarget::Ally => {
+                            current_step.0 = Some(AllyStep::OnAlly {
+                                action: StepAction::Ability(ability.clone()),
+                                member_id: selected_member_id,
+                                target_id: None,
+                            });
+                            next_state.set(ScreenState::SelectAllyTarget);
+                        }
                     }
                 }
             }
@@ -446,16 +509,21 @@ fn selected_consumable_handle(
         match holder.take_away() {
             None => {}
             Some(value) => {
-                let selected_member = selected_member_query.single();
-                let items = &consumables_query.single().items;
-                let item = &items[value];
-                let mut current_step = current_step_query.single_mut();
-                current_step.0 = Some(AllyStep::OnAlly {
-                    action: StepAction::Consumable(item.clone()),
-                    member_id: selected_member.0,
-                    target_id: None,
-                });
-                next_state.set(ScreenState::SelectAllyTarget);
+                for selected_member in selected_member_query.iter() {
+                    if selected_member.0.is_none() {
+                        return;
+                    }
+                    let selected_member_id = selected_member.0.unwrap();
+                    let items = &consumables_query.single().items;
+                    let item = &items[value];
+                    let mut current_step = current_step_query.single_mut();
+                    current_step.0 = Some(AllyStep::OnAlly {
+                        action: StepAction::Consumable(item.clone()),
+                        member_id: selected_member_id,
+                        target_id: None,
+                    });
+                    next_state.set(ScreenState::SelectAllyTarget);
+                }
             }
         }
     }
@@ -466,15 +534,20 @@ fn spawn_abilities_list(
     selected_member_query: Query<(&SelectedMemberId)>,
     abilities_query: Query<(&Abilities)>,
 ) {
-    let selected_member = selected_member_query.single();
-    let abilities = &abilities_query.single().items[&selected_member.0];
-    let items = abilities.iter().map(|ability| { ability.selector_item() }).collect();
-    commands
-        .ui_builder(UiRoot)
-        .selector(items)
-        .insert(AbilitiesScreen)
-        .style()
-        .size(Val::Percent(100.0));
+    for selected_member in selected_member_query.iter() {
+        if selected_member.0.is_none() {
+            return;
+        }
+        let selected_member_id = selected_member.0.unwrap();
+        let abilities = &abilities_query.single().items[&selected_member_id];
+        let items = abilities.iter().map(|ability| { ability.selector_item() }).collect();
+        commands
+            .ui_builder(UiRoot)
+            .selector(items)
+            .insert(AbilitiesScreen)
+            .style()
+            .size(Val::Percent(100.0));
+    }
 }
 
 fn spawn_items_list(
@@ -501,6 +574,7 @@ fn spawn_main(
     let fight_id = query.single();
     let fight = fight_storage.load(&fight_id.0).expect("");
     let members = party_storage.get_fight_party_members();
+    let ids: HashSet<usize> = members.iter().map(|m| { m.id }).collect();
     let items = party_storage.get_consumables();
 
     let default_selected = members.first().expect("Members should not be empty").id;
@@ -512,11 +586,11 @@ fn spawn_main(
         })
         .insert((
             FightingMainScreen,
-            SelectedMemberId(default_selected),
+            SelectedMemberId(Some(default_selected)),
             Consumables { items },
             SelectedItemPosHolder::new(),
             CurrentAllyStep(None),
-            // AvailableMembers { ids: HashSet::new() },
+            AvailableMembers { all: ids.clone(), remaining: ids },
         ))
         .style()
         .justify_content(JustifyContent::Center)

@@ -1,6 +1,6 @@
 use bevy::prelude::Component;
 
-#[derive(Component, PartialEq, Clone)]
+#[derive(Component, PartialEq, Clone, Debug)]
 pub enum Ability {
     NeckTwist {
         damage: i32,
