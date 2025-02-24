@@ -1,3 +1,4 @@
+use std::fmt::format;
 use bevy::app::Update;
 use bevy::asset::AssetServer;
 use bevy::color::palettes::basic::YELLOW;
@@ -52,7 +53,7 @@ use sickle_ui::prelude::UiRowExt;
 use sickle_ui::ui_builder::{UiBuilder, UiBuilderExt, UiRoot};
 
 use crate::core::states::GameState;
-use crate::fight::{ActionTarget, Fight, FightId, FightStorage};
+use crate::fight::{ActionTarget, Enemy, Fight, FightId, FightStorage};
 use crate::fight::actions_ui::{ActionId, ActionItemExt};
 use crate::fight::enemy_ui::{EnemyId, EnemyItemExt};
 use crate::fight::mappers::{GetActionTarget, GetSelectorItem};
@@ -60,7 +61,7 @@ use crate::fight::party_member_ui::{Health, MemberId, PartyMemberItemExt};
 use crate::fight::selector_ui::{pick_item_handle, SelectedItemPosHolder, SelectorExt};
 use crate::gui::TextButton;
 use crate::party::{PartyMember, PartyStateStorage};
-use crate::rpg::{Ability, ConsumableItem, DirectionalAttack, TargetProps};
+use crate::rpg::{Ability, AttackResult, ConsumableItem, DirectionalAttack, TargetProps};
 
 pub struct FightingScene;
 
@@ -164,6 +165,15 @@ enum StepAction {
     Attack(DirectionalAttack),
     Ability(Ability),
     Consumable(ConsumableItem),
+}
+
+#[derive(Debug)]
+enum StepActionResult {
+    AttackHit,
+    AttackMiss,
+    AbilitySuccess,
+    ConsumableSuccess,
+    TargetDefeated(usize),
 }
 
 impl Plugin for FightingScene {
@@ -328,10 +338,14 @@ fn target_ally_selection_input_handle(
 }
 
 fn ally_step_handle(
+    mut commands: Commands,
     mut next_state: ResMut<NextState<ScreenState>>,
     mut selected_member_query: Query<(&mut SelectedMemberId)>,
     mut current_step_query: Query<(&mut CurrentAllyStep)>,
     mut available_members_query: Query<(&mut AvailableMembers)>,
+    mut allies_targets_query: Query<(&mut AllyTargets)>,
+    mut enemies_targets_query: Query<(&mut EnemyTargets)>,
+    enemies_query: Query<(Entity, &EnemyId)>,
 ) {
     for curr_step in current_step_query.iter() {
         match &curr_step.0 {
@@ -342,6 +356,14 @@ fn ally_step_handle(
                 if selected_member.0.is_none() {
                     panic!("No selected member found")
                 }
+                let mut allies = allies_targets_query.single_mut();
+                let mut enemies = enemies_targets_query.single_mut();
+                let result = apply_step(step, &mut allies.items, &mut enemies.items);
+                handle_action_result(&result, &mut commands, &enemies_query, &mut enemies.items);
+                println!("!!! action step result = {:?}", result);
+                println!("!!! Current allies = {:?}", &allies.items);
+                println!("!!! Current enemies = {:?}", &enemies.items);
+
                 let mut available_members = available_members_query.single_mut();
                 available_members.remaining.remove(&selected_member.0.unwrap());
                 *selected_member = SelectedMemberId(None);
@@ -352,6 +374,89 @@ fn ally_step_handle(
                 };
             }
         }
+    }
+}
+
+fn handle_action_result(
+    step_action_result: &StepActionResult,
+    commands: &mut Commands,
+    enemies_query: &Query<(Entity, &EnemyId)>,
+    enemies_targets: &mut HashMap<usize, TargetProps>,
+) {
+    match step_action_result {
+        StepActionResult::AttackHit => {}
+        StepActionResult::AttackMiss => {}
+        StepActionResult::AbilitySuccess => {}
+        StepActionResult::ConsumableSuccess => {}
+        StepActionResult::TargetDefeated(target_id) => {
+            for (entity, enemy_id) in enemies_query {
+                if enemy_id.0 == *target_id {
+                    commands.entity(entity).despawn_recursive();
+                    enemies_targets.remove(target_id);
+                }
+            }
+        }
+    }
+}
+
+fn apply_step(
+    step: &AllyStep,
+    allies: &mut HashMap<usize, TargetProps>,
+    enemies: &mut HashMap<usize, TargetProps>,
+) -> StepActionResult {
+    match step {
+        AllyStep::OnEnemy { action, member_id, target_id } => {
+            let id = target_id.expect("target_id must be set");
+            let target = enemies.get_mut(&id).expect(&format!("No target with {:?} found", id));
+            let result = apply_action(action, target);
+            if target.is_defeated() {
+                StepActionResult::TargetDefeated(id)
+            } else {
+                result
+            }
+        }
+        AllyStep::OnAlly { action, member_id, target_id } => {
+            let id = target_id.expect("target_id must be set");
+            let actor = allies.get_mut(member_id).expect(&format!("No ally with {:?} found", member_id));
+            apply_cost(action, actor);
+            let target = allies.get_mut(&id).expect(&format!("No target with {:?} found", id));
+            apply_action(action, target)
+        }
+        AllyStep::Guard => {
+            panic!("Not implemented yet")
+        }
+    }
+}
+
+fn apply_action(
+    action: &StepAction,
+    target: &mut TargetProps,
+) -> StepActionResult {
+    match action {
+        StepAction::Attack(attack) => {
+            match attack.apply(target) {
+                AttackResult::Hit => { StepActionResult::AttackHit }
+                AttackResult::Miss => { StepActionResult::AttackMiss }
+            }
+        }
+        StepAction::Ability(ability) => {
+            ability.apply(target);
+            StepActionResult::AbilitySuccess
+        }
+        StepAction::Consumable(consumable) => {
+            consumable.apply(target);
+            StepActionResult::ConsumableSuccess
+        }
+    }
+}
+
+fn apply_cost(
+    action: &StepAction,
+    target: &mut TargetProps,
+) {
+    match action {
+        StepAction::Ability(ability) => { ability.apply_cost(target) }
+        _ => {}
     }
 }
 

@@ -42,7 +42,7 @@ fn mathematical_expectation(attack: &DirectionalAttack, target: &TargetProps) ->
     let reduced_damage = if target.armor == 0 {
         damage as f32
     } else {
-        ((target.armor as f32) / 100.0) * damage as f32
+        damage as f32 - ((target.armor as f32) / 100.0) * damage as f32
     };
     let health = target.health.current as f32;
     let potential_result = health - reduced_damage;

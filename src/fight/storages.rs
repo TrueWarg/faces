@@ -42,16 +42,16 @@ pub fn test_fights() -> HashMap<usize, Fight> {
                     target: TargetProps {
                         health: RangedProp {
                             min: 0,
-                            current: 0,
-                            max: 0,
+                            current: 100,
+                            max: 100,
                         },
                         energy: RangedProp {
                             min: 0,
                             current: 0,
                             max: 0,
                         },
-                        armor: 0,
-                        evasion: 0,
+                        armor: 10,
+                        evasion: 25,
                     },
                     attacks: vec![],
                 },
@@ -65,15 +65,15 @@ pub fn test_fights() -> HashMap<usize, Fight> {
                     target: TargetProps {
                         health: RangedProp {
                             min: 0,
-                            current: 0,
-                            max: 0,
+                            current: 200,
+                            max: 200,
                         },
                         energy: RangedProp {
                             min: 0,
                             current: 0,
                             max: 0,
                         },
-                        armor: 0,
+                        armor: 30,
                         evasion: 0,
                     },
                     attacks: vec![],
@@ -88,8 +88,8 @@ pub fn test_fights() -> HashMap<usize, Fight> {
                     target: TargetProps {
                         health: RangedProp {
                             min: 0,
-                            current: 0,
-                            max: 0,
+                            current: 40,
+                            max: 40,
                         },
                         energy: RangedProp {
                             min: 0,
@@ -97,7 +97,7 @@ pub fn test_fights() -> HashMap<usize, Fight> {
                             max: 0,
                         },
                         armor: 0,
-                        evasion: 0,
+                        evasion: 70,
                     },
                     attacks: vec![],
                 },
@@ -111,8 +111,8 @@ pub fn test_fights() -> HashMap<usize, Fight> {
                     target: TargetProps {
                         health: RangedProp {
                             min: 0,
-                            current: 0,
-                            max: 0,
+                            current: 40,
+                            max: 40,
                         },
                         energy: RangedProp {
                             min: 0,
@@ -120,7 +120,7 @@ pub fn test_fights() -> HashMap<usize, Fight> {
                             max: 0,
                         },
                         armor: 0,
-                        evasion: 0,
+                        evasion: 70,
                     },
                     attacks: vec![],
                 },
