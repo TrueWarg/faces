@@ -59,6 +59,7 @@ use crate::fight::enemy_ui::{EnemyId, EnemyItemExt};
 use crate::fight::mappers::{GetActionTarget, GetSelectorItem};
 use crate::fight::party_member_ui::{Health, MemberId, PartyMemberItemExt};
 use crate::fight::selector_ui::{pick_item_handle, SelectedItemPosHolder, SelectorExt};
+use crate::fight::step::decide_next_step;
 use crate::gui::TextButton;
 use crate::party::{PartyMember, PartyStateStorage};
 use crate::rpg::{Ability, AttackResult, ConsumableItem, DirectionalAttack, TargetProps};
@@ -123,6 +124,11 @@ struct AllyTargets {
 #[derive(Component)]
 struct EnemyTargets {
     items: HashMap<usize, TargetProps>,
+}
+
+#[derive(Component)]
+struct EnemyAttacks {
+    items: HashMap<usize, Vec<DirectionalAttack>>,
 }
 
 #[derive(Component, Debug)]
@@ -345,6 +351,7 @@ fn ally_step_handle(
     mut available_members_query: Query<(&mut AvailableMembers)>,
     mut allies_targets_query: Query<(&mut AllyTargets)>,
     mut enemies_targets_query: Query<(&mut EnemyTargets)>,
+    mut enemies_attacks_query: Query<(&mut EnemyAttacks)>,
     enemies_query: Query<(Entity, &EnemyId)>,
 ) {
     for curr_step in current_step_query.iter() {
@@ -358,8 +365,15 @@ fn ally_step_handle(
                 }
                 let mut allies = allies_targets_query.single_mut();
                 let mut enemies = enemies_targets_query.single_mut();
+                let mut attacks = enemies_attacks_query.single_mut();
                 let result = apply_step(step, &mut allies.items, &mut enemies.items);
-                handle_action_result(&result, &mut commands, &enemies_query, &mut enemies.items);
+                handle_ally_action_result(
+                    &result,
+                    &mut commands,
+                    &enemies_query,
+                    &mut enemies.items,
+                    &mut attacks.items,
+                );
                 println!("!!! action step result = {:?}", result);
                 println!("!!! Current allies = {:?}", &allies.items);
                 println!("!!! Current enemies = {:?}", &enemies.items);
@@ -377,11 +391,12 @@ fn ally_step_handle(
     }
 }
 
-fn handle_action_result(
+fn handle_ally_action_result(
     step_action_result: &StepActionResult,
     commands: &mut Commands,
     enemies_query: &Query<(Entity, &EnemyId)>,
     enemies_targets: &mut HashMap<usize, TargetProps>,
+    enemies_attacks: &mut HashMap<usize, Vec<DirectionalAttack>>,
 ) {
     match step_action_result {
         StepActionResult::AttackHit => {}
@@ -393,6 +408,7 @@ fn handle_action_result(
                 if enemy_id.0 == *target_id {
                     commands.entity(entity).despawn_recursive();
                     enemies_targets.remove(target_id);
+                    enemies_attacks.remove(target_id);
                 }
             }
         }
@@ -434,10 +450,7 @@ fn apply_action(
 ) -> StepActionResult {
     match action {
         StepAction::Attack(attack) => {
-            match attack.apply(target) {
-                AttackResult::Hit => { StepActionResult::AttackHit }
-                AttackResult::Miss => { StepActionResult::AttackMiss }
-            }
+            apply_attack(attack, target)
         }
         StepAction::Ability(ability) => {
             ability.apply(target);
@@ -448,6 +461,13 @@ fn apply_action(
             StepActionResult::ConsumableSuccess
         }
     }
+}
+
+fn apply_attack(attack: &DirectionalAttack, target: &mut TargetProps) -> StepActionResult {
+    return match attack.apply(target) {
+        AttackResult::Hit => { StepActionResult::AttackHit }
+        AttackResult::Miss => { StepActionResult::AttackMiss }
+    };
 }
 
 fn apply_cost(
@@ -463,11 +483,55 @@ fn apply_cost(
 fn enemy_step_handle(
     mut next_state: ResMut<NextState<ScreenState>>,
     mut available_members_query: Query<(&mut AvailableMembers)>,
+    mut allies_targets_query: Query<(&mut AllyTargets)>,
+    mut enemy_attacks_query: Query<(&mut EnemyAttacks)>,
 ) {
+    let mut targets = allies_targets_query.single_mut();
     let mut available_members = available_members_query.single_mut();
+    let ids_to_attacks = enemy_attacks_query.single();
+    for (id, attacks) in &ids_to_attacks.items {
+        println!("Enemy {:?} step", id);
+        println!("Enemy {:?} attacks {:?}", id, &attacks);
+
+        let decision = decide_next_step(&attacks, &targets.items);
+        println!("Enemy {:?} decision {:?}", id, decision);
+
+        let mut target = targets.items.get_mut(&decision.target_id).expect(
+            &format!("No target with id = {:?} found", decision.target_id)
+        );
+        let attack = &attacks[decision.attack_id];
+        let mut result = apply_attack(attack, target);
+        if target.is_defeated() {
+            result = StepActionResult::TargetDefeated(decision.target_id);
+        }
+        handle_enemy_action_result(&result, &mut available_members, &mut targets.items);
+        println!("!!! result {:?}", result)
+    }
+
+    for (_, target) in &targets.items {
+        println!("!!! target now: {:?}", target)
+    }
+
     let all = &available_members.all;
     available_members.remaining = all.clone();
     next_state.set(ScreenState::Main);
+}
+
+fn handle_enemy_action_result(
+    result: &StepActionResult,
+    available_members: &mut AvailableMembers,
+    allies_targets: &mut HashMap<usize, TargetProps>,
+) {
+    match result {
+        StepActionResult::AttackHit => {}
+        StepActionResult::AttackMiss => {}
+        StepActionResult::AbilitySuccess => {}
+        StepActionResult::ConsumableSuccess => {}
+        StepActionResult::TargetDefeated(target_id) => {
+            allies_targets.remove(target_id);
+            available_members.all.remove(target_id);
+        }
+    }
 }
 
 fn party_state_changes(
@@ -710,6 +774,7 @@ fn spawn_fight_area(
     fight: Fight,
 ) {
     let mut enemy_targets = HashMap::new();
+    let mut enemy_attacks = HashMap::new();
 
     parent.container(ImageBundle {
         image: UiImage {
@@ -728,9 +793,11 @@ fn spawn_fight_area(
                 .left(Val::Percent(enemy.relative_x))
                 .top(Val::Percent(enemy.relative_y));
             enemy_targets.insert(enemy.id, enemy.target);
+            enemy_attacks.insert(enemy.id, enemy.attacks);
         }
     })
         .insert(EnemyTargets { items: enemy_targets })
+        .insert(EnemyAttacks { items: enemy_attacks })
         .style()
         .width(Val::Percent(100.0))
         .height(Val::Percent(height_percent));

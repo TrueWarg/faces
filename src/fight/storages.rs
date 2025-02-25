@@ -2,7 +2,7 @@ use bevy::prelude::Resource;
 use bevy::utils::HashMap;
 
 use crate::fight::{Enemy, Fight, FightId};
-use crate::rpg::{RangedProp, TargetProps};
+use crate::rpg::{DirectionalAttack, RangedProp, TargetProps};
 
 #[derive(Resource)]
 pub struct FightStorage;
@@ -10,8 +10,7 @@ pub struct FightStorage;
 impl FightStorage {
     pub fn load(&self, id: &usize) -> Option<Fight> {
         let mut fights = test_fights();
-        return fights.remove(id)
-
+        return fights.remove(id);
     }
 
     pub fn get_all(&self) -> Vec<Fight> {
@@ -53,7 +52,14 @@ pub fn test_fights() -> HashMap<usize, Fight> {
                         armor: 10,
                         evasion: 25,
                     },
-                    attacks: vec![],
+                    attacks: vec![
+                        DirectionalAttack::Punch {
+                            damage: 20,
+                        },
+                        DirectionalAttack::Punch {
+                            damage: 30,
+                        },
+                    ],
                 },
                 Enemy {
                     id: 1,
@@ -76,7 +82,14 @@ pub fn test_fights() -> HashMap<usize, Fight> {
                         armor: 30,
                         evasion: 0,
                     },
-                    attacks: vec![],
+                    attacks: vec![
+                        DirectionalAttack::Punch {
+                            damage: 20,
+                        },
+                        DirectionalAttack::InevitableDamage {
+                            damage: 5,
+                        },
+                    ],
                 },
                 Enemy {
                     id: 2,
@@ -99,7 +112,11 @@ pub fn test_fights() -> HashMap<usize, Fight> {
                         armor: 0,
                         evasion: 70,
                     },
-                    attacks: vec![],
+                    attacks: vec![
+                        DirectionalAttack::InevitableDamage {
+                            damage: 5,
+                        },
+                    ],
                 },
                 Enemy {
                     id: 3,
@@ -122,7 +139,11 @@ pub fn test_fights() -> HashMap<usize, Fight> {
                         armor: 0,
                         evasion: 70,
                     },
-                    attacks: vec![],
+                    attacks: vec![
+                        DirectionalAttack::Punch {
+                            damage: 15,
+                        },
+                    ],
                 },
             ],
         },
