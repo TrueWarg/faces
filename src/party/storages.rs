@@ -29,7 +29,7 @@ impl PartyStateStorage {
                         max: 20,
                     },
                     armor: 10,
-                    evasion: 0,
+                    evasion: 50,
                 },
                 attacks: vec![
                     DirectionalAttack::InevitableDamage { damage: 40 },
