@@ -4,8 +4,8 @@ use crate::rpg::{DirectionalAttack, RangedProp, TargetProps};
 
 #[derive(Default, Debug, Eq, PartialEq)]
 pub struct StepDecision {
-    target_id: usize,
-    attack_id: usize,
+    pub target_id: usize,
+    pub attack_id: usize,
 }
 
 pub fn decide_next_step(
