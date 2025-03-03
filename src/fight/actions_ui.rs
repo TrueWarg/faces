@@ -1,7 +1,7 @@
 use bevy::color::Color;
 use bevy::color::palettes::basic::SILVER;
 use bevy::color::palettes::css::DIM_GREY;
-use bevy::prelude::{Component, Entity, UiRect};
+use bevy::prelude::{AlignItems, Component, Entity, JustifyContent, UiRect};
 use bevy::ui::{BackgroundColor, Val};
 use sickle_ui::prelude::{SetMarginExt, UiBuilder};
 
@@ -31,6 +31,7 @@ impl<'a> ActionItemExt<'a> for UiBuilder<'a, Entity> {
                     idle: BackgroundColor::from(DIM_GREY),
                     hover: BackgroundColor::from(PRESSED_HOVER_BUTTON_COLOR),
                     pressed: BackgroundColor::from(PRESSED_HOVER_BUTTON_COLOR),
+                    justify_content: JustifyContent::Center,
                 },
             );
         item

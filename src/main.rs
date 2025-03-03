@@ -20,6 +20,7 @@ use crate::menu::MainMenuPlugin;
 use crate::npc::NpcPlugin;
 use crate::party::PartyPlugin;
 use crate::player::plugins::PlayerPlugin;
+use crate::rpg::LevelScreenScreenPlugin;
 use crate::world_state::WorldStatePlugin;
 
 mod core;
@@ -65,6 +66,7 @@ fn main() {
             DialogScene,
             BaseInteractionPlugin,
             WorldStatePlugin,
+            LevelScreenScreenPlugin,
         ))
         .add_systems(Startup, startup::setup)
         .init_state::<GameState>()

@@ -4,7 +4,7 @@ use bevy::app::Update;
 use bevy::color::palettes::css::DIM_GREY;
 use bevy::hierarchy::DespawnRecursiveExt;
 use bevy::input::ButtonInput;
-use bevy::prelude::{AppExtStates, JustifyContent, Val};
+use bevy::prelude::{AppExtStates, DetectChangesMut, JustifyContent, Val};
 use bevy::prelude::BackgroundColor;
 use bevy::prelude::Changed;
 use bevy::prelude::Color;
@@ -118,6 +118,11 @@ fn mouse_input_handle(
                             next_state.set(ScreenState::LevelsList);
                             return;
                         }
+
+                        if button.payload == LEVEL_UP_SAMPLE_BUTTON_ID {
+                            next_game_state.set(GameState::LevelUp);
+                            return;
+                        }
                     }
                     ScreenState::FightsList => {
                         match fight_id_query.get_single_mut() {
@@ -189,6 +194,9 @@ fn spawn_main(
 
             parent
                 .text_button("Level samples", LEVEL_SAMPLES_BUTTON_ID);
+
+            parent
+                .text_button("Level Up sample", LEVEL_UP_SAMPLE_BUTTON_ID);
         })
         .insert(DevSettingsScreen)
         .style()
@@ -306,6 +314,7 @@ struct SettingsId(pub usize);
 const FIGHT_SAMPLES_BUTTON_ID: SettingsId = SettingsId(1);
 const DIALOGS_SAMPLES_BUTTON_ID: SettingsId = SettingsId(2);
 const LEVEL_SAMPLES_BUTTON_ID: SettingsId = SettingsId(3);
+const LEVEL_UP_SAMPLE_BUTTON_ID: SettingsId = SettingsId(4);
 const HOUSE_LEVEL_BUTTON_ID: SettingsId = SettingsId(11);
 const COURTHOUSE_FRONT_LEVEL_ID: SettingsId = SettingsId(12);
 const COURTHOUSE_HALL_LEVEL_ID: SettingsId = SettingsId(13);
