@@ -119,6 +119,7 @@ impl<'a> SelectorExt<'a> for UiBuilder<'a, UiRoot> {
                                     idle: BackgroundColor::from(Color::NONE),
                                     hover: BackgroundColor::from(PRESSED_HOVER_BUTTON_COLOR),
                                     pressed: BackgroundColor::from(PRESSED_HOVER_BUTTON_COLOR),
+                                    justify_content: JustifyContent::Center,
                                 },
                             )
                             .style()

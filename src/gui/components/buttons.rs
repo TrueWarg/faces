@@ -24,6 +24,7 @@ pub struct ButtonConfig {
     pub idle: BackgroundColor,
     pub hover: BackgroundColor,
     pub pressed: BackgroundColor,
+    pub justify_content: JustifyContent,
 }
 
 impl Default for ButtonConfig {
@@ -34,6 +35,7 @@ impl Default for ButtonConfig {
             idle: BackgroundColor::from(SILVER),
             hover: BackgroundColor::from(HOVER_PRESSED_BUTTON_COLOR),
             pressed: BackgroundColor::from(HOVER_PRESSED_BUTTON_COLOR),
+            justify_content: JustifyContent::Center,
         };
     }
 }
@@ -70,6 +72,7 @@ impl<'a> TextButtonExt<'a> for UiBuilder<'a, Entity> {
         let width = button_config.width;
         let height = button_config.height;
         let color = button_config.idle;
+        let justify_content = button_config.justify_content;
         let mut button = self.container(
             (ButtonBundle::default(), TextButton { config: button_config, payload }),
             |parent| {
@@ -90,7 +93,7 @@ impl<'a> TextButtonExt<'a> for UiBuilder<'a, Entity> {
             .width(width)
             .height(height)
             .align_items(AlignItems::Center)
-            .justify_content(JustifyContent::Center)
+            .justify_content(justify_content)
             .background_color(color.0);
         return button;
     }

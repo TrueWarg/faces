@@ -18,7 +18,7 @@ use bevy::{
     time::{Time, Timer},
 };
 use bevy::math::UVec2;
-use bevy::prelude::{TransformBundle, Without};
+use bevy::prelude::{in_state, OnEnter, SystemParamFunction, TransformBundle, Without};
 use bevy::sprite::SpriteBundle;
 use bevy_rapier2d::prelude::Collider;
 use bevy_rapier2d::prelude::GravityScale;
@@ -33,6 +33,7 @@ use crate::{
     movement::entities::Target,
 };
 use crate::core::entities::MainCamera;
+use crate::core::states::GameState;
 
 use super::{
     animations::PlayerAnimations,
@@ -43,12 +44,12 @@ pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.add_systems(Startup, spawn_player)
-            .add_systems(Update, player_movement)
-            .add_systems(Update, camera_movement.after(player_movement))
-            .add_systems(Update, player_animation.after(player_movement))
-            .add_systems(Update, basic_animation.after(player_animation))
-            .add_systems(Update, change_interaction_area.after(player_movement));
+        app.add_systems(OnEnter(GameState::Exploration), spawn_player)
+            .add_systems(Update, player_movement.run_if(in_state(GameState::Exploration)))
+            .add_systems(Update, camera_movement.after(player_movement).run_if(in_state(GameState::Exploration)))
+            .add_systems(Update, player_animation.after(player_movement).run_if(in_state(GameState::Exploration)))
+            .add_systems(Update, basic_animation.after(player_animation).run_if(in_state(GameState::Exploration)))
+            .add_systems(Update, change_interaction_area.after(player_movement).run_if(in_state(GameState::Exploration)));
     }
 }
 
