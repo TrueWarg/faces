@@ -1,27 +1,25 @@
-pub struct Strength {
-    value: i8,
+pub struct Health {
+    value: i32,
 }
 
-pub struct Agility {
-    value: i8,
+pub struct Energy {
+    value: i32,
 }
 
-pub struct Charisma {
-    value: i8,
+pub struct Armor {
+    value: i32,
 }
 
-pub struct Stamina {
-    value: i8,
+pub struct Evasion {
+    value: i32,
 }
 
-pub struct NeckTwisting {
-    value: i8,
+pub struct BaseAttack {
+    value: i32,
 }
 
-pub struct Fortitude {
-    value: i8,
-}
-
-pub struct NeckGnawing {
-    value: i8,
+pub struct Level {
+    current: i32,
+    current_experience: i32,
+    experience_for_the_next: i32,
 }

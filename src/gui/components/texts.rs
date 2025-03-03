@@ -37,6 +37,13 @@ impl TextConfig {
             color,
         };
     }
+
+    pub fn large(color: Color) -> TextConfig {
+        return TextConfig {
+            font_size: TEXT_SIZE_LARGE,
+            color,
+        };
+    }
 }
 
 struct SetFont(String, f32, Color);

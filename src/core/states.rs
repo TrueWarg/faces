@@ -14,4 +14,5 @@ pub enum GameState {
     CatScene,
     GameOver,
     DevSetting,
+    LevelUp,
 }
