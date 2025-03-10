@@ -2,16 +2,64 @@ use bevy::color::Color;
 use bevy::color::palettes::css::ANTIQUE_WHITE;
 use bevy::hierarchy::Children;
 use bevy::log::warn;
-use bevy::prelude::{AlignItems, BackgroundColor, Changed, Commands, Component, Entity, Interaction, JustifyContent, Query, Val, With};
+use bevy::prelude::AlignItems;
+use bevy::prelude::BackgroundColor;
+use bevy::prelude::Bundle;
+use bevy::prelude::Changed;
+use bevy::prelude::Commands;
+use bevy::prelude::Component;
+use bevy::prelude::Entity;
+use bevy::prelude::Interaction;
+use bevy::prelude::JustifyContent;
+use bevy::prelude::Query;
+use bevy::prelude::Val;
+use bevy::prelude::With;
 use bevy::ui::{FocusPolicy, UiRect};
-use sickle_ui::prelude::{SetAlignItemsExt, SetFocusPolicyExt, SetJustifyContentExt, SetPaddingExt, SetWidthExt, UiBuilder, UiRowExt};
+use bevy::utils::HashMap;
+use sickle_ui::prelude::SetAlignItemsExt;
+use sickle_ui::prelude::SetFocusPolicyExt;
+use sickle_ui::prelude::SetJustifyContentExt;
+use sickle_ui::prelude::SetPaddingExt;
+use sickle_ui::prelude::SetWidthExt;
+use sickle_ui::prelude::UiBuilder;
+use sickle_ui::prelude::UiRowExt;
 use sickle_ui::ui_commands::UpdateTextExt;
 
-use crate::gui::{ButtonConfig, TextButton, TextButtonExt, TextConfig, TextExt};
+use crate::gui::TextButton;
+use crate::gui::ButtonConfig;
+use crate::gui::TextButtonExt;
+use crate::gui::TextConfig;
+use crate::gui::TextExt;
 use crate::rpg::RangedProp;
 
-#[derive(Component, Copy, Clone, Eq, PartialEq)]
-pub struct CharacteristicId(pub usize);
+#[derive(Component, Hash, Copy, Clone, Eq, PartialEq, Debug)]
+pub enum Characteristic {
+    Strength,
+    Agility,
+    Stamina,
+    Fortitude,
+    Charisma,
+}
+
+impl Characteristic {
+    fn name(&self) -> String {
+        let str = match self {
+            Characteristic::Strength => { "Сила" }
+            Characteristic::Agility => { "Выкрутасность" }
+            Characteristic::Stamina => { "Стамина" }
+            Characteristic::Fortitude => { "Стойкость" }
+            Characteristic::Charisma => { "Языкастость" }
+        };
+
+        return str.to_string();
+    }
+}
+
+impl HasDescription for Characteristic {
+    fn description(&self) -> String {
+        return format!("{:?}", self);
+    }
+}
 
 #[derive(Component)]
 pub enum CharacteristicAction {
@@ -20,36 +68,37 @@ pub enum CharacteristicAction {
 }
 
 #[derive(Component)]
-pub struct CharacteristicValue(pub RangedProp);
+pub struct CharacteristicValues(
+    pub HashMap<Characteristic, RangedProp>
+);
+
+#[derive(Component)]
+pub struct CharacteristicValue;
 
 #[derive(Component)]
 pub struct Description;
 
+pub trait HasDescription {
+    fn description(&self) -> String;
+}
+
 pub trait CharacteristicItemExt<'a> {
     fn characteristic(
         &mut self,
-        id: CharacteristicId,
-        name: &str,
-        min: i32,
-        current: i32,
-        max: i32,
+        typ: Characteristic,
     ) -> UiBuilder<Entity>;
 }
 
 impl<'a> CharacteristicItemExt<'a> for UiBuilder<'a, Entity> {
     fn characteristic(
         &mut self,
-        id: CharacteristicId,
-        name: &str,
-        min: i32,
-        current: i32,
-        max: i32,
+        typ: Characteristic,
     ) -> UiBuilder<Entity> {
         let mut item = self.row(|parent| {
             parent
                 .configure_text_button(
-                    name,
-                    id,
+                    typ.name(),
+                    typ,
                     TextConfig::from_color(Color::from(ANTIQUE_WHITE)),
                     ButtonConfig {
                         width: Val::Percent(70.0),
@@ -67,7 +116,7 @@ impl<'a> CharacteristicItemExt<'a> for UiBuilder<'a, Entity> {
                 parent
                     .configure_text_button(
                         "-",
-                        (CharacteristicAction::Decrease, id),
+                        (CharacteristicAction::Decrease, typ),
                         TextConfig::from_color(Color::from(ANTIQUE_WHITE)),
                         ButtonConfig {
                             width: Val::Px(50.0),
@@ -83,14 +132,10 @@ impl<'a> CharacteristicItemExt<'a> for UiBuilder<'a, Entity> {
 
                 parent
                     .configure_text(
-                        format!("{current}"),
+                        "",
                         TextConfig::from_color(Color::from(ANTIQUE_WHITE)),
                     )
-                    .insert((id, CharacteristicValue(RangedProp {
-                        min,
-                        current,
-                        max,
-                    })))
+                    .insert((typ, CharacteristicValue))
                     .style()
                     .padding(UiRect {
                         left: Val::Px(20.0),
@@ -102,7 +147,7 @@ impl<'a> CharacteristicItemExt<'a> for UiBuilder<'a, Entity> {
                 parent
                     .configure_text_button(
                         "+",
-                        (CharacteristicAction::Increase, id),
+                        (CharacteristicAction::Increase, typ),
                         TextConfig::from_color(Color::from(ANTIQUE_WHITE)),
                         ButtonConfig {
                             width: Val::Px(50.0),
@@ -130,53 +175,11 @@ impl<'a> CharacteristicItemExt<'a> for UiBuilder<'a, Entity> {
     }
 }
 
-pub fn change_value_handle(
+
+pub fn select_item_handle<T: HasDescription + Bundle>(
     mut commands: Commands,
     mut query: Query<
-        (&TextButton<(CharacteristicAction, CharacteristicId)>, &Interaction, &mut BackgroundColor),
-        Changed<Interaction>>,
-    mut values_query: Query<(&Children, &mut CharacteristicValue, &CharacteristicId)>,
-) {
-    for (item, interaction, mut background_color) in &mut query {
-        match *interaction {
-            Interaction::None => {
-                *background_color = item.config.idle;
-            }
-            Interaction::Hovered => {
-                *background_color = item.config.hover
-            }
-            Interaction::Pressed => {
-                for (mut children, mut value, id) in values_query.iter_mut() {
-                    if *id != item.payload.1 {
-                        continue;
-                    }
-                    match item.payload.0 {
-                        CharacteristicAction::Increase => {
-                            value.0.increase(1);
-                        }
-                        CharacteristicAction::Decrease => {
-                            value.0.decrease(1)
-                        }
-                    };
-
-                    for &child in children.iter() {
-                        match commands.get_entity(child) {
-                            None => { warn!("CharacteristicValue is not found") }
-                            Some(mut entity_commands) => {
-                                entity_commands.update_text(format!("{}", value.0.current));
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-pub fn select_item_handle(
-    mut commands: Commands,
-    mut query: Query<
-        (&TextButton<CharacteristicId>, &Interaction, &mut BackgroundColor),
+        (&TextButton<T>, &Interaction, &mut BackgroundColor),
         Changed<Interaction>,
     >,
     mut description_query: Query<(&Children), With<Description>>,
@@ -192,7 +195,8 @@ pub fn select_item_handle(
                         match commands.get_entity(child) {
                             None => { warn!("Description is not found") }
                             Some(mut entity_commands) => {
-                                entity_commands.update_text(format!("{}", item.payload.0));
+                                entity_commands
+                                    .update_text(format!("{}", item.payload.description()));
                             }
                         }
                     }
