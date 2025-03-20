@@ -20,7 +20,7 @@ use crate::menu::MainMenuPlugin;
 use crate::npc::NpcPlugin;
 use crate::party::PartyPlugin;
 use crate::player::plugins::PlayerPlugin;
-use crate::rpg::LevelScreenScreenPlugin;
+use crate::rpg::{LevelScreenScreenPlugin, RpgPlugin};
 use crate::world_state::WorldStatePlugin;
 
 mod core;
@@ -60,6 +60,7 @@ fn main() {
             LevelNavPlugin,
             FightPlugin,
             PartyPlugin,
+            RpgPlugin,
             FightingScene,
             UiPlugin,
             DialogPlugin,

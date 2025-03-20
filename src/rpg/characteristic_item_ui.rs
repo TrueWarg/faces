@@ -175,7 +175,6 @@ impl<'a> CharacteristicItemExt<'a> for UiBuilder<'a, Entity> {
     }
 }
 
-
 pub fn select_item_handle<T: HasDescription + Bundle>(
     mut commands: Commands,
     mut query: Query<

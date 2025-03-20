@@ -6,7 +6,7 @@ use bevy::color::{Color, Srgba};
 use bevy::color::palettes::css::ANTIQUE_WHITE;
 use bevy::hierarchy::{Children, DespawnRecursiveExt};
 use bevy::log::warn;
-use bevy::prelude::BackgroundColor;
+use bevy::prelude::{BackgroundColor, Res, Visibility};
 use bevy::prelude::Changed;
 use bevy::prelude::Commands;
 use bevy::prelude::Component;
@@ -20,9 +20,10 @@ use bevy::prelude::OnExit;
 use bevy::prelude::Query;
 use bevy::prelude::Val;
 use bevy::prelude::With;
+use bevy::render::render_resource::encase::private::RuntimeSizedArray;
 use bevy::ui::UiRect;
 use bevy::utils::hashbrown::HashMap;
-use sickle_ui::prelude::SetBackgroundColorExt;
+use sickle_ui::prelude::{PseudoState, SetBackgroundColorExt, SetVisibilityExt};
 use sickle_ui::prelude::SetHeightExt;
 use sickle_ui::prelude::SetJustifyContentExt;
 use sickle_ui::prelude::SetPaddingExt;
@@ -31,10 +32,12 @@ use sickle_ui::prelude::UiBuilderExt;
 use sickle_ui::prelude::UiColumnExt;
 use sickle_ui::prelude::UiRoot;
 use sickle_ui::prelude::UiRowExt;
-use sickle_ui::ui_commands::UpdateTextExt;
+use sickle_ui::ui_commands::{ManagePseudoStateExt, UpdateTextExt};
 
 use crate::core::states::GameState;
 use crate::gui::{TextButton, TextConfig, TextExt};
+use crate::party::PartyStateStorage;
+use crate::rpg::character::{Character, Class};
 use crate::rpg::characteristic_item_ui::{Characteristic, CharacteristicValue};
 use crate::rpg::characteristic_item_ui::CharacteristicAction;
 use crate::rpg::characteristic_item_ui::CharacteristicItemExt;
@@ -43,14 +46,53 @@ use crate::rpg::characteristic_item_ui::Description;
 use crate::rpg::characteristic_item_ui::select_item_handle;
 use crate::rpg::RangedProp;
 use crate::rpg::stat_item_ui::{Stat, StatItemExt, StatsValues, StatValue};
+use crate::rpg::storages::CharacterStorage;
+use crate::rpg::title_ui::{Title, TitleAction, TitleExt};
 
 pub struct LevelScreenScreenPlugin;
 
 #[derive(Component)]
-struct LevelUpScreen;
+struct CharacterScreen;
 
 #[derive(Component)]
-struct Scores(pub RangedProp);
+struct Scores(RangedProp);
+
+#[derive(Component)]
+struct Level;
+
+#[derive(Component)]
+struct Exp;
+
+#[derive(Component)]
+struct Charisma;
+
+#[derive(Component)]
+struct Characters {
+    items: Vec<Character>,
+    current: usize,
+}
+
+impl Characters {
+    fn next(&mut self) {
+        if self.current == self.items.len() - 1 {
+            self.current = 0;
+        } else {
+            self.current += 1;
+        }
+    }
+
+    fn back(&mut self) {
+        if self.current == 0 {
+            self.current = self.items.len() - 1;
+        } else {
+            self.current -= 1;
+        }
+    }
+
+    fn current(&self) -> &Character {
+        return &self.items[self.current];
+    }
+}
 
 impl Plugin for LevelScreenScreenPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
@@ -61,6 +103,10 @@ impl Plugin for LevelScreenScreenPlugin {
                                   update_characteristics_value_labels_handle,
                                   update_stats_value_labels_handle,
                                   update_scores_handle,
+                                  update_character_name_handle,
+                                  update_character_level_handle,
+                                  update_character_exp_handle,
+                                  change_character_handle,
                                   select_item_handle::<Characteristic>,
                                   select_item_handle::<Stat>,
             ).run_if(in_state(GameState::LevelUp)))
@@ -71,18 +117,13 @@ impl Plugin for LevelScreenScreenPlugin {
 
 fn spawn_main(
     mut commands: Commands,
+    character_storage: Res<CharacterStorage>,
 ) {
-    let mut char_values = HashMap::new();
-    let prop = RangedProp {
-        min: 1,
-        current: 1,
-        max: 5,
-    };
-    char_values.insert(Characteristic::Strength, prop.clone());
-    char_values.insert(Characteristic::Agility, prop.clone());
-    char_values.insert(Characteristic::Stamina, prop.clone());
-    char_values.insert(Characteristic::Fortitude, prop.clone());
-    char_values.insert(Characteristic::Charisma, prop);
+    let characters_items = character_storage.get_characters();
+
+    let character = characters_items.get(0).expect("characters must not be empty");
+
+    let char_values = to_screen_values(character);
 
     let mut stat_values = HashMap::new();
     stat_values.insert(Stat::BaseAttack, 0);
@@ -95,8 +136,8 @@ fn spawn_main(
 
     let scores = Scores(RangedProp {
         min: 0,
-        current: 15,
-        max: 15,
+        current: character.level.available_points,
+        max: character.level.available_points,
     });
 
     commands
@@ -106,12 +147,12 @@ fn spawn_main(
                 parent
                     .column(|parent| {
                         parent
-                            .configure_text("Грозный", TextConfig::large(Color::from(ANTIQUE_WHITE)))
+                            .title()
                             .style()
                             .height(Val::Percent(10.0));
                         parent
                             .configure_text(
-                                format!("Доступные очки: {}", scores.0.current),
+                                "",
                                 TextConfig::from_color(Color::from(ANTIQUE_WHITE)))
                             .insert(scores)
                             .style()
@@ -122,7 +163,10 @@ fn spawn_main(
                                 parent.characteristic(Characteristic::Agility);
                                 parent.characteristic(Characteristic::Stamina);
                                 parent.characteristic(Characteristic::Fortitude);
-                                parent.characteristic(Characteristic::Charisma);
+                                parent.characteristic(Characteristic::Charisma)
+                                    .insert(Charisma)
+                                    .style()
+                                    .visibility(Visibility::Visible);
                             })
                             .style()
                             .justify_content(JustifyContent::SpaceAround)
@@ -142,12 +186,19 @@ fn spawn_main(
 
                 parent.column(|parent| {
                     parent
-                        .configure_text("Level 1", TextConfig::from_color(Color::from(ANTIQUE_WHITE)))
+                        .configure_text(
+                            "",
+                            TextConfig::from_color(Color::from(ANTIQUE_WHITE)),
+                        )
+                        .insert(Level)
                         .style()
                         .height(Val::Percent(10.0));
 
                     parent
-                        .configure_text("Exp: 0 / 2000", TextConfig::from_color(Color::from(ANTIQUE_WHITE)))
+                        .configure_text(
+                            "",
+                            TextConfig::from_color(Color::from(ANTIQUE_WHITE)))
+                        .insert(Exp)
                         .style()
                         .height(Val::Percent(10.0));
 
@@ -192,9 +243,13 @@ fn spawn_main(
                 });
         })
         .insert((
-            LevelUpScreen,
+            CharacterScreen,
             CharacteristicValues(char_values),
             StatsValues(stat_values),
+            Characters {
+                items: characters_items,
+                current: 0,
+            },
         ))
         .style()
         .justify_content(JustifyContent::Start)
@@ -203,6 +258,84 @@ fn spawn_main(
         .background_color(Color::from(SCREEN_BG));
 }
 
+fn to_screen_values(character: &Character) -> HashMap<Characteristic, RangedProp> {
+    let mut char_values = HashMap::new();
+    match character.class {
+        Class::FormidableFace {
+            strength, agility, stamina, fortitude, charisma
+        } => {
+            let strength = RangedProp {
+                min: strength,
+                current: strength,
+                max: character.level.characteristic_max_value,
+            };
+            char_values.insert(Characteristic::Strength, strength);
+            let agility = RangedProp {
+                min: agility,
+                current: agility,
+                max: character.level.characteristic_max_value,
+            };
+            char_values.insert(Characteristic::Agility, agility);
+            let stamina = RangedProp {
+                min: stamina,
+                current: stamina,
+                max: character.level.characteristic_max_value,
+            };
+            char_values.insert(Characteristic::Stamina, stamina);
+
+            let fortitude = RangedProp {
+                min: fortitude,
+                current: fortitude,
+                max: character.level.characteristic_max_value,
+            };
+            char_values.insert(Characteristic::Fortitude, fortitude);
+
+            let charisma = RangedProp {
+                min: charisma,
+                current: charisma,
+                max: character.level.characteristic_max_value,
+            };
+            char_values.insert(Characteristic::Charisma, charisma);
+        }
+        Class::FormidableDog {
+            strength, agility, stamina, fortitude
+        } => {
+            let strength = RangedProp {
+                min: strength,
+                current: strength,
+                max: character.level.characteristic_max_value,
+            };
+            char_values.insert(Characteristic::Strength, strength);
+            let agility = RangedProp {
+                min: agility,
+                current: agility,
+                max: character.level.characteristic_max_value,
+            };
+            char_values.insert(Characteristic::Agility, agility);
+            let stamina = RangedProp {
+                min: stamina,
+                current: stamina,
+                max: character.level.characteristic_max_value,
+            };
+            char_values.insert(Characteristic::Stamina, stamina);
+
+            let fortitude = RangedProp {
+                min: fortitude,
+                current: fortitude,
+                max: character.level.characteristic_max_value,
+            };
+            char_values.insert(Characteristic::Fortitude, fortitude);
+
+            let charisma = RangedProp {
+                min: 0,
+                current: 0,
+                max: character.level.characteristic_max_value,
+            };
+            char_values.insert(Characteristic::Charisma, charisma);
+        }
+    }
+    return char_values;
+}
 
 pub fn change_characteristic_handle(
     mut query: Query<
@@ -242,6 +375,57 @@ pub fn change_characteristic_handle(
                 }
                 let stats = &mut stats_values_query.single_mut().0;
                 recalculate_stats(&chars, stats);
+            }
+        }
+    }
+}
+
+pub fn change_character_handle(
+    mut commands: Commands,
+    mut query: Query<
+        (&TextButton<(TitleAction)>, &Interaction, &mut BackgroundColor), Changed<Interaction>>,
+    mut characters_value_query: Query<(&mut Characters)>,
+    mut scores_value_query: Query<(&mut Scores)>,
+    mut characteristic_values_query: Query<(&mut CharacteristicValues)>,
+    mut stats_values_query: Query<(&mut StatsValues)>,
+    mut visibility_query: Query<(&mut Visibility), With<Charisma>>,
+) {
+    for (item, interaction, mut background_color) in &mut query {
+        match *interaction {
+            Interaction::None => {
+                *background_color = item.config.idle;
+            }
+            Interaction::Hovered => {
+                *background_color = item.config.hover
+            }
+            Interaction::Pressed => {
+                let value = &mut characters_value_query.single_mut();
+                match item.payload {
+                    TitleAction::Next => { value.next(); }
+                    TitleAction::Back => { value.back(); }
+                }
+                let scores = &mut scores_value_query.single_mut();
+                scores.0 = RangedProp {
+                    min: 0,
+                    current: value.current().level.available_points,
+                    max: value.current().level.available_points,
+                };
+
+                let characteristics = &mut characteristic_values_query.single_mut();
+                let stats = &mut stats_values_query.single_mut();
+                let char_values = to_screen_values(value.current());
+                recalculate_stats(&char_values, &mut stats.0);
+                characteristics.0 = char_values;
+                for mut visibility in visibility_query.iter_mut() {
+                    match value.current().class {
+                        Class::FormidableFace { .. } => {
+                            *visibility = Visibility::Visible;
+                        }
+                        Class::FormidableDog { .. } => {
+                            *visibility = Visibility::Hidden;
+                        }
+                    };
+                };
             }
         }
     }
@@ -320,6 +504,70 @@ fn update_stats_value_labels_handle(
     }
 }
 
+fn update_character_name_handle(
+    mut commands: Commands,
+    mut children_query: Query<(&Children), With<Title>>,
+    characters_value_query: Query<(&Characters), Changed<Characters>>,
+) {
+    for value in characters_value_query.iter() {
+        for mut children in children_query.iter() {
+            for &child in children.iter() {
+                match commands.get_entity(child) {
+                    None => { warn!("Title is not found") }
+                    Some(mut entity_commands) => {
+                        let current = value.current();
+                        entity_commands.update_text(format!("{}", current.name));
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn update_character_level_handle(
+    mut commands: Commands,
+    mut children_query: Query<(&Children), With<Level>>,
+    characters_value_query: Query<(&Characters), Changed<Characters>>,
+) {
+    for value in characters_value_query.iter() {
+        for mut children in children_query.iter() {
+            for &child in children.iter() {
+                match commands.get_entity(child) {
+                    None => { warn!("Level is not found") }
+                    Some(mut entity_commands) => {
+                        let current = value.current();
+                        entity_commands.update_text(format!("Level {}", current.level.current));
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn update_character_exp_handle(
+    mut commands: Commands,
+    mut children_query: Query<(&Children), With<Exp>>,
+    characters_value_query: Query<(&Characters), Changed<Characters>>,
+) {
+    for value in characters_value_query.iter() {
+        for mut children in children_query.iter() {
+            for &child in children.iter() {
+                match commands.get_entity(child) {
+                    None => { warn!("Exp. is not found") }
+                    Some(mut entity_commands) => {
+                        let current = value.current();
+                        entity_commands.update_text(
+                            format!("Exp. {} / {}",
+                                    current.level.current_experience,
+                                    current.level.experience_for_the_next,
+                            ));
+                    }
+                }
+            }
+        }
+    }
+}
+
 fn update_scores_handle(
     mut commands: Commands,
     mut scores_query: Query<(&Children, &Scores), Changed<Scores>>,
@@ -339,7 +587,7 @@ fn update_scores_handle(
 
 fn despawn_main(
     mut commands: Commands,
-    query: Query<Entity, With<LevelUpScreen>>,
+    query: Query<Entity, With<CharacterScreen>>,
 ) {
     let entity = query.single();
     commands.entity(entity).despawn_recursive();
