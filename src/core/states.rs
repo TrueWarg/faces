@@ -8,11 +8,10 @@ pub enum GameState {
     ProhibitedPlace,
     Fighting,
     Dialog,
-    Inventory,
-    Skills,
+    InventoryAndAbilities,
     Journal,
     CatScene,
     GameOver,
     DevSetting,
-    LevelUp,
+    Character,
 }

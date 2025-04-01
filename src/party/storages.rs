@@ -11,38 +11,11 @@ use crate::rpg::Venison;
 pub struct PartyStateStorage;
 
 impl PartyStateStorage {
-    pub fn get_fight_party_members(&self) -> Vec<PartyMember> {
+    pub fn get_party_members(&self) -> Vec<PartyMember> {
         return vec![
             PartyMember {
                 id: 0,
-                name: "".to_string(),
-                asset_path: "".to_string(),
-                target: TargetProps {
-                    health: RangedProp {
-                        min: 0,
-                        current: 100,
-                        max: 100,
-                    },
-                    energy: RangedProp {
-                        min: 0,
-                        current: 20,
-                        max: 20,
-                    },
-                    armor: 10,
-                    evasion: 50,
-                },
-                attacks: vec![
-                    DirectionalAttack::InevitableDamage { damage: 40 },
-                    DirectionalAttack::Punch { damage: 20 },
-                    DirectionalAttack::Punch { damage: 15 },
-                ],
-                abilities: vec![
-                    Ability::WoundsLicking { health: 25, cost: 5 },
-                ],
-            },
-            PartyMember {
-                id: 1,
-                name: "".to_string(),
+                name: "Грозный Личик".to_string(),
                 asset_path: "".to_string(),
                 target: TargetProps {
                     health: RangedProp {
@@ -72,6 +45,33 @@ impl PartyStateStorage {
                     Ability::NeckTwist { damage: 50, cost: 10 },
                 ],
             },
+            PartyMember {
+                id: 1,
+                name: "Грозный Пёс".to_string(),
+                asset_path: "".to_string(),
+                target: TargetProps {
+                    health: RangedProp {
+                        min: 0,
+                        current: 100,
+                        max: 100,
+                    },
+                    energy: RangedProp {
+                        min: 0,
+                        current: 20,
+                        max: 20,
+                    },
+                    armor: 10,
+                    evasion: 50,
+                },
+                attacks: vec![
+                    DirectionalAttack::InevitableDamage { damage: 40 },
+                    DirectionalAttack::Punch { damage: 20 },
+                    DirectionalAttack::Punch { damage: 15 },
+                ],
+                abilities: vec![
+                    Ability::WoundsLicking { health: 25, cost: 5 },
+                ],
+            }
         ];
     }
 

@@ -119,8 +119,13 @@ fn mouse_input_handle(
                             return;
                         }
 
-                        if button.payload == LEVEL_UP_SAMPLE_BUTTON_ID {
-                            next_game_state.set(GameState::LevelUp);
+                        if button.payload == CHARACTER_SAMPLE_BUTTON_ID {
+                            next_game_state.set(GameState::Character);
+                            return;
+                        }
+
+                        if button.payload == INVENTORY_AND_ABILITIES_SAMPLE_BUTTON_ID {
+                            next_game_state.set(GameState::InventoryAndAbilities);
                             return;
                         }
                     }
@@ -196,7 +201,10 @@ fn spawn_main(
                 .text_button("Level samples", LEVEL_SAMPLES_BUTTON_ID);
 
             parent
-                .text_button("Level Up sample", LEVEL_UP_SAMPLE_BUTTON_ID);
+                .text_button("Character screen", CHARACTER_SAMPLE_BUTTON_ID);
+
+            parent
+                .text_button("Inv and Abi screen", INVENTORY_AND_ABILITIES_SAMPLE_BUTTON_ID);
         })
         .insert(DevSettingsScreen)
         .style()
@@ -314,7 +322,8 @@ struct SettingsId(pub usize);
 const FIGHT_SAMPLES_BUTTON_ID: SettingsId = SettingsId(1);
 const DIALOGS_SAMPLES_BUTTON_ID: SettingsId = SettingsId(2);
 const LEVEL_SAMPLES_BUTTON_ID: SettingsId = SettingsId(3);
-const LEVEL_UP_SAMPLE_BUTTON_ID: SettingsId = SettingsId(4);
+const CHARACTER_SAMPLE_BUTTON_ID: SettingsId = SettingsId(4);
+const INVENTORY_AND_ABILITIES_SAMPLE_BUTTON_ID: SettingsId = SettingsId(5);
 const HOUSE_LEVEL_BUTTON_ID: SettingsId = SettingsId(11);
 const COURTHOUSE_FRONT_LEVEL_ID: SettingsId = SettingsId(12);
 const COURTHOUSE_HALL_LEVEL_ID: SettingsId = SettingsId(13);

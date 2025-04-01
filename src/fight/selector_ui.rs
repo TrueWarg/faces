@@ -32,15 +32,9 @@ use sickle_ui::ui_commands::UpdateTextExt;
 use sickle_ui::widgets::layout::label::SetLabelTextExt;
 
 use crate::fight::party_member_ui::Health;
-use crate::gui::{ButtonConfig, Text, TextButton, TextButtonExt, TextConfig, TextExt};
+use crate::gui::{ButtonConfig, SelectorItem, Text, TextButton, TextButtonExt, TextConfig, TextExt};
 
 pub struct Selector;
-
-#[derive(Component)]
-pub struct SelectorItem {
-    pub name: String,
-    pub description: String,
-}
 
 #[derive(Component)]
 pub struct PosAndDescr(pub usize, pub String);

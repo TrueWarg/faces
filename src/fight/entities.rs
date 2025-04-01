@@ -28,3 +28,7 @@ pub enum ActionTarget {
     Enemy,
     Ally,
 }
+
+pub trait GetActionTarget {
+    fn action_target(&self) -> ActionTarget;
+}
