@@ -53,14 +53,13 @@ use sickle_ui::prelude::UiRowExt;
 use sickle_ui::ui_builder::{UiBuilder, UiBuilderExt, UiRoot};
 
 use crate::core::states::GameState;
-use crate::fight::{ActionTarget, Enemy, Fight, FightId, FightStorage};
+use crate::fight::{ActionTarget, Enemy, Fight, FightId, FightStorage, GetActionTarget};
 use crate::fight::actions_ui::{ActionId, ActionItemExt};
 use crate::fight::enemy_ui::{EnemyId, EnemyItemExt};
-use crate::fight::mappers::{GetActionTarget, GetSelectorItem};
 use crate::fight::party_member_ui::{Health, MemberId, PartyMemberItemExt};
 use crate::fight::selector_ui::{pick_item_handle, SelectedItemPosHolder, SelectorExt};
 use crate::fight::step::decide_next_step;
-use crate::gui::TextButton;
+use crate::gui::{GetSelectorItem, TextButton};
 use crate::party::{PartyMember, PartyStateStorage};
 use crate::rpg::{Ability, AttackResult, ConsumableItem, DirectionalAttack, TargetProps};
 
@@ -742,7 +741,7 @@ fn spawn_main(
 ) {
     let fight_id = query.single();
     let fight = fight_storage.load(&fight_id.0).expect("");
-    let members = party_storage.get_fight_party_members();
+    let members = party_storage.get_party_members();
     let ids: HashSet<usize> = members.iter().map(|m| { m.id }).collect();
     let items = party_storage.get_consumables();
 

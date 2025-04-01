@@ -17,7 +17,7 @@ pub struct TextButton<P: Bundle> {
     pub payload: P,
 }
 
-#[derive(Component)]
+#[derive(Component, Clone)]
 pub struct ButtonConfig {
     pub width: Val,
     pub height: Val,

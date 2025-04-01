@@ -23,7 +23,7 @@ use bevy::prelude::With;
 use bevy::render::render_resource::encase::private::RuntimeSizedArray;
 use bevy::ui::UiRect;
 use bevy::utils::hashbrown::HashMap;
-use sickle_ui::prelude::{PseudoState, SetBackgroundColorExt, SetVisibilityExt};
+use sickle_ui::prelude::{PseudoState, SetBackgroundColorExt, SetSizeExt, SetVisibilityExt};
 use sickle_ui::prelude::SetHeightExt;
 use sickle_ui::prelude::SetJustifyContentExt;
 use sickle_ui::prelude::SetPaddingExt;
@@ -49,7 +49,7 @@ use crate::rpg::stat_item_ui::{Stat, StatItemExt, StatsValues, StatValue};
 use crate::rpg::storages::CharacterStorage;
 use crate::rpg::title_ui::{Title, TitleAction, TitleExt};
 
-pub struct LevelScreenScreenPlugin;
+pub struct CharacterScreenPlugin;
 
 #[derive(Component)]
 struct CharacterScreen;
@@ -94,11 +94,11 @@ impl Characters {
     }
 }
 
-impl Plugin for LevelScreenScreenPlugin {
+impl Plugin for CharacterScreenPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         app
-            .add_systems(OnEnter(GameState::LevelUp), spawn_main)
-            .add_systems(OnExit(GameState::LevelUp), despawn_main)
+            .add_systems(OnEnter(GameState::Character), spawn_main)
+            .add_systems(OnExit(GameState::Character), despawn_main)
             .add_systems(Update, (change_characteristic_handle,
                                   update_characteristics_value_labels_handle,
                                   update_stats_value_labels_handle,
@@ -109,7 +109,7 @@ impl Plugin for LevelScreenScreenPlugin {
                                   change_character_handle,
                                   select_item_handle::<Characteristic>,
                                   select_item_handle::<Stat>,
-            ).run_if(in_state(GameState::LevelUp)))
+            ).run_if(in_state(GameState::Character)))
 
         ;
     }
@@ -253,8 +253,7 @@ fn spawn_main(
         ))
         .style()
         .justify_content(JustifyContent::Start)
-        .width(Val::Percent(100.0))
-        .height(Val::Percent(100.0))
+        .size(Val::Percent(100.0))
         .background_color(Color::from(SCREEN_BG));
 }
 

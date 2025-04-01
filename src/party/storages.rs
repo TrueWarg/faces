@@ -11,11 +11,11 @@ use crate::rpg::Venison;
 pub struct PartyStateStorage;
 
 impl PartyStateStorage {
-    pub fn get_fight_party_members(&self) -> Vec<PartyMember> {
+    pub fn get_party_members(&self) -> Vec<PartyMember> {
         return vec![
             PartyMember {
                 id: 0,
-                name: "".to_string(),
+                name: "Грозный Личик".to_string(),
                 asset_path: "".to_string(),
                 target: TargetProps {
                     health: RangedProp {
@@ -42,7 +42,7 @@ impl PartyStateStorage {
             },
             PartyMember {
                 id: 1,
-                name: "".to_string(),
+                name: "Грозный Пёс".to_string(),
                 asset_path: "".to_string(),
                 target: TargetProps {
                     health: RangedProp {
