@@ -1,10 +1,12 @@
+use bevy::prelude::AppExtStates;
+use bevy::render::settings::{Backends, WgpuSettings};
+use bevy::window::WindowMode;
 use bevy::{
-    DefaultPlugins,
     prelude::{App, PluginGroup, Startup},
     window::{Window, WindowPlugin},
+    DefaultPlugins,
 };
-use bevy::prelude::AppExtStates;
-use bevy::window::WindowMode;
+use bevy::render::RenderPlugin;
 use bevy_rapier2d::prelude::{NoUserData, RapierPhysicsPlugin};
 
 use player::animations::PlayerAnimations;
@@ -12,7 +14,7 @@ use player::animations::PlayerAnimations;
 use crate::core::states::GameState;
 use crate::dev::DevSettingsPlugin;
 use crate::dialog::{DialogPlugin, DialogScene};
-use crate::fight::{FightingScene, FightPlugin};
+use crate::fight::{FightPlugin, FightingScene};
 use crate::gui::UiPlugin;
 use crate::interaction::BaseInteractionPlugin;
 use crate::level::LevelNavPlugin;
@@ -25,35 +27,49 @@ use crate::rpg::InventoryAndAbilityScreenPlugin;
 use crate::rpg::RpgPlugin;
 use crate::world_state::WorldStatePlugin;
 
-mod core;
-mod interaction;
-mod level;
-mod player;
-mod startup;
-mod movement;
-mod npc;
 mod animation;
-mod menu;
+mod core;
+mod dev;
+mod dialog;
 mod fight;
 mod gui;
-mod dev;
-mod rpg;
+mod interaction;
+mod level;
+mod menu;
+mod movement;
+mod npc;
 mod party;
-mod dialog;
+mod player;
+mod rpg;
+mod sound;
+mod startup;
 mod world_state;
 
 fn main() {
+    let wgpu_settings = WgpuSettings {
+        backends: Some(Backends::VULKAN),
+        ..Default::default()
+    };
     App::new()
         .insert_resource(PlayerAnimations::default())
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
-        .add_plugins(DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(Window {
-                title: "Faces".to_string(),
-                mode: WindowMode::BorderlessFullscreen,
-                ..Default::default()
-            }),
-            ..Default::default()
-        }))
+        .add_plugins(
+            DefaultPlugins
+                .set(
+                    RenderPlugin {
+                        render_creation: wgpu_settings.into(),
+                        ..Default::default()
+                    }
+                )
+                .set(WindowPlugin {
+                    primary_window: Some(Window {
+                        title: "Faces".to_string(),
+                        mode: WindowMode::BorderlessFullscreen,
+                        ..Default::default()
+                    }),
+                    ..Default::default()
+                }),
+        )
         .add_plugins((
             MainMenuPlugin,
             DevSettingsPlugin,
@@ -71,9 +87,7 @@ fn main() {
             WorldStatePlugin,
             CharacterScreenPlugin,
         ))
-        .add_plugins((
-            InventoryAndAbilityScreenPlugin,
-        ))
+        .add_plugins((InventoryAndAbilityScreenPlugin, sound::SoundPlugin))
         .add_systems(Startup, startup::setup)
         .init_state::<GameState>()
         .run();
