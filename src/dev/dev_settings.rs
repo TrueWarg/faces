@@ -1,6 +1,7 @@
 use bevy::app::App;
 use bevy::app::Plugin;
 use bevy::app::Update;
+use bevy::audio::{AudioBundle, PlaybackSettings};
 use bevy::color::palettes::css::DIM_GREY;
 use bevy::hierarchy::DespawnRecursiveExt;
 use bevy::input::ButtonInput;
@@ -38,6 +39,7 @@ use crate::dialog::{DialogId, DialogsStorage};
 use crate::fight::{FightId, FightStorage};
 use crate::gui::{TextButton, TextButtonExt};
 use crate::level::states::Level;
+use crate::sound::ButtonSounds;
 
 pub struct DevSettingsPlugin;
 
@@ -92,6 +94,7 @@ fn mouse_input_handle(
         (&TextButton<SettingsId>, &Interaction, &mut BackgroundColor),
         Changed<Interaction>,
     >,
+    audio_res: Res<ButtonSounds>,
 ) {
     for (button, interaction, mut background_color) in &mut query {
         match *interaction {
@@ -102,6 +105,10 @@ fn mouse_input_handle(
                 *background_color = button.config.hover;
             }
             Interaction::Pressed => {
+                let default = AudioBundle {
+                    source: audio_res.click.clone(),
+                    settings: PlaybackSettings::ONCE,
+                };
                 match current_screen_state.get() {
                     ScreenState::Main => {
                         if button.payload == FIGHT_SAMPLES_BUTTON_ID {
@@ -166,6 +173,7 @@ fn mouse_input_handle(
                         return;
                     }
                 }
+                commands.spawn(default);
             }
         }
     }

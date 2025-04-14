@@ -10,11 +10,11 @@ pub struct SoundPlugin;
 impl Plugin for SoundPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<ButtonSounds>()
-            .add_systems(Update, menu_button_sounds_handle);
+            .add_systems(Update, menu_button_hover_sounds_handle);
     }
 }
 
-fn menu_button_sounds_handle(
+fn menu_button_hover_sounds_handle(
     mut commands: Commands,
     mut interaction_query: Query<&Interaction, Changed<Interaction>>,
     audio_res: Res<ButtonSounds>,

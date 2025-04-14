@@ -1,9 +1,10 @@
+use bevy::audio::{AudioBundle, PlaybackSettings};
 use bevy::color::{Color, Srgba};
 use bevy::color::palettes::css::ANTIQUE_WHITE;
 use bevy::ecs::system::EntityCommands;
 use bevy::hierarchy::Children;
 use bevy::log::warn;
-use bevy::prelude::AlignItems;
+use bevy::prelude::{AlignItems, Res};
 use bevy::prelude::BackgroundColor;
 use bevy::prelude::Changed;
 use bevy::prelude::Commands;
@@ -33,6 +34,7 @@ use sickle_ui::widgets::layout::label::SetLabelTextExt;
 
 use crate::fight::party_member_ui::Health;
 use crate::gui::{ButtonConfig, SelectorItem, Text, TextButton, TextButtonExt, TextConfig, TextExt};
+use crate::sound::ButtonSounds;
 
 pub struct Selector;
 
@@ -148,6 +150,7 @@ pub fn pick_item_handle<S>(
     >,
     mut description_query: Query<(&Children), With<Description>>,
     mut holder_query: Query<(&mut SelectedItemPosHolder)>,
+    audio_res: Res<ButtonSounds>,
 ) {
     for (item, interaction, mut background_color) in &mut query {
         match *interaction {
@@ -168,6 +171,10 @@ pub fn pick_item_handle<S>(
                 *background_color = item.config.hover
             }
             Interaction::Pressed => {
+                commands.spawn(AudioBundle {
+                    source: audio_res.iron_click.clone(),
+                    settings: PlaybackSettings::ONCE,
+                });
                 let mut holder = holder_query.single_mut();
                 holder.store(item.payload.0);
             }

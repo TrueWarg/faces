@@ -1,4 +1,5 @@
 use bevy::app::{App, AppExit, Plugin, Update};
+use bevy::audio::{AudioBundle, PlaybackSettings};
 use bevy::color::Color;
 use bevy::color::palettes::css::DIM_GREY;
 use bevy::hierarchy::DespawnRecursiveExt;
@@ -34,6 +35,7 @@ use sickle_ui::prelude::UiRoot;
 
 use crate::core::states::GameState;
 use crate::gui::{TextButton, TextButtonExt};
+use crate::sound::ButtonSounds;
 
 pub struct MainMenuPlugin;
 
@@ -124,6 +126,7 @@ fn despawn_options(
 }
 
 fn mouse_input_handle(
+    mut commands: Commands,
     mut next_game_state: ResMut<NextState<GameState>>,
     current_screen_state: Res<State<ScreenState>>,
     mut next_state: ResMut<NextState<ScreenState>>,
@@ -132,6 +135,7 @@ fn mouse_input_handle(
         (&TextButton<MenuItemId>, &Interaction, &mut BackgroundColor),
         Changed<Interaction>,
     >,
+    audio_res: Res<ButtonSounds>,
 ) {
     for (button, interaction, mut background_color) in &mut query {
         match *interaction {
@@ -142,27 +146,42 @@ fn mouse_input_handle(
                 *background_color = button.config.hover;
             }
             Interaction::Pressed => {
+                let default = AudioBundle {
+                    source: audio_res.click.clone(),
+                    settings: PlaybackSettings::ONCE,
+                };
                 match current_screen_state.get() {
                     ScreenState::Main => {
                         if button.payload == CONTINUE_MENU_ITEM_ID {
+                            commands.spawn(AudioBundle {
+                                source: audio_res.final_click.clone(),
+                                settings: PlaybackSettings::ONCE,
+                            });
                             return;
                         }
 
                         if button.payload == NEW_MENU_ITEM_ID {
+                            commands.spawn(AudioBundle {
+                                source: audio_res.final_click.clone(),
+                                settings: PlaybackSettings::ONCE,
+                            });
                             return;
                         }
 
                         if button.payload == OPTIONS_MENU_ITEM_ID {
+                            commands.spawn(default);
                             next_state.set(ScreenState::Options);
                             return;
                         }
 
                         if button.payload == EXIT_MENU_ITEM_ID {
+                            commands.spawn(default);
                             exit.send(AppExit::Success);
                             return;
                         }
                     }
                     ScreenState::Options => {
+                        commands.spawn(default);
                         if button.payload == DEV_SETTINGS_OPTION_ITEM_ID {
                             next_game_state.set(GameState::DevSetting);
                             return;
