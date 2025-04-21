@@ -44,7 +44,7 @@ pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.add_systems(OnEnter(GameState::Exploration), spawn_player)
+        app.add_systems(Startup, spawn_player)
             .add_systems(Update, player_movement.run_if(in_state(GameState::Exploration)))
             .add_systems(Update, camera_movement.after(player_movement).run_if(in_state(GameState::Exploration)))
             .add_systems(Update, player_animation.after(player_movement).run_if(in_state(GameState::Exploration)))

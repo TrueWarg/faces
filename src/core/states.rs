@@ -5,11 +5,9 @@ pub enum GameState {
     #[default]
     MainMenu,
     Exploration,
-    ProhibitedPlace,
     Fighting,
     Dialog,
     InventoryAndAbilities,
-    Journal,
     CatScene,
     GameOver,
     DevSetting,
