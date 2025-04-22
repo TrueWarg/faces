@@ -1,30 +1,31 @@
 use bevy::app::{App, AppExit, Plugin, Update};
 use bevy::audio::{AudioBundle, PlaybackSettings};
-use bevy::color::Color;
 use bevy::color::palettes::css::DIM_GREY;
+use bevy::color::Color;
 use bevy::hierarchy::DespawnRecursiveExt;
-use bevy::prelude::AlignItems;
+use bevy::input::ButtonInput;
+use bevy::prelude::in_state;
 use bevy::prelude::AppExtStates;
 use bevy::prelude::BackgroundColor;
 use bevy::prelude::Changed;
+use bevy::prelude::Commands;
+use bevy::prelude::Component;
 use bevy::prelude::Entity;
 use bevy::prelude::EventWriter;
 use bevy::prelude::Interaction;
+use bevy::prelude::IntoSystemConfigs;
+use bevy::prelude::JustifyContent;
 use bevy::prelude::NextState;
+use bevy::prelude::OnEnter;
+use bevy::prelude::OnExit;
 use bevy::prelude::Query;
 use bevy::prelude::Res;
 use bevy::prelude::ResMut;
 use bevy::prelude::State;
 use bevy::prelude::States;
-use bevy::prelude::With;
-use bevy::prelude::Commands;
-use bevy::prelude::Component;
-use bevy::prelude::in_state;
-use bevy::prelude::IntoSystemConfigs;
-use bevy::prelude::JustifyContent;
-use bevy::prelude::OnEnter;
-use bevy::prelude::OnExit;
 use bevy::prelude::Val;
+use bevy::prelude::With;
+use bevy::prelude::{AlignItems, DetectChanges, KeyCode};
 use sickle_ui::prelude::SetAlignItemsExt;
 use sickle_ui::prelude::SetBackgroundColorExt;
 use sickle_ui::prelude::SetJustifyContentExt;
@@ -35,6 +36,7 @@ use sickle_ui::prelude::UiRoot;
 
 use crate::core::states::GameState;
 use crate::gui::{TextButton, TextButtonExt};
+use crate::level::states::Level;
 use crate::sound::ButtonSounds;
 
 pub struct MainMenuPlugin;
@@ -52,35 +54,63 @@ enum ScreenState {
     Options,
 }
 
+#[derive(Component, Eq, PartialEq)]
+struct MenuItemId(usize);
+
 impl Plugin for MainMenuPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .init_state::<ScreenState>()
+        app.init_state::<ScreenState>()
+            .add_systems(Update, opens_screens_handle)
             .add_systems(OnEnter(GameState::MainMenu), spawn_main)
             .add_systems(OnExit(GameState::MainMenu), despawn_main)
             .add_systems(OnEnter(ScreenState::Options), spawn_options)
             .add_systems(OnExit(ScreenState::Options), despawn_options)
-            .add_systems(Update, mouse_input_handle.run_if(in_state(GameState::MainMenu)));
+            .add_systems(
+                Update,
+                mouse_input_handle.run_if(in_state(GameState::MainMenu)),
+            );
     }
 }
 
-#[derive(Component, Eq, PartialEq)]
-struct MenuItemId(usize);
-
-fn spawn_main(
+fn opens_screens_handle(
     mut commands: Commands,
+    keyboard: Res<ButtonInput<KeyCode>>,
+    game_state: Res<State<GameState>>,
+    mut next_game_state: ResMut<NextState<GameState>>,
 ) {
+    if game_state.is_changed() || keyboard.is_changed() {
+        match game_state.get() {
+            GameState::MainMenu => {}
+            GameState::Exploration => {
+                if keyboard.pressed(KeyCode::KeyC) && keyboard.just_pressed(KeyCode::KeyC) {
+                    next_game_state.set(GameState::Character)
+                }
+
+                if keyboard.pressed(KeyCode::KeyI) && keyboard.just_pressed(KeyCode::KeyI) {
+                    next_game_state.set(GameState::InventoryAndAbilities)
+                }
+            }
+            GameState::Fighting => {}
+            GameState::Dialog => {}
+            GameState::Character | GameState::InventoryAndAbilities => {
+                if keyboard.pressed(KeyCode::Escape) && keyboard.just_pressed(KeyCode::Escape) {
+                    next_game_state.set(GameState::Exploration)
+                }
+            }
+            GameState::CatScene => {}
+            GameState::GameOver => {}
+            GameState::DevSetting => {}
+        }
+    }
+}
+
+fn spawn_main(mut commands: Commands) {
     commands
         .ui_builder(UiRoot)
         .column(|parent| {
-            parent
-                .text_button("Continue", CONTINUE_MENU_ITEM_ID);
-            parent
-                .text_button("New", NEW_MENU_ITEM_ID);
-            parent
-                .text_button("Options", OPTIONS_MENU_ITEM_ID);
-            parent
-                .text_button("Exit", EXIT_MENU_ITEM_ID);
+            parent.text_button("New", NEW_MENU_ITEM_ID);
+            parent.text_button("Options", OPTIONS_MENU_ITEM_ID);
+            parent.text_button("Exit", EXIT_MENU_ITEM_ID);
         })
         .insert(MainMenu)
         .style()
@@ -100,14 +130,11 @@ fn despawn_main(
     next_state.set(ScreenState::Main);
 }
 
-fn spawn_options(
-    mut commands: Commands,
-) {
+fn spawn_options(mut commands: Commands) {
     commands
         .ui_builder(UiRoot)
         .column(|parent| {
-            parent
-                .text_button("Dev settings", DEV_SETTINGS_OPTION_ITEM_ID);
+            parent.text_button("Dev settings", DEV_SETTINGS_OPTION_ITEM_ID);
         })
         .insert(Options)
         .style()
@@ -117,10 +144,7 @@ fn spawn_options(
         .background_color(Color::from(DIM_GREY));
 }
 
-fn despawn_options(
-    mut commands: Commands,
-    query: Query<Entity, With<Options>>,
-) {
+fn despawn_options(mut commands: Commands, query: Query<Entity, With<Options>>) {
     let entity = query.single();
     commands.entity(entity).despawn_recursive();
 }
@@ -128,6 +152,7 @@ fn despawn_options(
 fn mouse_input_handle(
     mut commands: Commands,
     mut next_game_state: ResMut<NextState<GameState>>,
+    mut next_level_state: ResMut<NextState<Level>>,
     current_screen_state: Res<State<ScreenState>>,
     mut next_state: ResMut<NextState<ScreenState>>,
     mut exit: EventWriter<AppExit>,
@@ -152,19 +177,13 @@ fn mouse_input_handle(
                 };
                 match current_screen_state.get() {
                     ScreenState::Main => {
-                        if button.payload == CONTINUE_MENU_ITEM_ID {
-                            commands.spawn(AudioBundle {
-                                source: audio_res.final_click.clone(),
-                                settings: PlaybackSettings::ONCE,
-                            });
-                            return;
-                        }
-
                         if button.payload == NEW_MENU_ITEM_ID {
                             commands.spawn(AudioBundle {
                                 source: audio_res.final_click.clone(),
                                 settings: PlaybackSettings::ONCE,
                             });
+                            next_level_state.set(Level::House);
+                            next_game_state.set(GameState::Exploration);
                             return;
                         }
 
@@ -194,10 +213,7 @@ fn mouse_input_handle(
     }
 }
 
-const CONTINUE_MENU_ITEM_ID: MenuItemId = MenuItemId(1);
 const NEW_MENU_ITEM_ID: MenuItemId = MenuItemId(2);
 const OPTIONS_MENU_ITEM_ID: MenuItemId = MenuItemId(3);
 const EXIT_MENU_ITEM_ID: MenuItemId = MenuItemId(4);
 const DEV_SETTINGS_OPTION_ITEM_ID: MenuItemId = MenuItemId(11);
-
-

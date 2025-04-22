@@ -3,7 +3,7 @@ use bevy::color::{Color, Srgba};
 use bevy::color::palettes::css::ANTIQUE_WHITE;
 use bevy::hierarchy::{Children, DespawnRecursiveExt};
 use bevy::log::warn;
-use bevy::prelude::AppExtStates;
+use bevy::prelude::{AppExtStates, OnExit};
 use bevy::prelude::AlignItems;
 use bevy::prelude::DetectChanges;
 use bevy::prelude::Entity;
@@ -108,6 +108,7 @@ impl Plugin for InventoryAndAbilityScreenPlugin {
             .init_state::<Tab>()
             .init_state::<SelectedMember>()
             .add_systems(OnEnter(GameState::InventoryAndAbilities), spawn_main)
+            .add_systems(OnExit(GameState::InventoryAndAbilities), despawn_main)
             .add_systems(Update, main_respawns.run_if(in_state(GameState::InventoryAndAbilities)))
             .add_systems(Update,
                          (pick_item_handle,
@@ -138,7 +139,10 @@ fn main_respawns(
         return;
     }
 
-    despawn_main(&mut commands, screen_query);
+    for entity in screen_query.iter() {
+        commands.entity(entity).despawn_recursive();
+    }
+    
     let members = party_storage.get_party_members();
     let current_member_id = selected_member_state.get().0;
     let member = &members[current_member_id];
@@ -401,7 +405,7 @@ fn pick_member_handle(
 }
 
 fn despawn_main(
-    mut commands: &mut Commands,
+    mut commands: Commands,
     query: Query<Entity, With<InventoryAndAbilityScreen>>,
 ) {
     for entity in query.iter() {
