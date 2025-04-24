@@ -2,11 +2,12 @@ use std::fmt::format;
 use std::ops::Deref;
 
 use bevy::app::{Plugin, Update};
+use bevy::audio::{AudioBundle, PlaybackSettings};
 use bevy::color::{Color, Srgba};
 use bevy::color::palettes::css::ANTIQUE_WHITE;
 use bevy::hierarchy::{Children, DespawnRecursiveExt};
-use bevy::log::warn;
-use bevy::prelude::{BackgroundColor, Res, Visibility};
+use bevy::log::{error, warn};
+use bevy::prelude::{BackgroundColor, Res, Style, Visibility};
 use bevy::prelude::Changed;
 use bevy::prelude::Commands;
 use bevy::prelude::Component;
@@ -21,9 +22,9 @@ use bevy::prelude::Query;
 use bevy::prelude::Val;
 use bevy::prelude::With;
 use bevy::render::render_resource::encase::private::RuntimeSizedArray;
-use bevy::ui::UiRect;
+use bevy::ui::{FocusPolicy, UiRect};
 use bevy::utils::hashbrown::HashMap;
-use sickle_ui::prelude::{PseudoState, SetBackgroundColorExt, SetSizeExt, SetVisibilityExt};
+use sickle_ui::prelude::{PseudoState, SetBackgroundColorExt, SetFocusPolicyExt, SetSizeExt, SetVisibilityExt};
 use sickle_ui::prelude::SetHeightExt;
 use sickle_ui::prelude::SetJustifyContentExt;
 use sickle_ui::prelude::SetPaddingExt;
@@ -35,7 +36,7 @@ use sickle_ui::prelude::UiRowExt;
 use sickle_ui::ui_commands::{ManagePseudoStateExt, UpdateTextExt};
 
 use crate::core::states::GameState;
-use crate::gui::{TextButton, TextConfig, TextExt};
+use crate::gui::{ButtonConfig, TextButton, TextButtonExt, TextConfig, TextExt};
 use crate::party::PartyStateStorage;
 use crate::rpg::character::{Character, Class};
 use crate::rpg::characteristic_item_ui::{Characteristic, CharacteristicValue};
@@ -48,6 +49,7 @@ use crate::rpg::RangedProp;
 use crate::rpg::stat_item_ui::{Stat, StatItemExt, StatsValues, StatValue};
 use crate::rpg::storages::CharacterStorage;
 use crate::rpg::title_ui::{Title, TitleAction, TitleExt};
+use crate::sound::ButtonSounds;
 
 pub struct CharacterScreenPlugin;
 
@@ -90,9 +92,12 @@ impl Characters {
     }
 
     fn current(&self) -> &Character {
-        return &self.items[self.current];
+        &self.items[self.current]
     }
 }
+
+#[derive(Component)]
+struct ConfirmButton;
 
 impl Plugin for CharacterScreenPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
@@ -107,6 +112,7 @@ impl Plugin for CharacterScreenPlugin {
                                   update_character_level_handle,
                                   update_character_exp_handle,
                                   change_character_handle,
+                                  confirm_handle,
                                   select_item_handle::<Characteristic>,
                                   select_item_handle::<Stat>,
             ).run_if(in_state(GameState::Character)))
@@ -119,7 +125,7 @@ fn spawn_main(
     mut commands: Commands,
     character_storage: Res<CharacterStorage>,
 ) {
-    let characters_items = character_storage.get_characters();
+    let characters_items = character_storage.get();
 
     let character = characters_items.get(0).expect("characters must not be empty");
 
@@ -231,8 +237,31 @@ fn spawn_main(
                 .height(Val::Percent(70.0));
 
             parent
-                .configure_text("", TextConfig::from_color(Color::from(ANTIQUE_WHITE)))
-                .insert(Description)
+                .row(|parent| {
+                    parent
+                        .configure_text("", TextConfig::from_color(Color::from(ANTIQUE_WHITE)))
+                        .insert(Description)
+                        .style()
+                        .width(Val::Percent(70.0));
+
+                    parent
+                        .configure_text_button(
+                            "Подтвердить",
+                            ConfirmButton,
+                            TextConfig::from_color(Color::from(ANTIQUE_WHITE)),
+                            ButtonConfig {
+                                width: Val::Px(50.0),
+                                height: Val::Px(50.0),
+                                idle: BackgroundColor::from(Color::NONE),
+                                hover: BackgroundColor::from(PRESSED_HOVER_BUTTON_COLOR),
+                                pressed: BackgroundColor::from(PRESSED_HOVER_BUTTON_COLOR),
+                                justify_content: JustifyContent::Center,
+                            },
+                        )
+                        .style()
+                        .width(Val::Percent(30.0))
+                        .focus_policy(FocusPolicy::Pass);
+                })
                 .style()
                 .height(Val::Percent(30.0))
                 .padding(UiRect {
@@ -333,7 +362,7 @@ fn to_screen_values(character: &Character) -> HashMap<Characteristic, RangedProp
             char_values.insert(Characteristic::Charisma, charisma);
         }
     }
-    return char_values;
+    char_values
 }
 
 pub fn change_characteristic_handle(
@@ -379,8 +408,7 @@ pub fn change_characteristic_handle(
     }
 }
 
-pub fn change_character_handle(
-    mut commands: Commands,
+fn change_character_handle(
     mut query: Query<
         (&TextButton<(TitleAction)>, &Interaction, &mut BackgroundColor), Changed<Interaction>>,
     mut characters_value_query: Query<(&mut Characters)>,
@@ -430,6 +458,36 @@ pub fn change_character_handle(
     }
 }
 
+fn confirm_handle(
+    mut commands: Commands,
+    scores_query: Query<(&Scores)>,
+    mut query: Query<
+        (&TextButton<(ConfirmButton)>, &Interaction, &mut BackgroundColor), Changed<Interaction>>,
+    audio_res: Res<ButtonSounds>,
+) {
+    for (mut item, interaction, mut background_color) in &mut query {
+        match *interaction {
+            Interaction::None => {
+                *background_color = item.config.idle;
+            }
+            Interaction::Hovered => {
+                *background_color = item.config.hover
+            }
+            Interaction::Pressed => {
+                let scores = scores_query.single();
+                if scores.0.current == scores.0.min {
+
+                } else {
+                    commands.spawn(AudioBundle {
+                        source: audio_res.negative_click.clone(),
+                        settings: PlaybackSettings::ONCE,
+                    });
+                }
+            }
+        }
+    }
+}
+
 fn recalculate_stats(
     chars: &HashMap<Characteristic, RangedProp>,
     stats: &mut HashMap<Stat, i32>,
@@ -470,7 +528,6 @@ fn update_characteristics_value_labels_handle(
                             .expect(
                                 &format!("No value with key = {:?}", char)
                             );
-                        ;
                         entity_commands.update_text(format!("{}", value.current));
                     }
                 }
@@ -494,7 +551,6 @@ fn update_stats_value_labels_handle(
                             .expect(
                                 &format!("No value with key = {:?}", stat)
                             );
-                        ;
                         entity_commands.update_text(format!("{}", value));
                     }
                 }
@@ -570,8 +626,19 @@ fn update_character_exp_handle(
 fn update_scores_handle(
     mut commands: Commands,
     mut scores_query: Query<(&Children, &Scores), Changed<Scores>>,
+    mut confirm_button_style_query: Query<(&mut BackgroundColor, &mut TextButton<(ConfirmButton)>)>,
 ) {
     for (mut children, scores) in scores_query.iter() {
+        let (mut background, mut button) = confirm_button_style_query.single_mut();
+        if scores.0.current > scores.0.min {
+            button.config.hover = BackgroundColor(DISABLED_BUTTON_COLOR);
+            button.config.idle = BackgroundColor(DISABLED_BUTTON_COLOR);
+            *background = button.config.idle;
+        } else {
+            button.config.hover = BackgroundColor(PRESSED_HOVER_BUTTON_COLOR);
+            button.config.idle = BackgroundColor(Color::NONE);
+            *background = button.config.idle;
+        }
         for &child in children.iter() {
             match commands.get_entity(child) {
                 None => { warn!("Scores is not found") }
@@ -594,3 +661,7 @@ fn despawn_main(
 
 /// <div style="background-color:rgb(50.0%, 39.4%, 21.0%); width: 10px; padding: 10px; border: 1px solid;"></div>
 const SCREEN_BG: Srgba = Srgba::new(0.5, 0.394, 0.21, 1.0);
+/// <div style="background-color:rgb(60.0%, 44.4%, 25.0%); width: 10px; padding: 10px; border: 1px solid;"></div>
+const PRESSED_HOVER_BUTTON_COLOR: Color = Color::srgba(0.6, 0.444, 0.25, 1.0);
+/// <div style="background-color:rgb(80.0%, 80.0%, 80.0%); width: 10px; padding: 10px; border: 1px solid;"></div>
+const DISABLED_BUTTON_COLOR: Color = Color::srgba(0.8, 0.8, 0.8, 0.8);

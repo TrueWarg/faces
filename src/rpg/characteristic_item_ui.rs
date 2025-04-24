@@ -51,13 +51,13 @@ impl Characteristic {
             Characteristic::Charisma => { "Языкастость" }
         };
 
-        return str.to_string();
+        str.to_string()
     }
 }
 
 impl HasDescription for Characteristic {
     fn description(&self) -> String {
-        return format!("{:?}", self);
+        format!("{:?}", self)
     }
 }
 
@@ -171,7 +171,7 @@ impl<'a> CharacteristicItemExt<'a> for UiBuilder<'a, Entity> {
             .style()
             .justify_content(JustifyContent::FlexStart)
             .align_items(AlignItems::Center);
-        return item;
+        item
     }
 }
 
@@ -210,4 +210,3 @@ pub fn select_item_handle<T: HasDescription + Bundle>(
 
 /// <div style="background-color:rgb(60.0%, 44.4%, 25.0%); width: 10px; padding: 10px; border: 1px solid;"></div>
 const PRESSED_HOVER_BUTTON_COLOR: Color = Color::srgba(0.6, 0.444, 0.25, 1.0);
-

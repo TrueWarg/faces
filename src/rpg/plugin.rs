@@ -13,5 +13,5 @@ impl Plugin for RpgPlugin {
 fn init_storages(
     mut commands: Commands,
 ) {
-    commands.insert_resource(CharacterStorage);
+    commands.insert_resource(CharacterStorage::default());
 }

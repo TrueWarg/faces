@@ -7,6 +7,7 @@ pub struct ButtonSounds {
     pub click: Handle<AudioSource>,
     pub iron_click: Handle<AudioSource>,
     pub final_click: Handle<AudioSource>,
+    pub negative_click: Handle<AudioSource>,
 }
 
 impl FromWorld for ButtonSounds {
@@ -17,6 +18,7 @@ impl FromWorld for ButtonSounds {
             click: asset_server.load("sounds/ui/click-btn.ogg"),
             iron_click: asset_server.load("sounds/ui/iron-click-btn.ogg"),
             final_click: asset_server.load("sounds/ui/final-click-btn.ogg"),
+            negative_click: asset_server.load("sounds/ui/negative-btn.ogg"),
         }
     }
 }
