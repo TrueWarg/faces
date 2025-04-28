@@ -2,9 +2,9 @@ mod components;
 mod entities;
 
 use bevy::app::{App, Plugin};
-use sickle_ui::SickleUiPlugin;
 pub use components::*;
 pub use entities::*;
+use sickle_ui::SickleUiPlugin;
 
 pub struct UiPlugin;
 

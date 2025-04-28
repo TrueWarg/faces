@@ -1,6 +1,6 @@
-use bevy::{prelude::Component, time::Timer};
 use bevy::input::ButtonInput;
 use bevy::prelude::{Commands, Entity, KeyCode, Query, Res, Time, Transform, With};
+use bevy::{prelude::Component, time::Timer};
 
 use crate::core::{
     geometry::BBox,
@@ -69,11 +69,11 @@ pub enum SwitcherState {
 
 impl SwitcherState {
     pub fn is_in_transition(&self) -> bool {
-        return match self {
+        match self {
             SwitcherState::ToOff => true,
             SwitcherState::ToOn => true,
             _ => false,
-        };
+        }
     }
 }
 
@@ -110,30 +110,30 @@ pub struct InteractionArea {
 
 impl InteractionArea {
     pub fn from_sizes(half_w: f32, half_h: f32) -> InteractionArea {
-        return InteractionArea {
+        InteractionArea {
             half_w,
             half_h,
             offset_x: 0.0,
             offset_y: 0.0,
-        };
+        }
     }
 
     pub fn create(half_w: f32, half_h: f32, offset_x: f32, offset_y: f32) -> InteractionArea {
-        return InteractionArea {
+        InteractionArea {
             half_w,
             half_h,
             offset_x,
             offset_y,
-        };
+        }
     }
 
     pub fn to_box(&self, x: f32, y: f32) -> BBox {
-        return BBox {
+        BBox {
             left: x - self.half_w + self.offset_x,
             top: y + self.half_h + self.offset_y,
             right: x + self.half_w + self.offset_x,
             bottom: y - self.half_h + self.offset_y,
-        };
+        }
     }
 }
 
@@ -155,7 +155,7 @@ pub fn detect_active_interaction(
     let translation = passive_transform.translation;
     let area = interactor.area.to_box(translation.x, translation.y);
     let intersection = active_area.round_intersection_with(&area);
-    return active_translation.z - translation.z >= delta && intersection > 0;
+    active_translation.z - translation.z >= delta && intersection > 0
 }
 
 pub fn transit_to_next_container_state(
@@ -194,7 +194,8 @@ pub fn change_switcher_state(
                 switcher.state = switcher.state.transit();
             }
         } else {
-            let is_pressed = keyboard.pressed(KeyCode::KeyE) && keyboard.just_pressed(KeyCode::KeyE);
+            let is_pressed =
+                keyboard.pressed(KeyCode::KeyE) && keyboard.just_pressed(KeyCode::KeyE);
             if is_pressed && detect_active_interaction(&active, (interactor, transform)) {
                 switcher.timer.reset();
                 switcher.state = switcher.state.transit();

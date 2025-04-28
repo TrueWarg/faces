@@ -11,9 +11,9 @@ pub struct PlayerAnimations {
 
 impl PlayerAnimations {
     pub fn default() -> PlayerAnimations {
-        return PlayerAnimations {
+        PlayerAnimations {
             moves: Self::moves(),
-        };
+        }
     }
 
     fn moves() -> HashMap<MoveDirection, (u32, u32, f32)> {
@@ -26,6 +26,6 @@ impl PlayerAnimations {
         moves.insert(MoveDirection::LeftMove, (30, 35, 0.15));
         moves.insert(MoveDirection::BackwardMove, (36, 41, 0.15));
         moves.insert(MoveDirection::RightMove, (42, 47, 0.15));
-        return moves;
+        moves
     }
 }

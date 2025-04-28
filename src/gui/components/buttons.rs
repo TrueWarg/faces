@@ -29,28 +29,29 @@ pub struct ButtonConfig {
 
 impl Default for ButtonConfig {
     fn default() -> Self {
-        return ButtonConfig {
+        ButtonConfig {
             width: Val::Px(400.0),
             height: Val::Px(60.0),
             idle: BackgroundColor::from(SILVER),
             hover: BackgroundColor::from(HOVER_PRESSED_BUTTON_COLOR),
             pressed: BackgroundColor::from(HOVER_PRESSED_BUTTON_COLOR),
             justify_content: JustifyContent::Center,
-        };
+        }
     }
 }
 
 pub trait TextButtonExt<'a> {
     fn text_button<S: Into<String> + Clone, P: Bundle>(
-        &mut self, text: S,
+        &mut self,
+        text: S,
         payload: P,
     ) -> UiBuilder<Entity> {
-        return self.configure_text_button(
+        self.configure_text_button(
             text,
             payload,
             TextConfig::default(),
             ButtonConfig::default(),
-        );
+        )
     }
     fn configure_text_button<S: Into<String> + Clone, P: Bundle>(
         &mut self,
@@ -74,20 +75,25 @@ impl<'a> TextButtonExt<'a> for UiBuilder<'a, Entity> {
         let color = button_config.idle;
         let justify_content = button_config.justify_content;
         let mut button = self.container(
-            (ButtonBundle::default(), TextButton { config: button_config, payload }),
+            (
+                ButtonBundle::default(),
+                TextButton {
+                    config: button_config,
+                    payload,
+                },
+            ),
             |parent| {
                 parent
                     .configure_text(text, text_config)
                     .style()
-                    .margin(
-                        UiRect {
-                            left: Val::Px(20.0),
-                            right: Val::Px(20.0),
-                            top: Val::Px(20.0),
-                            bottom: Val::Px(20.0),
-                        }
-                    );
-            });
+                    .margin(UiRect {
+                        left: Val::Px(20.0),
+                        right: Val::Px(20.0),
+                        top: Val::Px(20.0),
+                        bottom: Val::Px(20.0),
+                    });
+            },
+        );
         button
             .style()
             .width(width)
@@ -95,7 +101,7 @@ impl<'a> TextButtonExt<'a> for UiBuilder<'a, Entity> {
             .align_items(AlignItems::Center)
             .justify_content(justify_content)
             .background_color(color.0);
-        return button;
+        button
     }
 }
 

@@ -5,14 +5,13 @@ use bevy::audio::{AudioBundle, PlaybackSettings};
 use bevy::color::palettes::css::DIM_GREY;
 use bevy::hierarchy::DespawnRecursiveExt;
 use bevy::input::ButtonInput;
-use bevy::prelude::{AppExtStates, DetectChangesMut, JustifyContent, Val};
+use bevy::prelude::in_state;
 use bevy::prelude::BackgroundColor;
 use bevy::prelude::Changed;
 use bevy::prelude::Color;
 use bevy::prelude::Commands;
 use bevy::prelude::Component;
 use bevy::prelude::Entity;
-use bevy::prelude::in_state;
 use bevy::prelude::Interaction;
 use bevy::prelude::IntoSystemConfigs;
 use bevy::prelude::KeyCode;
@@ -25,6 +24,7 @@ use bevy::prelude::ResMut;
 use bevy::prelude::State;
 use bevy::prelude::States;
 use bevy::prelude::With;
+use bevy::prelude::{AppExtStates, JustifyContent, Val};
 use bevy::ui::{AlignItems, FlexDirection};
 use sickle_ui::prelude::SetAlignItemsExt;
 use sickle_ui::prelude::SetBackgroundColorExt;
@@ -66,8 +66,7 @@ enum ScreenState {
 
 impl Plugin for DevSettingsPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .init_state::<ScreenState>()
+        app.init_state::<ScreenState>()
             .add_systems(OnEnter(GameState::DevSetting), spawn_main)
             .add_systems(OnExit(GameState::DevSetting), despawn_main)
             .add_systems(OnEnter(ScreenState::FightsList), spawn_fights_list)
@@ -76,8 +75,9 @@ impl Plugin for DevSettingsPlugin {
             .add_systems(OnExit(ScreenState::DialogsList), despawn_dialogs_list)
             .add_systems(OnEnter(ScreenState::LevelsList), spawn_levels_list)
             .add_systems(OnExit(ScreenState::LevelsList), despawn_levels_list)
-            .add_systems(Update, (keyboard_input_handle, mouse_input_handle)
-                .run_if(in_state(GameState::DevSetting)),
+            .add_systems(
+                Update,
+                (keyboard_input_handle, mouse_input_handle).run_if(in_state(GameState::DevSetting)),
             );
     }
 }
@@ -193,26 +193,22 @@ fn keyboard_input_handle(
     }
 }
 
-fn spawn_main(
-    mut commands: Commands,
-) {
+fn spawn_main(mut commands: Commands) {
     commands
         .ui_builder(UiRoot)
         .column(|parent| {
-            parent
-                .text_button("Fights samples", FIGHT_SAMPLES_BUTTON_ID);
+            parent.text_button("Fights samples", FIGHT_SAMPLES_BUTTON_ID);
 
-            parent
-                .text_button("Dialogs samples", DIALOGS_SAMPLES_BUTTON_ID);
+            parent.text_button("Dialogs samples", DIALOGS_SAMPLES_BUTTON_ID);
 
-            parent
-                .text_button("Level samples", LEVEL_SAMPLES_BUTTON_ID);
+            parent.text_button("Level samples", LEVEL_SAMPLES_BUTTON_ID);
 
-            parent
-                .text_button("Character screen", CHARACTER_SAMPLE_BUTTON_ID);
+            parent.text_button("Character screen", CHARACTER_SAMPLE_BUTTON_ID);
 
-            parent
-                .text_button("Inv and Abi screen", INVENTORY_AND_ABILITIES_SAMPLE_BUTTON_ID);
+            parent.text_button(
+                "Inv and Abi screen",
+                INVENTORY_AND_ABILITIES_SAMPLE_BUTTON_ID,
+            );
         })
         .insert(DevSettingsScreen)
         .style()
@@ -232,17 +228,13 @@ fn despawn_main(
     next_state.set(ScreenState::Main);
 }
 
-fn spawn_fights_list(
-    mut commands: Commands,
-    fight_storage: Res<FightStorage>,
-) {
+fn spawn_fights_list(mut commands: Commands, fight_storage: Res<FightStorage>) {
     commands
         .ui_builder(UiRoot)
         .column(|parent| {
             for fight in fight_storage.get_all() {
                 let text = format!("Fight {}", fight.id.0);
-                parent
-                    .text_button(text, SettingsId(fight.id.0));
+                parent.text_button(text, SettingsId(fight.id.0));
             }
         })
         .insert(FightsList)
@@ -254,28 +246,23 @@ fn spawn_fights_list(
         .background_color(Color::from(DIM_GREY));
 }
 
-fn despawn_fignts_list(
-    mut commands: Commands,
-    query: Query<Entity, With<FightsList>>,
-) {
+fn despawn_fignts_list(mut commands: Commands, query: Query<Entity, With<FightsList>>) {
     let entity = query.single();
     commands.entity(entity).despawn_recursive();
 }
 
-fn spawn_dialogs_list(
-    mut commands: Commands,
-    dialogs_storage: Res<DialogsStorage>,
-) {
+fn spawn_dialogs_list(mut commands: Commands, dialogs_storage: Res<DialogsStorage>) {
     commands
         .ui_builder(UiRoot)
         .column(|parent| {
             for (id, dialog) in dialogs_storage.get_all() {
                 let text = match dialog.label {
-                    None => { format!("Dialog with id {}", id) }
-                    Some(value) => { value }
+                    None => {
+                        format!("Dialog with id {}", id)
+                    }
+                    Some(value) => value,
                 };
-                parent
-                    .text_button(text, SettingsId(id));
+                parent.text_button(text, SettingsId(id));
             }
         })
         .insert(DialogsList)
@@ -287,17 +274,12 @@ fn spawn_dialogs_list(
         .background_color(Color::from(DIM_GREY));
 }
 
-fn despawn_dialogs_list(
-    mut commands: Commands,
-    query: Query<Entity, With<DialogsList>>,
-) {
+fn despawn_dialogs_list(mut commands: Commands, query: Query<Entity, With<DialogsList>>) {
     let entity = query.single();
     commands.entity(entity).despawn_recursive();
 }
 
-fn spawn_levels_list(
-    mut commands: Commands,
-) {
+fn spawn_levels_list(mut commands: Commands) {
     commands
         .ui_builder(UiRoot)
         .column(|parent| {
@@ -315,14 +297,10 @@ fn spawn_levels_list(
         .background_color(Color::from(DIM_GREY));
 }
 
-fn despawn_levels_list(
-    mut commands: Commands,
-    query: Query<Entity, With<LevelsList>>,
-) {
+fn despawn_levels_list(mut commands: Commands, query: Query<Entity, With<LevelsList>>) {
     let entity = query.single();
     commands.entity(entity).despawn_recursive();
 }
-
 
 #[derive(Component, Eq, PartialEq)]
 struct SettingsId(pub usize);

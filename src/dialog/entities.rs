@@ -1,6 +1,6 @@
-use std::collections::HashMap;
-use bevy::prelude::Component;
 use crate::dialog::graph::DialogStick;
+use bevy::prelude::Component;
+use std::collections::HashMap;
 
 #[derive(Component)]
 pub struct Dialog {
@@ -21,21 +21,23 @@ impl Dialog {
         root_id: usize,
         sticks: HashMap<usize, DialogStick>,
     ) -> Dialog {
-        return Dialog {
+        Dialog {
             id,
             label: Some(label),
             bg_path,
             character_path,
             root_id,
             sticks,
-        };
+        }
     }
 
     pub fn get_root_stick(&self) -> &DialogStick {
-        return self.get_stick_at(self.root_id);
+        self.get_stick_at(self.root_id)
     }
     pub fn get_stick_at(&self, stick_id: usize) -> &DialogStick {
-        return self.sticks.get(&stick_id).expect(&format!("No stick with id {stick_id}"));
+        self.sticks
+            .get(&stick_id)
+            .expect(&format!("No stick with id {stick_id}"))
     }
 }
 

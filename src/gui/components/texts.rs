@@ -16,33 +16,33 @@ pub struct TextConfig {
 
 impl Default for TextConfig {
     fn default() -> Self {
-        return TextConfig {
+        TextConfig {
             font_size: TEXT_SIZE_MEDIUM,
             color: Color::from(DIM_GREY),
-        };
+        }
     }
 }
 
 impl TextConfig {
     pub fn from_color(color: Color) -> TextConfig {
-        return TextConfig {
+        TextConfig {
             font_size: TEXT_SIZE_MEDIUM,
             color,
-        };
+        }
     }
 
     pub fn small(color: Color) -> TextConfig {
-        return TextConfig {
+        TextConfig {
             font_size: TEXT_SIZE_SMALL,
             color,
-        };
+        }
     }
 
     pub fn large(color: Color) -> TextConfig {
-        return TextConfig {
+        TextConfig {
             font_size: TEXT_SIZE_LARGE,
             color,
-        };
+        }
     }
 }
 
@@ -60,15 +60,9 @@ trait BannerWidgetCommands<'a> {
         color: Color,
     ) -> &mut EntityCommands<'a>;
 
-    fn text_size(
-        &'a mut self,
-        size: f32,
-    ) -> &mut EntityCommands<'a>;
+    fn text_size(&'a mut self, size: f32) -> &mut EntityCommands<'a>;
 
-    fn text_color(
-        &'a mut self,
-        color: Color,
-    ) -> &mut EntityCommands<'a>;
+    fn text_color(&'a mut self, color: Color) -> &mut EntityCommands<'a>;
 }
 
 impl<'a> BannerWidgetCommands<'a> for EntityCommands<'a> {
@@ -126,15 +120,23 @@ impl EntityCommand for SetTextColor {
 }
 
 pub trait TextExt<'a> {
-    fn configure_text<S: Into<String> + Clone>(&mut self, text: S, config: TextConfig) -> UiBuilder<Entity>;
+    fn configure_text<S: Into<String> + Clone>(
+        &mut self,
+        text: S,
+        config: TextConfig,
+    ) -> UiBuilder<Entity>;
 
     fn medium_text<S: Into<String> + Clone>(&mut self, text: S) -> UiBuilder<Entity> {
-        return self.configure_text(text, TextConfig::default());
+        self.configure_text(text, TextConfig::default())
     }
 }
 
 impl<'a> TextExt<'a> for UiBuilder<'a, Entity> {
-    fn configure_text<S: Into<String> + Clone>(&mut self, text: S, config: TextConfig) -> UiBuilder<Entity> {
+    fn configure_text<S: Into<String> + Clone>(
+        &mut self,
+        text: S,
+        config: TextConfig,
+    ) -> UiBuilder<Entity> {
         self.container((NodeBundle::default(), Text), |parent| {
             parent
                 .label(LabelConfig {

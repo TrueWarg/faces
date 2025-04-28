@@ -21,8 +21,11 @@ pub fn route_build(
             let target_y = target_transform.translation.y;
             // let target_square = BBox::from_square(target_x, target_y, target.half_size as f32);
             // todo: use rebuild_route instead of this when it complete
-            agent.route = vec![Point2D { x: target_x as i32, y: target_y as i32}]
-                // build_direct_route(&square, &target_square);
+            agent.route = vec![Point2D {
+                x: target_x as i32,
+                y: target_y as i32,
+            }]
+            // build_direct_route(&square, &target_square);
             // rebuild_route(&square, &target_square, &blocks);
         }
     }

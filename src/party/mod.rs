@@ -1,6 +1,6 @@
-mod storages;
 mod entities;
 mod plugins;
+mod storages;
 
 pub use entities::*;
 pub use plugins::*;

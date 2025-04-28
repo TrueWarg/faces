@@ -6,5 +6,5 @@ pub const MAX_RANGE_Z: f32 = 3.0;
 pub const DEFAULT_OBJECT_Z: f32 = 5.0;
 
 pub fn calculate_z(y: f32, y_max: f32) -> f32 {
-    return (MAX_RANGE_Z - MIN_RANGE_Z) * (y / y_max) + MIN_RANGE_Z;
+    (MAX_RANGE_Z - MIN_RANGE_Z) * (y / y_max) + MIN_RANGE_Z
 }

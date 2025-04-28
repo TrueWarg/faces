@@ -1,4 +1,3 @@
-use std::fmt::format;
 use bevy::app::Update;
 use bevy::asset::AssetServer;
 use bevy::color::palettes::basic::YELLOW;
@@ -11,17 +10,16 @@ use bevy::hierarchy::Children;
 use bevy::hierarchy::DespawnRecursiveExt;
 use bevy::input::ButtonInput;
 use bevy::log::warn;
-use bevy::prelude::{AlignItems, PositionType};
+use bevy::prelude::default;
+use bevy::prelude::in_state;
 use bevy::prelude::AppExtStates;
 use bevy::prelude::BackgroundColor;
 use bevy::prelude::Changed;
 use bevy::prelude::Color;
 use bevy::prelude::Commands;
 use bevy::prelude::Component;
-use bevy::prelude::default;
 use bevy::prelude::Entity;
 use bevy::prelude::ImageBundle;
-use bevy::prelude::in_state;
 use bevy::prelude::Interaction;
 use bevy::prelude::IntoSystemConfigs;
 use bevy::prelude::JustifyContent;
@@ -37,10 +35,10 @@ use bevy::prelude::State;
 use bevy::prelude::States;
 use bevy::prelude::UiImage;
 use bevy::prelude::With;
+use bevy::prelude::{AlignItems, PositionType};
 use bevy::text::Text;
 use bevy::ui::{UiRect, Val};
-use bevy::utils::{HashMap, HashSet, warn};
-use sickle_ui::prelude::{SetAlignItemsExt, SetLeftExt, SetPositionTypeExt, SetTopExt};
+use bevy::utils::{warn, HashMap, HashSet};
 use sickle_ui::prelude::SetBackgroundColorExt;
 use sickle_ui::prelude::SetHeightExt;
 use sickle_ui::prelude::SetJustifyContentExt;
@@ -50,15 +48,17 @@ use sickle_ui::prelude::SetWidthExt;
 use sickle_ui::prelude::UiColumnExt;
 use sickle_ui::prelude::UiContainerExt;
 use sickle_ui::prelude::UiRowExt;
+use sickle_ui::prelude::{SetAlignItemsExt, SetLeftExt, SetPositionTypeExt, SetTopExt};
 use sickle_ui::ui_builder::{UiBuilder, UiBuilderExt, UiRoot};
+use std::fmt::format;
 
 use crate::core::states::GameState;
-use crate::fight::{ActionTarget, Enemy, Fight, FightId, FightStorage, GetActionTarget};
 use crate::fight::actions_ui::{ActionId, ActionItemExt};
 use crate::fight::enemy_ui::{EnemyId, EnemyItemExt};
 use crate::fight::party_member_ui::{Health, MemberId, PartyMemberItemExt};
 use crate::fight::selector_ui::{pick_item_handle, SelectedItemPosHolder, SelectorExt};
 use crate::fight::step::decide_next_step;
+use crate::fight::{ActionTarget, Enemy, Fight, FightId, FightStorage, GetActionTarget};
 use crate::gui::{GetSelectorItem, TextButton};
 use crate::party::{PartyMember, PartyStateStorage};
 use crate::rpg::{Ability, AttackResult, ConsumableItem, DirectionalAttack, TargetProps};
@@ -138,12 +138,18 @@ impl CurrentAllyStep {
         match &mut self.0 {
             None => {}
             Some(step) => match step {
-                AllyStep::OnEnemy { action, member_id, target_id } => {
+                AllyStep::OnEnemy {
+                    action,
+                    member_id,
+                    target_id,
+                } => {
                     *target_id = Some(id);
                 }
-                AllyStep::OnAlly { action, member_id, target_id } => {
-                    *target_id = Some(id)
-                }
+                AllyStep::OnAlly {
+                    action,
+                    member_id,
+                    target_id,
+                } => *target_id = Some(id),
                 AllyStep::Guard => {}
             },
         }
@@ -183,42 +189,64 @@ enum StepActionResult {
 
 impl Plugin for FightingScene {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app
-            .init_state::<ScreenState>()
-
+        app.init_state::<ScreenState>()
             .add_systems(OnEnter(GameState::Fighting), spawn_main)
             .add_systems(OnExit(GameState::Fighting), unspawn::<FightingMainScreen>)
-            .add_systems(Update, keyboard_input_handle.run_if(in_state(GameState::Fighting)))
-
-            .add_systems(Update,
-                         (party_state_changes,
-                          actions_menu_input_handle,
-                          party_member_selection_input_handle,
-                          party_member_selection_state_changes,
-                         ).run_if(in_state(ScreenState::Main)),
+            .add_systems(
+                Update,
+                keyboard_input_handle.run_if(in_state(GameState::Fighting)),
             )
-
+            .add_systems(
+                Update,
+                (
+                    party_state_changes,
+                    actions_menu_input_handle,
+                    party_member_selection_input_handle,
+                    party_member_selection_state_changes,
+                )
+                    .run_if(in_state(ScreenState::Main)),
+            )
             .add_systems(OnEnter(ScreenState::AttacksList), spawn_attacks_list)
             .add_systems(OnExit(ScreenState::AttacksList), unspawn::<AttacksScreen>)
-            .add_systems(Update, (selected_attacks_handle, pick_item_handle::<AttacksScreen>)
-                .run_if(in_state(ScreenState::AttacksList)))
-
+            .add_systems(
+                Update,
+                (selected_attacks_handle, pick_item_handle::<AttacksScreen>)
+                    .run_if(in_state(ScreenState::AttacksList)),
+            )
             .add_systems(OnEnter(ScreenState::AbilitiesList), spawn_abilities_list)
-            .add_systems(OnExit(ScreenState::AbilitiesList), unspawn::<AbilitiesScreen>)
-            .add_systems(Update, (selected_ability_handle, pick_item_handle::<AbilitiesScreen>)
-                .run_if(in_state(ScreenState::AbilitiesList)))
-
+            .add_systems(
+                OnExit(ScreenState::AbilitiesList),
+                unspawn::<AbilitiesScreen>,
+            )
+            .add_systems(
+                Update,
+                (selected_ability_handle, pick_item_handle::<AbilitiesScreen>)
+                    .run_if(in_state(ScreenState::AbilitiesList)),
+            )
             .add_systems(OnEnter(ScreenState::ItemsList), spawn_items_list)
             .add_systems(OnExit(ScreenState::ItemsList), unspawn::<ItemsScreen>)
-            .add_systems(Update, (selected_consumable_handle, pick_item_handle::<ItemsScreen>)
-                .run_if(in_state(ScreenState::ItemsList)))
-
-            .add_systems(Update, ally_step_handle.run_if(in_state(ScreenState::PlayerStepApply)))
-            .add_systems(Update, enemy_step_handle.run_if(in_state(ScreenState::EnemyStep)))
-
-            .add_systems(Update, target_enemy_selection_input_handle.run_if(in_state(ScreenState::SelectEnemyTarget)))
-
-            .add_systems(Update, target_ally_selection_input_handle.run_if(in_state(ScreenState::SelectAllyTarget)));
+            .add_systems(
+                Update,
+                (selected_consumable_handle, pick_item_handle::<ItemsScreen>)
+                    .run_if(in_state(ScreenState::ItemsList)),
+            )
+            .add_systems(
+                Update,
+                ally_step_handle.run_if(in_state(ScreenState::PlayerStepApply)),
+            )
+            .add_systems(
+                Update,
+                enemy_step_handle.run_if(in_state(ScreenState::EnemyStep)),
+            )
+            .add_systems(
+                Update,
+                target_enemy_selection_input_handle
+                    .run_if(in_state(ScreenState::SelectEnemyTarget)),
+            )
+            .add_systems(
+                Update,
+                target_ally_selection_input_handle.run_if(in_state(ScreenState::SelectAllyTarget)),
+            );
     }
 }
 
@@ -231,12 +259,8 @@ fn actions_menu_input_handle(
 ) {
     for (button, interaction, mut background_color) in &mut query {
         match *interaction {
-            Interaction::None => {
-                *background_color = button.config.idle
-            }
-            Interaction::Hovered => {
-                *background_color = button.config.hover
-            }
+            Interaction::None => *background_color = button.config.idle,
+            Interaction::Hovered => *background_color = button.config.hover,
             Interaction::Pressed => {
                 *background_color = button.config.idle;
                 if button.payload.0 == ATTACKS_BUTTON_ID.0 {
@@ -272,10 +296,7 @@ fn keyboard_input_handle(
 }
 
 fn party_member_selection_input_handle(
-    query: Query<
-        (&MemberId, &Interaction),
-        (Changed<Interaction>, With<MemberId>),
-    >,
+    query: Query<(&MemberId, &Interaction), (Changed<Interaction>, With<MemberId>)>,
     mut selected_member_query: Query<(&mut SelectedMemberId)>,
     available_members_query: Query<(&AvailableMembers)>,
 ) {
@@ -355,7 +376,9 @@ fn ally_step_handle(
 ) {
     for curr_step in current_step_query.iter() {
         match &curr_step.0 {
-            None => { warn!("Step is empty!") }
+            None => {
+                warn!("Step is empty!")
+            }
             Some(step) => {
                 println!("!!! step = {:?}", step);
                 let mut selected_member = selected_member_query.single_mut();
@@ -378,7 +401,9 @@ fn ally_step_handle(
                 println!("!!! Current enemies = {:?}", &enemies.items);
 
                 let mut available_members = available_members_query.single_mut();
-                available_members.remaining.remove(&selected_member.0.unwrap());
+                available_members
+                    .remaining
+                    .remove(&selected_member.0.unwrap());
                 *selected_member = SelectedMemberId(None);
                 if available_members.remaining.is_empty() {
                     next_state.set(ScreenState::EnemyStep);
@@ -420,9 +445,15 @@ fn apply_step(
     enemies: &mut HashMap<usize, TargetProps>,
 ) -> StepActionResult {
     match step {
-        AllyStep::OnEnemy { action, member_id, target_id } => {
+        AllyStep::OnEnemy {
+            action,
+            member_id,
+            target_id,
+        } => {
             let id = target_id.expect("target_id must be set");
-            let target = enemies.get_mut(&id).expect(&format!("No target with {:?} found", id));
+            let target = enemies
+                .get_mut(&id)
+                .expect(&format!("No target with {:?} found", id));
             let result = apply_action(action, target);
             if target.is_defeated() {
                 StepActionResult::TargetDefeated(id)
@@ -430,11 +461,19 @@ fn apply_step(
                 result
             }
         }
-        AllyStep::OnAlly { action, member_id, target_id } => {
+        AllyStep::OnAlly {
+            action,
+            member_id,
+            target_id,
+        } => {
             let id = target_id.expect("target_id must be set");
-            let actor = allies.get_mut(member_id).expect(&format!("No ally with {:?} found", member_id));
+            let actor = allies
+                .get_mut(member_id)
+                .expect(&format!("No ally with {:?} found", member_id));
             apply_cost(action, actor);
-            let target = allies.get_mut(&id).expect(&format!("No target with {:?} found", id));
+            let target = allies
+                .get_mut(&id)
+                .expect(&format!("No target with {:?} found", id));
             apply_action(action, target)
         }
         AllyStep::Guard => {
@@ -443,14 +482,9 @@ fn apply_step(
     }
 }
 
-fn apply_action(
-    action: &StepAction,
-    target: &mut TargetProps,
-) -> StepActionResult {
+fn apply_action(action: &StepAction, target: &mut TargetProps) -> StepActionResult {
     match action {
-        StepAction::Attack(attack) => {
-            apply_attack(attack, target)
-        }
+        StepAction::Attack(attack) => apply_attack(attack, target),
         StepAction::Ability(ability) => {
             ability.apply(target);
             StepActionResult::AbilitySuccess
@@ -464,17 +498,14 @@ fn apply_action(
 
 fn apply_attack(attack: &DirectionalAttack, target: &mut TargetProps) -> StepActionResult {
     return match attack.apply(target) {
-        AttackResult::Hit => { StepActionResult::AttackHit }
-        AttackResult::Miss => { StepActionResult::AttackMiss }
+        AttackResult::Hit => StepActionResult::AttackHit,
+        AttackResult::Miss => StepActionResult::AttackMiss,
     };
 }
 
-fn apply_cost(
-    action: &StepAction,
-    target: &mut TargetProps,
-) {
+fn apply_cost(action: &StepAction, target: &mut TargetProps) {
     match action {
-        StepAction::Ability(ability) => { ability.apply_cost(target) }
+        StepAction::Ability(ability) => ability.apply_cost(target),
         _ => {}
     }
 }
@@ -495,9 +526,10 @@ fn enemy_step_handle(
         let decision = decide_next_step(&attacks, &targets.items);
         println!("Enemy {:?} decision {:?}", id, decision);
 
-        let mut target = targets.items.get_mut(&decision.target_id).expect(
-            &format!("No target with id = {:?} found", decision.target_id)
-        );
+        let mut target = targets.items.get_mut(&decision.target_id).expect(&format!(
+            "No target with id = {:?} found",
+            decision.target_id
+        ));
         let attack = &attacks[decision.attack_id];
         let mut result = apply_attack(attack, target);
         if target.is_defeated() {
@@ -555,9 +587,7 @@ fn target_enemy_selection_input_handle(
 ) {
     for (id, interaction, mut background) in &mut query {
         match interaction {
-            Interaction::None => {
-                *background = Color::NONE.into()
-            }
+            Interaction::None => *background = Color::NONE.into(),
             Interaction::Hovered => {
                 *background = HOVER_BUTTON_COLOR.into();
             }
@@ -579,7 +609,10 @@ fn spawn_attacks_list(
     for selected_member in selected_member_query.iter() {
         if let Some(id) = selected_member.0 {
             let attacks = &attacks_query.single().items[&id];
-            let items = attacks.iter().map(|attack| { attack.selector_item() }).collect();
+            let items = attacks
+                .iter()
+                .map(|attack| attack.selector_item())
+                .collect();
 
             commands
                 .ui_builder(UiRoot)
@@ -708,7 +741,10 @@ fn spawn_abilities_list(
         }
         let selected_member_id = selected_member.0.unwrap();
         let abilities = &abilities_query.single().items[&selected_member_id];
-        let items = abilities.iter().map(|ability| { ability.selector_item() }).collect();
+        let items = abilities
+            .iter()
+            .map(|ability| ability.selector_item())
+            .collect();
         commands
             .ui_builder(UiRoot)
             .selector(items)
@@ -718,12 +754,12 @@ fn spawn_abilities_list(
     }
 }
 
-fn spawn_items_list(
-    mut commands: Commands,
-    consumables_query: Query<(&Consumables)>,
-) {
+fn spawn_items_list(mut commands: Commands, consumables_query: Query<(&Consumables)>) {
     let consumables = &consumables_query.single().items;
-    let items = consumables.iter().map(|consumable| { consumable.selector_item() }).collect();
+    let items = consumables
+        .iter()
+        .map(|consumable| consumable.selector_item())
+        .collect();
     commands
         .ui_builder(UiRoot)
         .selector(items)
@@ -742,7 +778,7 @@ fn spawn_main(
     let fight_id = query.single();
     let fight = fight_storage.load(&fight_id.0).expect("");
     let members = party_storage.get_party_members();
-    let ids: HashSet<usize> = members.iter().map(|m| { m.id }).collect();
+    let ids: HashSet<usize> = members.iter().map(|m| m.id).collect();
     let items = party_storage.get_consumables();
 
     let default_selected = members.first().expect("Members should not be empty").id;
@@ -758,7 +794,10 @@ fn spawn_main(
             Consumables { items },
             SelectedItemPosHolder::new(),
             CurrentAllyStep(None),
-            AvailableMembers { all: ids.clone(), remaining: ids },
+            AvailableMembers {
+                all: ids.clone(),
+                remaining: ids,
+            },
         ))
         .style()
         .justify_content(JustifyContent::Center)
@@ -775,28 +814,36 @@ fn spawn_fight_area(
     let mut enemy_targets = HashMap::new();
     let mut enemy_attacks = HashMap::new();
 
-    parent.container(ImageBundle {
-        image: UiImage {
-            texture: asset_server.load(&fight.arena_bg_path),
-            ..default()
-        },
-        ..default()
-    }, |parent| {
-        for enemy in fight.enemies {
-            parent
-                .enemy_item(EnemyId(enemy.id), asset_server.load(enemy.asset_path))
-                .style()
-                .width(Val::Auto)
-                .height(Val::Percent(enemy.relative_height))
-                .position_type(PositionType::Absolute)
-                .left(Val::Percent(enemy.relative_x))
-                .top(Val::Percent(enemy.relative_y));
-            enemy_targets.insert(enemy.id, enemy.target);
-            enemy_attacks.insert(enemy.id, enemy.attacks);
-        }
-    })
-        .insert(EnemyTargets { items: enemy_targets })
-        .insert(EnemyAttacks { items: enemy_attacks })
+    parent
+        .container(
+            ImageBundle {
+                image: UiImage {
+                    texture: asset_server.load(&fight.arena_bg_path),
+                    ..default()
+                },
+                ..default()
+            },
+            |parent| {
+                for enemy in fight.enemies {
+                    parent
+                        .enemy_item(EnemyId(enemy.id), asset_server.load(enemy.asset_path))
+                        .style()
+                        .width(Val::Auto)
+                        .height(Val::Percent(enemy.relative_height))
+                        .position_type(PositionType::Absolute)
+                        .left(Val::Percent(enemy.relative_x))
+                        .top(Val::Percent(enemy.relative_y));
+                    enemy_targets.insert(enemy.id, enemy.target);
+                    enemy_attacks.insert(enemy.id, enemy.attacks);
+                }
+            },
+        )
+        .insert(EnemyTargets {
+            items: enemy_targets,
+        })
+        .insert(EnemyAttacks {
+            items: enemy_attacks,
+        })
         .style()
         .width(Val::Percent(100.0))
         .height(Val::Percent(height_percent));
@@ -813,24 +860,25 @@ fn spawn_player_menu(
             let mut attacks = HashMap::new();
             let mut abilities = HashMap::new();
             let mut targets = HashMap::new();
-            parent.row(|parent| {
-                for item in members {
-                    attacks.insert(item.id, item.attacks);
-                    abilities.insert(item.id, item.abilities);
-                    targets.insert(item.id, item.target);
-                    parent
-                        .party_member_item(MemberId(item.id))
-                        .style()
-                        .margin(UiRect {
-                            left: Val::Px(25.0),
-                            right: Val::Px(25.0),
-                            top: Val::Px(25.0),
-                            bottom: Val::Px(25.0),
-                        })
-                        .width(Val::Percent(20.0))
-                        .height(Val::Percent(80.0));
-                }
-            })
+            parent
+                .row(|parent| {
+                    for item in members {
+                        attacks.insert(item.id, item.attacks);
+                        abilities.insert(item.id, item.abilities);
+                        targets.insert(item.id, item.target);
+                        parent
+                            .party_member_item(MemberId(item.id))
+                            .style()
+                            .margin(UiRect {
+                                left: Val::Px(25.0),
+                                right: Val::Px(25.0),
+                                top: Val::Px(25.0),
+                                bottom: Val::Px(25.0),
+                            })
+                            .width(Val::Percent(20.0))
+                            .height(Val::Percent(80.0));
+                    }
+                })
                 .insert(Attacks { items: attacks })
                 .insert(Abilities { items: abilities })
                 .insert(AllyTargets { items: targets })
@@ -850,11 +898,7 @@ fn spawn_player_menu(
         .height(Val::Percent(height_percent));
 }
 
-fn spawn_actions(
-    parent: &mut UiBuilder<Entity>,
-    width_percent: f32,
-    height_percent: f32,
-) {
+fn spawn_actions(parent: &mut UiBuilder<Entity>, width_percent: f32, height_percent: f32) {
     parent
         .column(|parent| {
             parent.action_item(ATTACKS_BUTTON_ID, "Attacks");
@@ -870,15 +914,11 @@ fn spawn_actions(
         .align_items(AlignItems::Center);
 }
 
-fn unspawn<M: Component>(
-    mut commands: Commands,
-    query: Query<Entity, With<M>>,
-) {
+fn unspawn<M: Component>(mut commands: Commands, query: Query<Entity, With<M>>) {
     for entity in query.iter() {
         commands.entity(entity).despawn_recursive();
     }
 }
-
 
 const ATTACKS_BUTTON_ID: ActionId = ActionId(0);
 const PROTECT_BUTTON_ID: ActionId = ActionId(1);

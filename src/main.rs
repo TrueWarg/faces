@@ -1,12 +1,12 @@
 use bevy::prelude::AppExtStates;
 use bevy::render::settings::{Backends, WgpuSettings};
+use bevy::render::RenderPlugin;
 use bevy::window::WindowMode;
 use bevy::{
     prelude::{App, PluginGroup, Startup},
     window::{Window, WindowPlugin},
     DefaultPlugins,
 };
-use bevy::render::RenderPlugin;
 use bevy_rapier2d::prelude::{NoUserData, RapierPhysicsPlugin};
 
 use player::animations::PlayerAnimations;
@@ -55,12 +55,10 @@ fn main() {
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
         .add_plugins(
             DefaultPlugins
-                .set(
-                    RenderPlugin {
-                        render_creation: wgpu_settings.into(),
-                        ..Default::default()
-                    }
-                )
+                .set(RenderPlugin {
+                    render_creation: wgpu_settings.into(),
+                    ..Default::default()
+                })
                 .set(WindowPlugin {
                     primary_window: Some(Window {
                         title: "Faces".to_string(),

@@ -1,9 +1,9 @@
+use crate::world_state::{GoIntoCourt, Trial};
 use bevy::app::{App, Plugin};
 use bevy::prelude::AppExtStates;
-use crate::world_state::{GoIntoCourt, Trial};
 
-use crate::world_state::quests::Court;
 use crate::world_state::quests::BlondAndGopniks;
+use crate::world_state::quests::Court;
 use crate::world_state::quests::EnterTheCourt;
 use crate::world_state::quests::EscapeFromHouse;
 use crate::world_state::quests::House;
@@ -14,8 +14,7 @@ pub struct WorldStatePlugin;
 
 impl Plugin for WorldStatePlugin {
     fn build(&self, app: &mut App) {
-        app
-            .init_state::<EscapeFromHouse>()
+        app.init_state::<EscapeFromHouse>()
             .init_state::<EnterTheCourt>()
             .init_state::<InCourHall>()
             .init_state::<Court>()
@@ -26,5 +25,3 @@ impl Plugin for WorldStatePlugin {
             .init_state::<Trial>();
     }
 }
-
-

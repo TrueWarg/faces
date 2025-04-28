@@ -32,44 +32,42 @@ pub struct Health;
 pub struct Energy;
 
 pub trait PartyMemberItemExt<'a> {
-    fn party_member_item(
-        &mut self,
-        id: MemberId,
-    ) -> UiBuilder<Entity>;
+    fn party_member_item(&mut self, id: MemberId) -> UiBuilder<Entity>;
 }
 
 impl<'a> PartyMemberItemExt<'a> for UiBuilder<'a, Entity> {
     fn party_member_item(&mut self, id: MemberId) -> UiBuilder<Entity> {
-        let mut item = self
-            .container((ButtonBundle::default(), id), |parent| {
-                parent
-                    .column(|parent| {
-                        parent.container(NodeBundle::default(), |_| {})
-                            .style()
-                            .background_color(Color::from(MAROON))
-                            .width(Val::Percent(100.0))
-                            .height(Val::Percent(80.0));
-                        parent.container((NodeBundle::default(), Health), |_| {})
-                            .style()
-                            .background_color(Color::from(GREEN))
-                            .width(Val::Percent(100.0))
-                            .height(Val::Percent(10.0));
-                        parent.container((NodeBundle::default(), Energy), |_| {})
-                            .style()
-                            .background_color(Color::from(YELLOW))
-                            .width(Val::Percent(100.0))
-                            .height(Val::Percent(10.0));
-                    })
-                    .style()
-                    .size(Val::Percent(90.0));
-            });
+        let mut item = self.container((ButtonBundle::default(), id), |parent| {
+            parent
+                .column(|parent| {
+                    parent
+                        .container(NodeBundle::default(), |_| {})
+                        .style()
+                        .background_color(Color::from(MAROON))
+                        .width(Val::Percent(100.0))
+                        .height(Val::Percent(80.0));
+                    parent
+                        .container((NodeBundle::default(), Health), |_| {})
+                        .style()
+                        .background_color(Color::from(GREEN))
+                        .width(Val::Percent(100.0))
+                        .height(Val::Percent(10.0));
+                    parent
+                        .container((NodeBundle::default(), Energy), |_| {})
+                        .style()
+                        .background_color(Color::from(YELLOW))
+                        .width(Val::Percent(100.0))
+                        .height(Val::Percent(10.0));
+                })
+                .style()
+                .size(Val::Percent(90.0));
+        });
 
-        item
-            .style()
+        item.style()
             .align_items(AlignItems::Center)
             .justify_content(JustifyContent::Center)
             .background_color(Color::from(ANTIQUE_WHITE));
 
-        return item;
+        item
     }
 }

@@ -1,5 +1,5 @@
-use bevy::prelude::Component;
 use crate::rpg::{Ability, DirectionalAttack, TargetProps};
+use bevy::prelude::Component;
 
 #[derive(Component, PartialEq, Clone)]
 pub struct PartyMember {
@@ -11,4 +11,3 @@ pub struct PartyMember {
     pub attacks: Vec<DirectionalAttack>,
     pub abilities: Vec<Ability>,
 }
-

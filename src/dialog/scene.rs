@@ -1,10 +1,9 @@
 use bevy::app::{App, Plugin};
 use bevy::asset::AssetServer;
-use bevy::color::Color;
 use bevy::color::palettes::css::{ANTIQUE_WHITE, DIM_GREY, WHITE};
+use bevy::color::Color;
 use bevy::hierarchy::{Children, DespawnRecursiveExt};
 use bevy::log::warn;
-use bevy::prelude::{AlignItems, default, ImageBundle, Interaction, NextState, PositionType, ResMut, State, UiImage};
 use bevy::prelude::BackgroundColor;
 use bevy::prelude::Changed;
 use bevy::prelude::Commands;
@@ -20,9 +19,11 @@ use bevy::prelude::UiRect;
 use bevy::prelude::Update;
 use bevy::prelude::Val;
 use bevy::prelude::With;
+use bevy::prelude::{
+    default, AlignItems, ImageBundle, Interaction, NextState, PositionType, ResMut, State, UiImage,
+};
 use bevy::ui::{AlignSelf, FocusPolicy};
 use bevy::utils::HashMap;
-use sickle_ui::prelude::{ScrollAxis, SetBorderColorExt, SetBorderExt, SetLeftExt, SetPositionTypeExt, SetTopExt};
 use sickle_ui::prelude::SetAlignItemsExt;
 use sickle_ui::prelude::SetAlignSelfExt;
 use sickle_ui::prelude::SetBackgroundColorExt;
@@ -38,11 +39,16 @@ use sickle_ui::prelude::UiContainerExt;
 use sickle_ui::prelude::UiRoot;
 use sickle_ui::prelude::UiRowExt;
 use sickle_ui::prelude::UiScrollViewExt;
+use sickle_ui::prelude::{
+    ScrollAxis, SetBorderColorExt, SetBorderExt, SetLeftExt, SetPositionTypeExt, SetTopExt,
+};
 use sickle_ui::ui_builder::UiBuilderExt;
 use sickle_ui::ui_commands::UpdateTextExt;
 
 use crate::core::states::GameState;
-use crate::dialog::{Branching, Dialog, DialogEffect, DialogId, DialogsStorage, DialogStick, SelectedVariantsSource};
+use crate::dialog::{
+    Branching, Dialog, DialogEffect, DialogId, DialogStick, DialogsStorage, SelectedVariantsSource,
+};
 use crate::fight::FightId;
 use crate::gui::{ButtonConfig, TextButton, TextButtonExt, TextConfig, TextExt};
 use crate::world_state::EscapeFromHouse;
@@ -72,15 +78,16 @@ struct OptionId(usize);
 
 impl Plugin for DialogScene {
     fn build(&self, app: &mut App) {
-        app
-            .add_systems(OnEnter(GameState::Dialog), spawn_main)
+        app.add_systems(OnEnter(GameState::Dialog), spawn_main)
             .add_systems(OnExit(GameState::Dialog), unspawn)
             .add_systems(Update, dialog_options_panel_respawns)
-            .add_systems(Update, (
-                option_input_handle,
-                dialog_options_updates,
-                current_replica_updates,
-            ),
+            .add_systems(
+                Update,
+                (
+                    option_input_handle,
+                    dialog_options_updates,
+                    current_replica_updates,
+                ),
             );
     }
 }
@@ -112,25 +119,35 @@ fn spawn_main(
     commands
         .ui_builder(UiRoot)
         .column(|parent| {
-            parent.container(ImageBundle {
-                image: UiImage {
-                    texture: asset_server.load(&dialog.bg_path),
-                    ..default()
-                },
-                ..default()
-            }, |parent| {
-                parent.container(ImageBundle {
-                    image: UiImage { texture: asset_server.load(&dialog.character_path), ..default() },
-                    ..default()
-                }, |parent| {},
+            parent
+                .container(
+                    ImageBundle {
+                        image: UiImage {
+                            texture: asset_server.load(&dialog.bg_path),
+                            ..default()
+                        },
+                        ..default()
+                    },
+                    |parent| {
+                        parent
+                            .container(
+                                ImageBundle {
+                                    image: UiImage {
+                                        texture: asset_server.load(&dialog.character_path),
+                                        ..default()
+                                    },
+                                    ..default()
+                                },
+                                |parent| {},
+                            )
+                            .style()
+                            .width(Val::Auto)
+                            .height(Val::Percent(70.0))
+                            .position_type(PositionType::Relative)
+                            .top(Val::Percent(30.0))
+                            .left(Val::Percent(40.0));
+                    },
                 )
-                    .style()
-                    .width(Val::Auto)
-                    .height(Val::Percent(70.0))
-                    .position_type(PositionType::Relative)
-                    .top(Val::Percent(30.0))
-                    .left(Val::Percent(40.0));
-            })
                 .style()
                 .height(Val::Percent(60.0))
                 .width(Val::Percent(100.0));
@@ -141,14 +158,12 @@ fn spawn_main(
                         .configure_text("", TextConfig::small(Color::from(ANTIQUE_WHITE)))
                         .insert(current_replica)
                         .style()
-                        .margin(
-                            UiRect {
-                                left: Val::Px(20.0),
-                                right: Val::Px(20.0),
-                                top: Val::Px(20.0),
-                                bottom: Val::Px(20.0),
-                            }
-                        );
+                        .margin(UiRect {
+                            left: Val::Px(20.0),
+                            right: Val::Px(20.0),
+                            top: Val::Px(20.0),
+                            bottom: Val::Px(20.0),
+                        });
                 })
                 .style()
                 .justify_content(JustifyContent::Start)
@@ -169,8 +184,7 @@ fn spawn_main(
             current_branching,
             dialog,
             Sticks(id_to_replica_position),
-        )
-        )
+        ))
         .style()
         .justify_content(JustifyContent::Start)
         .align_items(AlignItems::Start)
@@ -190,8 +204,8 @@ fn dialog_options_panel_respawns(
         commands
             .ui_builder(UiRoot)
             .row(|parent| {
-                parent.scroll_view(Some(ScrollAxis::Vertical), |parent| {
-                    match &branching.0 {
+                parent
+                    .scroll_view(Some(ScrollAxis::Vertical), |parent| match &branching.0 {
                         None => {
                             option_button(parent, BTN_NEXT_ID, "NEXT".to_string());
                         }
@@ -201,8 +215,7 @@ fn dialog_options_panel_respawns(
                                 option_button(parent, pos, format!("{}. {}", pos + 1, item.label));
                             }
                         }
-                    }
-                })
+                    })
                     .style()
                     .width(Val::Percent(100.0))
                     .height(Val::Percent(100.0));
@@ -225,11 +238,7 @@ fn dialog_options_panel_respawns(
     }
 }
 
-fn option_button(
-    parent: &mut UiBuilder<Entity>,
-    id: usize,
-    label: String,
-) {
+fn option_button(parent: &mut UiBuilder<Entity>, id: usize, label: String) {
     parent
         .configure_text_button(
             label,
@@ -303,20 +312,18 @@ fn option_input_handle(
                         let selected = &branching.variants[button.payload.0];
                         match &selected.effect {
                             None => {}
-                            Some(effect) => {
-                                match effect {
-                                    DialogEffect::ReplaceDialog => {
-                                        stack.pop();
-                                    }
-                                    DialogEffect::EndDialog(end_id) => {
-                                        let dialog_id = query.single();
-                                        if let Some(id) = end_id {
-                                            dialog_variant_source.produce(dialog_id.0, *id);
-                                        }
-                                        stack.clear();
-                                    }
+                            Some(effect) => match effect {
+                                DialogEffect::ReplaceDialog => {
+                                    stack.pop();
                                 }
-                            }
+                                DialogEffect::EndDialog(end_id) => {
+                                    let dialog_id = query.single();
+                                    if let Some(id) = end_id {
+                                        dialog_variant_source.produce(dialog_id.0, *id);
+                                    }
+                                    stack.clear();
+                                }
+                            },
                         }
                         let stick = dialog_query.single().get_stick_at(selected.stick_id);
                         replica_query.single_mut().0 = stick.first_replica().text.clone();
@@ -358,7 +365,9 @@ fn current_replica_updates(
     for (children, replica) in replica_query.iter_mut() {
         for &child in children.iter() {
             match commands.get_entity(child) {
-                None => { warn!("Current replica component is not found") }
+                None => {
+                    warn!("Current replica component is not found")
+                }
                 Some(mut entity_commands) => {
                     entity_commands.update_text(replica.0.clone());
                 }

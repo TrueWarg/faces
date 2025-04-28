@@ -1,30 +1,40 @@
+use crate::core::states::GameState;
+use crate::gui::ButtonConfig;
+use crate::gui::GetSelectorItem;
+use crate::gui::SelectorItem;
+use crate::gui::TextButton;
+use crate::gui::TextButtonExt;
+use crate::gui::TextConfig;
+use crate::gui::TextExt;
+use crate::party::PartyStateStorage;
+use crate::rpg::{ConsumableItem, DirectionalAttack};
 use bevy::app::{App, Plugin, Update};
-use bevy::color::{Color, Srgba};
 use bevy::color::palettes::css::ANTIQUE_WHITE;
+use bevy::color::{Color, Srgba};
 use bevy::hierarchy::{Children, DespawnRecursiveExt};
 use bevy::log::warn;
-use bevy::prelude::{AppExtStates, OnExit};
+use bevy::prelude::in_state;
 use bevy::prelude::AlignItems;
-use bevy::prelude::DetectChanges;
-use bevy::prelude::Entity;
-use bevy::prelude::NextState;
-use bevy::prelude::Res;
-use bevy::prelude::ResMut;
-use bevy::prelude::State;
-use bevy::prelude::States;
 use bevy::prelude::BackgroundColor;
 use bevy::prelude::Changed;
 use bevy::prelude::Commands;
 use bevy::prelude::Component;
-use bevy::prelude::in_state;
+use bevy::prelude::DetectChanges;
+use bevy::prelude::Entity;
 use bevy::prelude::Interaction;
 use bevy::prelude::IntoSystemConfigs;
 use bevy::prelude::JustifyContent;
+use bevy::prelude::NextState;
 use bevy::prelude::OnEnter;
 use bevy::prelude::Query;
+use bevy::prelude::Res;
+use bevy::prelude::ResMut;
+use bevy::prelude::State;
+use bevy::prelude::States;
 use bevy::prelude::UiRect;
 use bevy::prelude::Val;
 use bevy::prelude::With;
+use bevy::prelude::{AppExtStates, OnExit};
 use bevy::ui::FocusPolicy;
 use bevy_rapier2d::na::DimRange;
 use sickle_ui::prelude::ScrollAxis;
@@ -42,16 +52,6 @@ use sickle_ui::prelude::UiRowExt;
 use sickle_ui::prelude::UiScrollViewExt;
 use sickle_ui::ui_builder::UiBuilderExt;
 use sickle_ui::ui_commands::UpdateTextExt;
-use crate::core::states::GameState;
-use crate::gui::ButtonConfig;
-use crate::gui::GetSelectorItem;
-use crate::gui::SelectorItem;
-use crate::gui::TextButton;
-use crate::gui::TextButtonExt;
-use crate::gui::TextConfig;
-use crate::gui::TextExt;
-use crate::party::PartyStateStorage;
-use crate::rpg::{ConsumableItem, DirectionalAttack};
 
 pub struct InventoryAndAbilityScreenPlugin;
 
@@ -79,7 +79,7 @@ struct SelectedItemPosHolder {
 
 impl SelectedItemPosHolder {
     fn new() -> Self {
-        return SelectedItemPosHolder { value: None };
+        SelectedItemPosHolder { value: None }
     }
 
     fn store(&mut self, value: usize) {
@@ -89,13 +89,13 @@ impl SelectedItemPosHolder {
     fn take_away_unsafe(&mut self) -> usize {
         let value = self.value.expect("Value was not be stored");
         self.value = None;
-        return value;
+        value
     }
 
     fn take_away(&mut self) -> Option<usize> {
         let value = self.value;
         self.value = None;
-        return value;
+        value
     }
 }
 
@@ -104,28 +104,24 @@ pub struct Description;
 
 impl Plugin for InventoryAndAbilityScreenPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .init_state::<Tab>()
+        app.init_state::<Tab>()
             .init_state::<SelectedMember>()
             .add_systems(OnEnter(GameState::InventoryAndAbilities), spawn_main)
             .add_systems(OnExit(GameState::InventoryAndAbilities), despawn_main)
-            .add_systems(Update, main_respawns.run_if(in_state(GameState::InventoryAndAbilities)))
-            .add_systems(Update,
-                         (pick_item_handle,
-                          pick_tab_handle,
-                          pick_member_handle,
-                         )
-                             .run_if(in_state(GameState::InventoryAndAbilities)),
+            .add_systems(
+                Update,
+                main_respawns.run_if(in_state(GameState::InventoryAndAbilities)),
+            )
+            .add_systems(
+                Update,
+                (pick_item_handle, pick_tab_handle, pick_member_handle)
+                    .run_if(in_state(GameState::InventoryAndAbilities)),
             );
     }
 }
 
-fn spawn_main(
-    mut commands: Commands,
-) {
-    commands
-        .spawn_empty()
-        .insert(SelectedItemPosHolder::new());
+fn spawn_main(mut commands: Commands) {
+    commands.spawn_empty().insert(SelectedItemPosHolder::new());
 }
 
 fn main_respawns(
@@ -142,7 +138,7 @@ fn main_respawns(
     for entity in screen_query.iter() {
         commands.entity(entity).despawn_recursive();
     }
-    
+
     let members = party_storage.get_party_members();
     let current_member_id = selected_member_state.get().0;
     let member = &members[current_member_id];
@@ -163,129 +159,139 @@ fn main_respawns(
     commands
         .ui_builder(UiRoot)
         .column(|parent| {
-            parent.column(|parent| {
-                parent.row(|parent| {
-                    let config = ButtonConfig {
-                        width: Val::Percent(100.0 / 3.0),
-                        height: Val::Percent(100.0),
-                        idle: BackgroundColor::from(Color::NONE),
-                        hover: BackgroundColor::from(PRESSED_HOVER_BUTTON_COLOR),
-                        pressed: BackgroundColor::from(PRESSED_HOVER_BUTTON_COLOR),
-                        justify_content: JustifyContent::Center,
-                    };
+            parent
+                .column(|parent| {
                     parent
-                        .configure_text_button(
-                            "Лут".to_string(),
-                            Tab::Inventory,
-                            TextConfig::from_color(Color::from(ANTIQUE_WHITE)),
-                            config.clone(),
-                        )
+                        .row(|parent| {
+                            let config = ButtonConfig {
+                                width: Val::Percent(100.0 / 3.0),
+                                height: Val::Percent(100.0),
+                                idle: BackgroundColor::from(Color::NONE),
+                                hover: BackgroundColor::from(PRESSED_HOVER_BUTTON_COLOR),
+                                pressed: BackgroundColor::from(PRESSED_HOVER_BUTTON_COLOR),
+                                justify_content: JustifyContent::Center,
+                            };
+                            parent
+                                .configure_text_button(
+                                    "Лут".to_string(),
+                                    Tab::Inventory,
+                                    TextConfig::from_color(Color::from(ANTIQUE_WHITE)),
+                                    config.clone(),
+                                )
+                                .style()
+                                .focus_policy(FocusPolicy::Pass);
+                            parent
+                                .configure_text_button(
+                                    "Способности".to_string(),
+                                    Tab::Abilities,
+                                    TextConfig::from_color(Color::from(ANTIQUE_WHITE)),
+                                    config.clone(),
+                                )
+                                .style()
+                                .focus_policy(FocusPolicy::Pass);
+                            parent
+                                .configure_text_button(
+                                    "Атаки".to_string(),
+                                    Tab::Attacks,
+                                    TextConfig::from_color(Color::from(ANTIQUE_WHITE)),
+                                    config,
+                                )
+                                .style()
+                                .focus_policy(FocusPolicy::Pass);
+                        })
                         .style()
-                        .focus_policy(FocusPolicy::Pass);
-                    parent
-                        .configure_text_button(
-                            "Способности".to_string(),
-                            Tab::Abilities,
-                            TextConfig::from_color(Color::from(ANTIQUE_WHITE)),
-                            config.clone(),
-                        )
-                        .style()
-                        .focus_policy(FocusPolicy::Pass);
-                    parent
-                        .configure_text_button(
-                            "Атаки".to_string(),
-                            Tab::Attacks,
-                            TextConfig::from_color(Color::from(ANTIQUE_WHITE)),
-                            config,
-                        )
-                        .style()
-                        .focus_policy(FocusPolicy::Pass);
-                })
-                    .style()
-                    .width(Val::Percent(100.0))
-                    .height(Val::Percent(50.0));
+                        .width(Val::Percent(100.0))
+                        .height(Val::Percent(50.0));
 
-                parent.row(|parent| {
-                    for (idx, member) in members.iter().enumerate() {
-                        let config = ButtonConfig {
-                            width: Val::Percent(100.0 / (members.len() as f32)),
-                            height: Val::Percent(100.0),
-                            idle: BackgroundColor::from(Color::NONE),
-                            hover: BackgroundColor::from(PRESSED_HOVER_BUTTON_COLOR),
-                            pressed: BackgroundColor::from(PRESSED_HOVER_BUTTON_COLOR),
-                            justify_content: JustifyContent::Center,
-                        };
-                        parent
-                            .configure_text_button(
-                                member.name.clone(),
-                                SelectedMember(idx),
-                                TextConfig::from_color(Color::from(ANTIQUE_WHITE)),
-                                config,
-                            )
-                            .style()
-                            .focus_policy(FocusPolicy::Pass);
-                    };
+                    parent
+                        .row(|parent| {
+                            for (idx, member) in members.iter().enumerate() {
+                                let config = ButtonConfig {
+                                    width: Val::Percent(100.0 / (members.len() as f32)),
+                                    height: Val::Percent(100.0),
+                                    idle: BackgroundColor::from(Color::NONE),
+                                    hover: BackgroundColor::from(PRESSED_HOVER_BUTTON_COLOR),
+                                    pressed: BackgroundColor::from(PRESSED_HOVER_BUTTON_COLOR),
+                                    justify_content: JustifyContent::Center,
+                                };
+                                parent
+                                    .configure_text_button(
+                                        member.name.clone(),
+                                        SelectedMember(idx),
+                                        TextConfig::from_color(Color::from(ANTIQUE_WHITE)),
+                                        config,
+                                    )
+                                    .style()
+                                    .focus_policy(FocusPolicy::Pass);
+                            }
+                        })
+                        .style()
+                        .width(Val::Percent(100.0))
+                        .height(Val::Percent(50.0));
                 })
-                    .style()
-                    .width(Val::Percent(100.0))
-                    .height(Val::Percent(50.0));
-            })
                 .style()
                 .width(Val::Percent(100.0))
                 .height(Val::Percent(30.0));
 
-            parent.row(|parent| {
-                parent.column(|parent| {
-                    parent.scroll_view(Some(ScrollAxis::Vertical), |parent| {
-                        for (pos, item) in items.iter().enumerate() {
+            parent
+                .row(|parent| {
+                    parent
+                        .column(|parent| {
                             parent
-                                .configure_text_button(
-                                    &item.name,
-                                    PosAndDescr(pos, item.description.clone()),
-                                    TextConfig::from_color(Color::from(ANTIQUE_WHITE)),
-                                    ButtonConfig {
-                                        width: Val::Percent(100.0),
-                                        height: Val::Px(70.0),
-                                        idle: BackgroundColor::from(Color::NONE),
-                                        hover: BackgroundColor::from(PRESSED_HOVER_BUTTON_COLOR),
-                                        pressed: BackgroundColor::from(PRESSED_HOVER_BUTTON_COLOR),
-                                        justify_content: JustifyContent::Center,
-                                    },
-                                )
+                                .scroll_view(Some(ScrollAxis::Vertical), |parent| {
+                                    for (pos, item) in items.iter().enumerate() {
+                                        parent
+                                            .configure_text_button(
+                                                &item.name,
+                                                PosAndDescr(pos, item.description.clone()),
+                                                TextConfig::from_color(Color::from(ANTIQUE_WHITE)),
+                                                ButtonConfig {
+                                                    width: Val::Percent(100.0),
+                                                    height: Val::Px(70.0),
+                                                    idle: BackgroundColor::from(Color::NONE),
+                                                    hover: BackgroundColor::from(
+                                                        PRESSED_HOVER_BUTTON_COLOR,
+                                                    ),
+                                                    pressed: BackgroundColor::from(
+                                                        PRESSED_HOVER_BUTTON_COLOR,
+                                                    ),
+                                                    justify_content: JustifyContent::Center,
+                                                },
+                                            )
+                                            .style()
+                                            .focus_policy(FocusPolicy::Pass)
+                                            .justify_content(JustifyContent::FlexStart);
+                                    }
+                                })
                                 .style()
-                                .focus_policy(FocusPolicy::Pass)
-                                .justify_content(JustifyContent::FlexStart);
-                        }
-                    })
+                                .width(Val::Percent(100.0))
+                                .height(Val::Percent(100.0));
+                        })
                         .style()
-                        .width(Val::Percent(100.0))
+                        .width(Val::Percent(50.0))
                         .height(Val::Percent(100.0));
-                })
-                    .style()
-                    .width(Val::Percent(50.0))
-                    .height(Val::Percent(100.0));
 
-                parent
-                    .column(|parent| {
-                        parent
-                            .configure_text("".to_string(), TextConfig::from_color(Color::from(ANTIQUE_WHITE)))
-                            .insert(Description)
-                            .style()
-                            .margin(
-                                UiRect {
+                    parent
+                        .column(|parent| {
+                            parent
+                                .configure_text(
+                                    "".to_string(),
+                                    TextConfig::from_color(Color::from(ANTIQUE_WHITE)),
+                                )
+                                .insert(Description)
+                                .style()
+                                .margin(UiRect {
                                     left: Val::Px(20.0),
                                     right: Val::Px(20.0),
                                     top: Val::Px(20.0),
                                     bottom: Val::Px(20.0),
-                                }
-                            );
-                    })
-                    .style()
-                    .justify_content(JustifyContent::FlexStart)
-                    .width(Val::Percent(50.0))
-                    .height(Val::Percent(100.0));
-            })
-
+                                });
+                        })
+                        .style()
+                        .justify_content(JustifyContent::FlexStart)
+                        .width(Val::Percent(50.0))
+                        .height(Val::Percent(100.0));
+                })
                 .style()
                 .width(Val::Percent(100.0))
                 .height(Val::Percent(70.0))
@@ -304,7 +310,7 @@ fn to_selector_items<T: GetSelectorItem>(items: &Vec<T>) -> Vec<SelectorItem> {
     for item in items {
         result.push(item.selector_item());
     }
-    return result;
+    result
 }
 
 fn pick_item_handle(
@@ -326,7 +332,9 @@ fn pick_item_handle(
                 for mut children in description_query.iter() {
                     for &child in children.iter() {
                         match commands.get_entity(child) {
-                            None => { warn!("Description is not found") }
+                            None => {
+                                warn!("Description is not found")
+                            }
                             Some(mut entity_commands) => {
                                 entity_commands.update_text(item.payload.1.clone());
                             }
@@ -363,9 +371,7 @@ fn pick_tab_handle(
                     *background_color = item.config.idle;
                 }
             }
-            Interaction::Hovered => {
-                *background_color = item.config.hover
-            }
+            Interaction::Hovered => *background_color = item.config.hover,
             Interaction::Pressed => {
                 next_tab_state.set(item.payload);
                 *background_color = item.config.pressed;
@@ -375,12 +381,14 @@ fn pick_tab_handle(
 }
 
 fn pick_member_handle(
-    mut query: Query<(
-        &TextButton<SelectedMember>,
-        &Interaction,
-        &mut BackgroundColor),
-        Changed<Interaction>>
-    ,
+    mut query: Query<
+        (
+            &TextButton<SelectedMember>,
+            &Interaction,
+            &mut BackgroundColor,
+        ),
+        Changed<Interaction>,
+    >,
     mut next_member_state: ResMut<NextState<SelectedMember>>,
     mut member_state: Res<State<SelectedMember>>,
 ) {
@@ -393,9 +401,7 @@ fn pick_member_handle(
                     *background_color = item.config.idle;
                 }
             }
-            Interaction::Hovered => {
-                *background_color = item.config.hover
-            }
+            Interaction::Hovered => *background_color = item.config.hover,
             Interaction::Pressed => {
                 next_member_state.set(item.payload);
                 *background_color = item.config.pressed;
@@ -404,10 +410,7 @@ fn pick_member_handle(
     }
 }
 
-fn despawn_main(
-    mut commands: Commands,
-    query: Query<Entity, With<InventoryAndAbilityScreen>>,
-) {
+fn despawn_main(mut commands: Commands, query: Query<Entity, With<InventoryAndAbilityScreen>>) {
     for entity in query.iter() {
         commands.entity(entity).despawn_recursive();
     }

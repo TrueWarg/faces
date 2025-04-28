@@ -1,24 +1,23 @@
-use bevy::color::Color;
+use crate::gui::ButtonConfig;
+use crate::gui::TextButtonExt;
+use crate::gui::TextConfig;
+use crate::gui::TextExt;
 use bevy::color::palettes::css::ANTIQUE_WHITE;
-use bevy::prelude::{AlignItems, JustifyItems};
+use bevy::color::Color;
 use bevy::prelude::BackgroundColor;
 use bevy::prelude::Component;
 use bevy::prelude::Entity;
 use bevy::prelude::JustifyContent;
 use bevy::prelude::UiRect;
 use bevy::prelude::Val;
+use bevy::prelude::AlignItems;
 use bevy::ui::FocusPolicy;
-use sickle_ui::prelude::{SetAlignItemsExt, SetHeightExt, SetJustifyItemsExt};
 use sickle_ui::prelude::SetFocusPolicyExt;
 use sickle_ui::prelude::SetJustifyContentExt;
 use sickle_ui::prelude::SetPaddingExt;
-use sickle_ui::prelude::SetWidthExt;
 use sickle_ui::prelude::UiBuilder;
 use sickle_ui::prelude::UiRowExt;
-use crate::gui::ButtonConfig;
-use crate::gui::TextButtonExt;
-use crate::gui::TextConfig;
-use crate::gui::TextExt;
+use sickle_ui::prelude::SetAlignItemsExt;
 
 #[derive(Component)]
 pub struct Title;
@@ -54,10 +53,7 @@ impl<'a> TitleExt<'a> for UiBuilder<'a, Entity> {
                 .focus_policy(FocusPolicy::Pass);
 
             parent
-                .configure_text(
-                    "",
-                    TextConfig::large(Color::from(ANTIQUE_WHITE)),
-                )
+                .configure_text("", TextConfig::large(Color::from(ANTIQUE_WHITE)))
                 .insert(Title)
                 .style()
                 .padding(UiRect {
@@ -85,12 +81,11 @@ impl<'a> TitleExt<'a> for UiBuilder<'a, Entity> {
                 .focus_policy(FocusPolicy::Pass);
         });
 
-        item
-            .style()
+        item.style()
             .justify_content(JustifyContent::Center)
             .align_items(AlignItems::Center);
 
-        return item;
+        item
     }
 }
 

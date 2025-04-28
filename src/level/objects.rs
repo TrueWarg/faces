@@ -34,6 +34,10 @@ pub fn spawn_object(
         .with_children(|children| {
             children
                 .spawn(Collider::cuboid(half_x, half_y))
-                .insert(TransformBundle::from(Transform::from_xyz(0.0, collider_shift_y, z)));
+                .insert(TransformBundle::from(Transform::from_xyz(
+                    0.0,
+                    collider_shift_y,
+                    z,
+                )));
         });
 }

@@ -1,3 +1,15 @@
+use bevy::hierarchy::DespawnRecursiveExt;
+use bevy::math::UVec2;
+use bevy::prelude::in_state;
+use bevy::prelude::AppExtStates;
+use bevy::prelude::Component;
+use bevy::prelude::DetectChanges;
+use bevy::prelude::NextState;
+use bevy::prelude::OnEnter;
+use bevy::prelude::OnExit;
+use bevy::prelude::State;
+use bevy::prelude::States;
+use bevy::prelude::TransformBundle;
 use bevy::{
     asset::Assets,
     ecs::entity::Entity,
@@ -5,8 +17,8 @@ use bevy::{
     ecs::schedule::IntoSystemConfigs,
     ecs::system::Query,
     ecs::system::ResMut,
-    input::ButtonInput,
     input::keyboard::KeyCode,
+    input::ButtonInput,
     prelude::AssetServer,
     prelude::BuildChildren,
     prelude::Commands,
@@ -18,20 +30,19 @@ use bevy::{
     sprite::{SpriteBundle, TextureAtlas, TextureAtlasLayout},
     time::Timer,
 };
-use bevy::hierarchy::DespawnRecursiveExt;
-use bevy::math::UVec2;
-use bevy::prelude::AppExtStates;
-use bevy::prelude::Component;
-use bevy::prelude::DetectChanges;
-use bevy::prelude::in_state;
-use bevy::prelude::NextState;
-use bevy::prelude::OnEnter;
-use bevy::prelude::OnExit;
-use bevy::prelude::State;
-use bevy::prelude::States;
-use bevy::prelude::TransformBundle;
 use bevy_rapier2d::prelude::{Collider, RigidBody};
 
+use crate::animation::entities::MoveDirection;
+use crate::core::entities::BodyYOffset;
+use crate::core::states::GameState;
+use crate::core::z_index::DEFAULT_OBJECT_Z;
+use crate::dialog::SelectedVariantsSource;
+use crate::interaction::interactors::change_switcher_state;
+use crate::interaction::interactors::transit_to_next_container_state;
+use crate::level::house::FormidableDogState::Wakefulness;
+use crate::npc::{spawn_fixed_npc, spawn_formidable_dog, IdleAnimation};
+use crate::world_state::EscapeFromHouse;
+use crate::world_state::EscapeFromHouse::{CallDog, Escape, GoSleep};
 use crate::{
     core::{
         collisions::recalculate_z,
@@ -44,25 +55,16 @@ use crate::{
         PassiveInteractor, Switcher, SwitcherState,
     },
 };
-use crate::animation::entities::MoveDirection;
-use crate::core::entities::BodyYOffset;
-use crate::core::states::GameState;
-use crate::core::z_index::DEFAULT_OBJECT_Z;
-use crate::dialog::SelectedVariantsSource;
-use crate::interaction::interactors::change_switcher_state;
-use crate::interaction::interactors::transit_to_next_container_state;
-use crate::level::house::FormidableDogState::Wakefulness;
-use crate::npc::{IdleAnimation, spawn_fixed_npc, spawn_formidable_dog};
-use crate::world_state::EscapeFromHouse;
-use crate::world_state::EscapeFromHouse::{CallDog, Escape, GoSleep};
 
-use super::{dialog_starts, END_DIALOG_AGENDA_TAKEN, END_DIALOG_FORMIDABLE_DOG_JOINED, HasDialogId};
-use super::COURIER_DIALOG;
-use super::END_DIALOG_NECK_TWISTED;
 use super::objects::LevelArm;
 use super::objects::WoodenChest;
-use super::SLEEPING_FORMIDABLE_DOG_DIALOG;
 use super::sprites::WoodenChestSprites;
+use super::COURIER_DIALOG;
+use super::END_DIALOG_NECK_TWISTED;
+use super::SLEEPING_FORMIDABLE_DOG_DIALOG;
+use super::{
+    dialog_starts, HasDialogId, END_DIALOG_AGENDA_TAKEN, END_DIALOG_FORMIDABLE_DOG_JOINED,
+};
 
 #[derive(Component)]
 struct HouseLevel;
@@ -101,25 +103,35 @@ pub struct HousePlugin<S: States> {
 
 impl<S: States> Plugin for HousePlugin<S> {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app
-            .init_state::<FormidableDogState>()
+        app.init_state::<FormidableDogState>()
             .add_systems(OnEnter(self.state.clone()), load)
             .add_systems(OnExit(self.state.clone()), unload)
             .add_systems(OnExit(GameState::Exploration), unload)
             .add_systems(Update, courier_spawns.run_if(in_state(self.state.clone())))
             .add_systems(OnExit(self.state.clone()), despawn_courier)
-            .add_systems(Update, sleeping_formidable_dog_spawns.run_if(in_state(self.state.clone())))
-            .add_systems(OnExit(self.state.clone()), despawn_sleeping_dog)
-            .add_systems(OnEnter(Wakefulness), initial_spawn_formidable_dog)
-            .add_systems(Update, dialog_starts::<Courier>.run_if(in_state(EscapeFromHouse::Courier)))
-            .add_systems(Update, dialog_starts::<SleepingFormidableDog>.run_if(in_state(CallDog)))
             .add_systems(
                 Update,
-                (recalculate_z,
-                 escape_from_house_variants_handles,
-                 draw_wooden_chest_states.after(transit_to_next_container_state),
-                 draw_level_arm_states.after(change_switcher_state),
-                ).run_if(in_state(self.state.clone())),
+                sleeping_formidable_dog_spawns.run_if(in_state(self.state.clone())),
+            )
+            .add_systems(OnExit(self.state.clone()), despawn_sleeping_dog)
+            .add_systems(OnEnter(Wakefulness), initial_spawn_formidable_dog)
+            .add_systems(
+                Update,
+                dialog_starts::<Courier>.run_if(in_state(EscapeFromHouse::Courier)),
+            )
+            .add_systems(
+                Update,
+                dialog_starts::<SleepingFormidableDog>.run_if(in_state(CallDog)),
+            )
+            .add_systems(
+                Update,
+                (
+                    recalculate_z,
+                    escape_from_house_variants_handles,
+                    draw_wooden_chest_states.after(transit_to_next_container_state),
+                    draw_level_arm_states.after(change_switcher_state),
+                )
+                    .run_if(in_state(self.state.clone())),
             );
     }
 }
@@ -187,10 +199,7 @@ fn escape_from_house_variants_handles(
     }
 }
 
-fn unload(
-    mut commands: Commands,
-    query: Query<Entity>,
-) {
+fn unload(mut commands: Commands, query: Query<Entity>) {
     // for entity in query.iter() {
     //     println!("!!!! kek");
     //     commands.entity(entity).despawn();
@@ -228,7 +237,8 @@ fn spawn_level_arm(
         TextureAtlas {
             layout: layout_handle,
             index: 0,
-        });
+        },
+    );
 
     commands
         .spawn(RigidBody::Fixed)
@@ -343,9 +353,7 @@ fn sleeping_formidable_dog_spawns(
 
     match formidable_dog_state.get() {
         FormidableDogState::Sleep => {
-            spawn_sleeping_formidable_dog(
-                asset_server, commands, layouts, level_y_max,
-            );
+            spawn_sleeping_formidable_dog(asset_server, commands, layouts, level_y_max);
         }
         Wakefulness => {
             despawn_sleeping_dog(commands, query);
@@ -366,9 +374,7 @@ fn spawn_sleeping_formidable_dog(
     let z = calculate_z(-137.0, y_max.value);
 
     let image_handle = asset_server.load("npc/formidable_dog_sleeping.png");
-    let layout = TextureAtlasLayout::from_grid(
-        UVec2::new(27, 18), 16, 1, None, None,
-    );
+    let layout = TextureAtlasLayout::from_grid(UVec2::new(27, 18), 16, 1, None, None);
 
     let layout_handle = layouts.add(layout);
 
@@ -386,10 +392,7 @@ fn spawn_sleeping_formidable_dog(
             SleepingFormidableDog,
         ))
         .insert(IdleAnimation {
-            timer: Timer::from_seconds(
-                0.4,
-                bevy::time::TimerMode::Repeating,
-            ),
+            timer: Timer::from_seconds(0.4, bevy::time::TimerMode::Repeating),
             frames_count: 16,
         })
         .insert(TransformBundle::from(Transform::from_xyz(x, y, z)))
@@ -409,10 +412,7 @@ fn spawn_sleeping_formidable_dog(
         });
 }
 
-fn despawn_sleeping_dog(
-    mut commands: Commands,
-    query: Query<Entity, With<SleepingFormidableDog>>,
-) {
+fn despawn_sleeping_dog(mut commands: Commands, query: Query<Entity, With<SleepingFormidableDog>>) {
     for entity in query.iter() {
         commands.entity(entity).despawn_recursive();
     }
@@ -508,16 +508,14 @@ fn spawn_door(commands: &mut Commands, asset_server: &Res<AssetServer>) {
 }
 
 fn spawn_floor(commands: &mut Commands, asset_server: &Res<AssetServer>) {
-    commands
-        .spawn(RigidBody::Fixed)
-        .insert(SpriteBundle {
-            texture: asset_server.load("house/floor.png"),
-            transform: Transform {
-                translation: Vec3::new(0.0, 0.0, FLOOR_Z),
-                ..Default::default()
-            },
+    commands.spawn(RigidBody::Fixed).insert(SpriteBundle {
+        texture: asset_server.load("house/floor.png"),
+        transform: Transform {
+            translation: Vec3::new(0.0, 0.0, FLOOR_Z),
             ..Default::default()
-        });
+        },
+        ..Default::default()
+    });
 }
 
 fn spawn_walls(commands: &mut Commands, asset_server: &Res<AssetServer>) {
@@ -621,10 +619,7 @@ fn initial_spawn_formidable_dog(
     )
 }
 
-fn despawn_courier(
-    mut commands: Commands,
-    courier_query: Query<Entity, With<Courier>>,
-) {
+fn despawn_courier(mut commands: Commands, courier_query: Query<Entity, With<Courier>>) {
     for entity in courier_query.iter() {
         commands.entity(entity).despawn_recursive();
     }

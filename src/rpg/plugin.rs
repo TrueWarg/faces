@@ -1,6 +1,6 @@
+use crate::rpg::storages::CharacterStorage;
 use bevy::app::{App, Plugin, Startup};
 use bevy::prelude::Commands;
-use crate::rpg::storages::CharacterStorage;
 
 pub struct RpgPlugin;
 
@@ -10,8 +10,6 @@ impl Plugin for RpgPlugin {
     }
 }
 
-fn init_storages(
-    mut commands: Commands,
-) {
+fn init_storages(mut commands: Commands) {
     commands.insert_resource(CharacterStorage::default());
 }

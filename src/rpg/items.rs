@@ -1,5 +1,5 @@
-use bevy::prelude::Component;
 use crate::rpg::TargetProps;
+use bevy::prelude::Component;
 
 #[derive(Component, Clone, Debug)]
 pub enum ConsumableItem {

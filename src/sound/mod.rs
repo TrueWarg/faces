@@ -9,8 +9,7 @@ pub struct SoundPlugin;
 
 impl Plugin for SoundPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .init_resource::<ButtonSounds>()
+        app.init_resource::<ButtonSounds>()
             .init_resource::<Soundtrack>()
             .add_systems(Update, menu_button_hover_sounds_handle);
     }

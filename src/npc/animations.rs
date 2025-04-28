@@ -11,15 +11,15 @@ pub struct NpcAnimations {
 
 impl NpcAnimations {
     pub fn default() -> NpcAnimations {
-        return NpcAnimations {
+        NpcAnimations {
             moves: Self::default_modes(),
-        };
+        }
     }
 
     pub fn dog() -> NpcAnimations {
-        return NpcAnimations {
+        NpcAnimations {
             moves: Self::dog_moves(),
-        };
+        }
     }
 
     fn default_modes() -> HashMap<MoveDirection, (u32, u32, f32)> {
@@ -32,7 +32,7 @@ impl NpcAnimations {
         moves.insert(MoveDirection::LeftMove, (30, 35, 0.15));
         moves.insert(MoveDirection::BackwardMove, (36, 41, 0.15));
         moves.insert(MoveDirection::RightMove, (42, 47, 0.15));
-        return moves;
+        moves
     }
 
     fn dog_moves() -> HashMap<MoveDirection, (u32, u32, f32)> {
@@ -45,6 +45,6 @@ impl NpcAnimations {
         moves.insert(MoveDirection::LeftMove, (20, 23, 0.10));
         moves.insert(MoveDirection::BackwardMove, (24, 27, 0.10));
         moves.insert(MoveDirection::RightMove, (28, 31, 0.10));
-        return moves;
+        moves
     }
 }

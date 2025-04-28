@@ -1,10 +1,11 @@
+use crate::animation::entities::MoveDirection;
 use bevy::app::{Plugin, Update};
-use bevy::asset::{Assets, AssetServer};
+use bevy::asset::{AssetServer, Assets};
 use bevy::hierarchy::BuildChildren;
 use bevy::math::{UVec2, Vec3};
+use bevy::prelude::in_state;
 use bevy::prelude::Commands;
 use bevy::prelude::Component;
-use bevy::prelude::in_state;
 use bevy::prelude::IntoSystemConfigs;
 use bevy::prelude::NextState;
 use bevy::prelude::OnEnter;
@@ -21,7 +22,6 @@ use bevy::prelude::Transform;
 use bevy::prelude::TransformBundle;
 use bevy_rapier2d::dynamics::RigidBody;
 use bevy_rapier2d::geometry::Collider;
-use crate::animation::entities::MoveDirection;
 
 use crate::core::collisions::recalculate_z;
 use crate::core::entities::{BodyYOffset, LevelYMax};
@@ -36,7 +36,7 @@ use crate::dialog::SelectedVariantsSource;
 use crate::interaction::interactors::InteractionArea;
 use crate::interaction::interactors::InteractionSide;
 use crate::interaction::interactors::PassiveInteractor;
-use crate::level::{BLOND_FIRST_DIALOG, dialog_starts, HasDialogId};
+use crate::level::objects::spawn_object;
 use crate::level::BLOND_GIVE_DUMPLINGS_DIALOG;
 use crate::level::BLOND_TAKE_DUMPLINGS_DIALOG;
 use crate::level::DREVNIRA_DIALOG;
@@ -57,8 +57,8 @@ use crate::level::GOPNIKS_DIALOG;
 use crate::level::GUARDIAN_FIRST_DIALOG;
 use crate::level::GUARDIAN_SECOND_DIALOG;
 use crate::level::GUARDIAN_THIRD_DIALOG;
-use crate::level::objects::spawn_object;
-use crate::npc::{IdleAnimation, spawn_fixed_npc};
+use crate::level::{dialog_starts, HasDialogId, BLOND_FIRST_DIALOG};
+use crate::npc::{spawn_fixed_npc, IdleAnimation};
 use crate::world_state::{BlondAndGopniks, Court, StrangeOldWoman};
 
 pub struct CourtHouseFrontPlugin<S: States> {
@@ -70,7 +70,7 @@ struct Drevnira;
 
 impl HasDialogId for Drevnira {
     fn dialog_id(&self) -> usize {
-        return DREVNIRA_DIALOG
+        DREVNIRA_DIALOG
     }
 }
 
@@ -79,7 +79,7 @@ struct BlondStart;
 
 impl HasDialogId for BlondStart {
     fn dialog_id(&self) -> usize {
-        return BLOND_FIRST_DIALOG
+        BLOND_FIRST_DIALOG
     }
 }
 
@@ -88,7 +88,7 @@ struct BlondGiveDumplings;
 
 impl HasDialogId for BlondGiveDumplings {
     fn dialog_id(&self) -> usize {
-        return BLOND_GIVE_DUMPLINGS_DIALOG
+        BLOND_GIVE_DUMPLINGS_DIALOG
     }
 }
 
@@ -97,7 +97,7 @@ struct BlondTakeDumplings;
 
 impl HasDialogId for BlondTakeDumplings {
     fn dialog_id(&self) -> usize {
-        return BLOND_TAKE_DUMPLINGS_DIALOG
+        BLOND_TAKE_DUMPLINGS_DIALOG
     }
 }
 
@@ -106,7 +106,7 @@ struct Gopnik;
 
 impl HasDialogId for Gopnik {
     fn dialog_id(&self) -> usize {
-        return GOPNIKS_DIALOG
+        GOPNIKS_DIALOG
     }
 }
 
@@ -115,7 +115,7 @@ struct GuardianFirstStage;
 
 impl HasDialogId for GuardianFirstStage {
     fn dialog_id(&self) -> usize {
-        return GUARDIAN_FIRST_DIALOG
+        GUARDIAN_FIRST_DIALOG
     }
 }
 
@@ -124,7 +124,7 @@ struct GuardianSecondStage;
 
 impl HasDialogId for GuardianSecondStage {
     fn dialog_id(&self) -> usize {
-        return GUARDIAN_SECOND_DIALOG
+        GUARDIAN_SECOND_DIALOG
     }
 }
 
@@ -133,7 +133,7 @@ struct GuardianThirdStage;
 
 impl HasDialogId for GuardianThirdStage {
     fn dialog_id(&self) -> usize {
-        return GUARDIAN_THIRD_DIALOG
+        GUARDIAN_THIRD_DIALOG
     }
 }
 
@@ -146,15 +146,44 @@ impl<S: States> Plugin for CourtHouseFrontPlugin<S> {
             .add_systems(OnEnter(self.state.clone()), spawn_gopniks)
             .add_systems(OnEnter(self.state.clone()), spawn_blond_man)
             .add_systems(OnExit(GameState::Exploration), unload)
-            .add_systems(Update, dialog_starts::<Drevnira>.run_if(in_state(StrangeOldWoman::GiveMeFeather)))
-            .add_systems(Update, dialog_starts::<BlondStart>.run_if(in_state(BlondAndGopniks::TalkWithBlond)))
-            .add_systems(Update, dialog_starts::<Gopnik>.run_if(in_state(BlondAndGopniks::TalkWithGopniks)))
-            .add_systems(Update, dialog_starts::<BlondGiveDumplings>.run_if(in_state(BlondAndGopniks::GiveDumplingsToBlond)))
-            .add_systems(Update, dialog_starts::<BlondTakeDumplings>.run_if(in_state(BlondAndGopniks::TakeDumplingsFromBlond)))
-            .add_systems(Update, dialog_starts::<GuardianFirstStage>.run_if(in_state(Court::TalkWithGuardian)))
-            .add_systems(Update, dialog_starts::<GuardianSecondStage>.run_if(in_state(Court::StopDrevnira)))
-            .add_systems(Update, dialog_starts::<GuardianThirdStage>.run_if(in_state(Court::DrevniraStopped)))
-            .add_systems(Update, (dialog_variants_handles, recalculate_z).run_if(in_state(self.state.clone())));
+            .add_systems(
+                Update,
+                dialog_starts::<Drevnira>.run_if(in_state(StrangeOldWoman::GiveMeFeather)),
+            )
+            .add_systems(
+                Update,
+                dialog_starts::<BlondStart>.run_if(in_state(BlondAndGopniks::TalkWithBlond)),
+            )
+            .add_systems(
+                Update,
+                dialog_starts::<Gopnik>.run_if(in_state(BlondAndGopniks::TalkWithGopniks)),
+            )
+            .add_systems(
+                Update,
+                dialog_starts::<BlondGiveDumplings>
+                    .run_if(in_state(BlondAndGopniks::GiveDumplingsToBlond)),
+            )
+            .add_systems(
+                Update,
+                dialog_starts::<BlondTakeDumplings>
+                    .run_if(in_state(BlondAndGopniks::TakeDumplingsFromBlond)),
+            )
+            .add_systems(
+                Update,
+                dialog_starts::<GuardianFirstStage>.run_if(in_state(Court::TalkWithGuardian)),
+            )
+            .add_systems(
+                Update,
+                dialog_starts::<GuardianSecondStage>.run_if(in_state(Court::StopDrevnira)),
+            )
+            .add_systems(
+                Update,
+                dialog_starts::<GuardianThirdStage>.run_if(in_state(Court::DrevniraStopped)),
+            )
+            .add_systems(
+                Update,
+                (dialog_variants_handles, recalculate_z).run_if(in_state(self.state.clone())),
+            );
     }
 }
 
@@ -175,15 +204,42 @@ fn load(
     spawn_ground(&mut commands, &asset_server);
 
     let courthouse = asset_server.load("courthouse_front/courthouse.png");
-    spawn_object(&mut commands, courthouse, 0.0, 421.0, WALL_Z, 500.0, 65.0, 0.0);
+    spawn_object(
+        &mut commands,
+        courthouse,
+        0.0,
+        421.0,
+        WALL_Z,
+        500.0,
+        65.0,
+        0.0,
+    );
 
     spawn_court_doors(&mut commands, &asset_server, 0.0, 371.0);
 
     let left_houses = asset_server.load("courthouse_front/houses.png");
-    spawn_object(&mut commands, left_houses, -470.0, -75.0, WALL_Z, 33.0, 450.0, 0.0);
+    spawn_object(
+        &mut commands,
+        left_houses,
+        -470.0,
+        -75.0,
+        WALL_Z,
+        33.0,
+        450.0,
+        0.0,
+    );
 
     let right_forest = asset_server.load("courthouse_front/vertical_forest_0.png");
-    spawn_object(&mut commands, right_forest, 480.0, 0.0, MIN_RANGE_Z, 20.0, 500.0, 0.0);
+    spawn_object(
+        &mut commands,
+        right_forest,
+        480.0,
+        0.0,
+        MIN_RANGE_Z,
+        20.0,
+        500.0,
+        0.0,
+    );
 
     let tree_1 = asset_server.load("courthouse_front/tree_1.png");
     let x = 230.0;
@@ -322,34 +378,25 @@ fn load(
 }
 
 fn spawn_ground(commands: &mut Commands, asset_server: &Res<AssetServer>) {
-    commands
-        .spawn(RigidBody::Fixed)
-        .insert(SpriteBundle {
-            texture: asset_server.load("courthouse_front/ground.png"),
-            transform: Transform {
-                translation: Vec3::new(0.0, 0.0, FLOOR_Z),
-                ..Default::default()
-            },
+    commands.spawn(RigidBody::Fixed).insert(SpriteBundle {
+        texture: asset_server.load("courthouse_front/ground.png"),
+        transform: Transform {
+            translation: Vec3::new(0.0, 0.0, FLOOR_Z),
             ..Default::default()
-        });
+        },
+        ..Default::default()
+    });
 }
 
-fn spawn_court_doors(
-    commands: &mut Commands,
-    asset_server: &Res<AssetServer>,
-    x: f32,
-    y: f32,
-) {
-    commands
-        .spawn(RigidBody::Fixed)
-        .insert(SpriteBundle {
-            texture: asset_server.load("courthouse_front/doors.png"),
-            transform: Transform {
-                translation: Vec3::new(x, y, ON_WALL_OBJECT_Z),
-                ..Default::default()
-            },
+fn spawn_court_doors(commands: &mut Commands, asset_server: &Res<AssetServer>, x: f32, y: f32) {
+    commands.spawn(RigidBody::Fixed).insert(SpriteBundle {
+        texture: asset_server.load("courthouse_front/doors.png"),
+        transform: Transform {
+            translation: Vec3::new(x, y, ON_WALL_OBJECT_Z),
             ..Default::default()
-        });
+        },
+        ..Default::default()
+    });
 }
 
 fn spawn_old_woman_drevnira(
@@ -365,9 +412,7 @@ fn spawn_old_woman_drevnira(
     let z = calculate_z(y, y_max.value);
 
     let image_handle = asset_server.load("npc/old_woman_drevnira.png");
-    let layout = TextureAtlasLayout::from_grid(
-        UVec2::new(29, 64), 8, 1, None, None,
-    );
+    let layout = TextureAtlasLayout::from_grid(UVec2::new(29, 64), 8, 1, None, None);
 
     let layout_handle = layouts.add(layout);
 
@@ -385,10 +430,7 @@ fn spawn_old_woman_drevnira(
             },
         ))
         .insert(IdleAnimation {
-            timer: Timer::from_seconds(
-                0.7,
-                bevy::time::TimerMode::Repeating,
-            ),
+            timer: Timer::from_seconds(0.7, bevy::time::TimerMode::Repeating),
             frames_count: 8,
         })
         .insert(TransformBundle::from(Transform::from_xyz(x, y, z)))
@@ -407,7 +449,6 @@ fn spawn_old_woman_drevnira(
             side: InteractionSide::Bottom,
         });
 }
-
 
 fn spawn_guardians(
     asset_server: Res<AssetServer>,

@@ -8,10 +8,10 @@ pub struct SelectorItem {
 
 pub trait GetSelectorItem {
     fn selector_item(&self) -> SelectorItem {
-        return SelectorItem {
+        SelectorItem {
             name: self.localised_name(),
             description: self.localised_description(),
-        };
+        }
     }
     fn localised_name(&self) -> String;
     fn localised_description(&self) -> String;

@@ -1,8 +1,7 @@
 use bevy::app::{Plugin, Update};
-use bevy::asset::{Assets, AssetServer};
+use bevy::asset::{AssetServer, Assets};
 use bevy::hierarchy::BuildChildren;
 use bevy::math::UVec2;
-use bevy::prelude::{Bundle, Commands, IntoSystemConfigs};
 use bevy::prelude::Query;
 use bevy::prelude::Res;
 use bevy::prelude::ResMut;
@@ -13,6 +12,7 @@ use bevy::prelude::Time;
 use bevy::prelude::Timer;
 use bevy::prelude::Transform;
 use bevy::prelude::TransformBundle;
+use bevy::prelude::{Bundle, Commands, IntoSystemConfigs};
 use bevy_rapier2d::dynamics::GravityScale;
 use bevy_rapier2d::dynamics::LockedAxes;
 use bevy_rapier2d::dynamics::RigidBody;
@@ -30,8 +30,8 @@ use crate::movement::entities::MoveAgent;
 use crate::movement::routes::route_build;
 pub use crate::npc::entities::{IdleAnimation, MoveAnimation, Npc};
 
-mod entities;
 mod animations;
+mod entities;
 
 pub struct NpcPlugin;
 
@@ -56,11 +56,8 @@ pub fn spawn_fixed_npc(
     pos_y: f32,
     pos_z: f32,
 ) {
-
     let moves_handle = asset_server.load(asset_path);
-    let move_layout = TextureAtlasLayout::from_grid(
-        UVec2::new(32, 46), 6, 8, None, None,
-    );
+    let move_layout = TextureAtlasLayout::from_grid(UVec2::new(32, 46), 6, 8, None, None);
 
     let move_layout_handle = layouts.add(move_layout);
 
@@ -89,13 +86,22 @@ pub fn spawn_fixed_npc(
         .insert(animations)
         .insert(Velocity::zero())
         .insert(LockedAxes::ROTATION_LOCKED)
-        .insert(TransformBundle::from(Transform::from_xyz(pos_x, pos_y, pos_z)))
-        .insert(Npc { speed: 0.0, move_direction: movement::entities::MoveDirection::TopIdle })
+        .insert(TransformBundle::from(Transform::from_xyz(
+            pos_x, pos_y, pos_z,
+        )))
+        .insert(Npc {
+            speed: 0.0,
+            move_direction: movement::entities::MoveDirection::TopIdle,
+        })
         .insert(BodyYOffset::create(20.0))
         .with_children(|children| {
             children
                 .spawn(Collider::cuboid(8.0, 4.0))
-                .insert(TransformBundle::from(Transform::from_xyz(0.0, -16.0, DEFAULT_OBJECT_Z)));
+                .insert(TransformBundle::from(Transform::from_xyz(
+                    0.0,
+                    -16.0,
+                    DEFAULT_OBJECT_Z,
+                )));
         })
         .insert(PassiveInteractor {
             area: InteractionArea::from_sizes(8.0, 20.0),
@@ -117,9 +123,7 @@ pub fn spawn_formidable_dog(
     let start_move_direction = MoveDirection::ForwardIdle;
 
     let moves_handle = asset_server.load("npc/formidable_dog.png");
-    let move_layout = TextureAtlasLayout::from_grid(
-        UVec2::new(24, 24), 4, 8, None, None,
-    );
+    let move_layout = TextureAtlasLayout::from_grid(UVec2::new(24, 24), 4, 8, None, None);
 
     let move_layout_handle = layouts.add(move_layout);
 
@@ -149,13 +153,22 @@ pub fn spawn_formidable_dog(
         .insert(Velocity::zero())
         .insert(LockedAxes::ROTATION_LOCKED)
         .insert(GravityScale(gravity_scale))
-        .insert(TransformBundle::from(Transform::from_xyz(pos_x, pos_y, pos_z)))
-        .insert(Npc { speed, move_direction: movement::entities::MoveDirection::TopIdle })
+        .insert(TransformBundle::from(Transform::from_xyz(
+            pos_x, pos_y, pos_z,
+        )))
+        .insert(Npc {
+            speed,
+            move_direction: movement::entities::MoveDirection::TopIdle,
+        })
         .insert(BodyYOffset::create(8.0))
         .with_children(|children| {
             children
                 .spawn(Collider::cuboid(8.0, 4.0))
-                .insert(TransformBundle::from(Transform::from_xyz(0.0, -8.0, DEFAULT_OBJECT_Z)));
+                .insert(TransformBundle::from(Transform::from_xyz(
+                    0.0,
+                    -8.0,
+                    DEFAULT_OBJECT_Z,
+                )));
         })
         .insert(PassiveInteractor {
             area: InteractionArea::from_sizes(8.0, 20.0),
@@ -169,7 +182,13 @@ pub fn spawn_formidable_dog(
 }
 
 pub fn npc_animation(
-    mut player_query: Query<(&mut MoveAnimation, &mut TextureAtlas, &Npc, &NpcAnimations, &Velocity)>,
+    mut player_query: Query<(
+        &mut MoveAnimation,
+        &mut TextureAtlas,
+        &Npc,
+        &NpcAnimations,
+        &Velocity,
+    )>,
 ) {
     for (mut move_animation, mut sprite, npc, npc_animation, rb_vels) in player_query.iter_mut() {
         if rb_vels.linvel.x == 0.0 && rb_vels.linvel.y == 0.0 && move_animation.direction.is_idle()
@@ -205,9 +224,7 @@ pub fn npc_animation(
     }
 }
 
-pub fn move_agent_moves(
-    mut agents: Query<(&mut MoveAgent, &mut Npc, &mut Velocity, &Transform)>,
-) {
+pub fn move_agent_moves(mut agents: Query<(&mut MoveAgent, &mut Npc, &mut Velocity, &Transform)>) {
     for (mut agent, mut npc, mut velocity, transform) in agents.iter_mut() {
         let route = &agent.route;
         if route.is_empty() {
@@ -224,14 +241,30 @@ pub fn move_agent_moves(
             let route = &mut agent.route;
             route.pop();
             npc.move_direction = match npc.move_direction {
-                movement::entities::MoveDirection::Top => movement::entities::MoveDirection::TopIdle,
-                movement::entities::MoveDirection::LeftTop => movement::entities::MoveDirection::TopIdle,
-                movement::entities::MoveDirection::Left => movement::entities::MoveDirection::LeftIdle,
-                movement::entities::MoveDirection::LeftBottom => movement::entities::MoveDirection::LeftIdle,
-                movement::entities::MoveDirection::Bottom => movement::entities::MoveDirection::BottomIdle,
-                movement::entities::MoveDirection::RightBottom => movement::entities::MoveDirection::BottomIdle,
-                movement::entities::MoveDirection::Right => movement::entities::MoveDirection::RightIdle,
-                movement::entities::MoveDirection::RightTop => movement::entities::MoveDirection::RightIdle,
+                movement::entities::MoveDirection::Top => {
+                    movement::entities::MoveDirection::TopIdle
+                }
+                movement::entities::MoveDirection::LeftTop => {
+                    movement::entities::MoveDirection::TopIdle
+                }
+                movement::entities::MoveDirection::Left => {
+                    movement::entities::MoveDirection::LeftIdle
+                }
+                movement::entities::MoveDirection::LeftBottom => {
+                    movement::entities::MoveDirection::LeftIdle
+                }
+                movement::entities::MoveDirection::Bottom => {
+                    movement::entities::MoveDirection::BottomIdle
+                }
+                movement::entities::MoveDirection::RightBottom => {
+                    movement::entities::MoveDirection::BottomIdle
+                }
+                movement::entities::MoveDirection::Right => {
+                    movement::entities::MoveDirection::RightIdle
+                }
+                movement::entities::MoveDirection::RightTop => {
+                    movement::entities::MoveDirection::RightIdle
+                }
                 _ => movement::entities::MoveDirection::TopIdle,
             };
             velocity.linvel.x = 0.0;

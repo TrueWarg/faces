@@ -11,8 +11,6 @@ impl Plugin for PartyPlugin {
     }
 }
 
-fn init_storages(
-    mut commands: Commands,
-) {
+fn init_storages(mut commands: Commands) {
     commands.insert_resource(PartyStateStorage::default());
 }

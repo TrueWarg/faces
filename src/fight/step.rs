@@ -31,7 +31,10 @@ pub fn decide_next_step(
         panic!("Target not selected")
     }
 
-    return StepDecision { target_id, attack_id };
+    StepDecision {
+        target_id,
+        attack_id,
+    }
 }
 
 fn mathematical_expectation(attack: &DirectionalAttack, target: &TargetProps) -> f32 {
@@ -48,62 +51,67 @@ fn mathematical_expectation(attack: &DirectionalAttack, target: &TargetProps) ->
     let potential_result = health - reduced_damage;
     let miss_p = target.evasion as f32 / 100.0;
 
-    return (1.0 - miss_p) * potential_result + miss_p * health;
+    (1.0 - miss_p) * potential_result + miss_p * health
 }
 
 #[test]
 fn decide_next_step_test_1() {
     let attacks = vec![
-        DirectionalAttack::Punch {
-            damage: 23
-        },
-        DirectionalAttack::Punch {
-            damage: 12
-        },
+        DirectionalAttack::Punch { damage: 23 },
+        DirectionalAttack::Punch { damage: 12 },
     ];
     let mut targets = HashMap::new();
-    targets.insert(0, TargetProps {
-        health: RangedProp {
-            min: 0,
-            current: 120,
-            max: 120,
+    targets.insert(
+        0,
+        TargetProps {
+            health: RangedProp {
+                min: 0,
+                current: 120,
+                max: 120,
+            },
+            energy: RangedProp {
+                min: 0,
+                current: 0,
+                max: 0,
+            },
+            armor: 0,
+            evasion: 0,
         },
-        energy: RangedProp {
-            min: 0,
-            current: 0,
-            max: 0,
+    );
+    targets.insert(
+        1,
+        TargetProps {
+            health: RangedProp {
+                min: 0,
+                current: 25,
+                max: 100,
+            },
+            energy: RangedProp {
+                min: 0,
+                current: 0,
+                max: 0,
+            },
+            armor: 0,
+            evasion: 0,
         },
-        armor: 0,
-        evasion: 0,
-    });
-    targets.insert(1, TargetProps {
-        health: RangedProp {
-            min: 0,
-            current: 25,
-            max: 100,
+    );
+    targets.insert(
+        2,
+        TargetProps {
+            health: RangedProp {
+                min: 0,
+                current: 30,
+                max: 300,
+            },
+            energy: RangedProp {
+                min: 0,
+                current: 0,
+                max: 0,
+            },
+            armor: 0,
+            evasion: 0,
         },
-        energy: RangedProp {
-            min: 0,
-            current: 0,
-            max: 0,
-        },
-        armor: 0,
-        evasion: 0,
-    });
-    targets.insert(2, TargetProps {
-        health: RangedProp {
-            min: 0,
-            current: 30,
-            max: 300,
-        },
-        energy: RangedProp {
-            min: 0,
-            current: 0,
-            max: 0,
-        },
-        armor: 0,
-        evasion: 0,
-    });
+    );
 
     let expected = StepDecision {
         target_id: 1,
@@ -116,42 +124,44 @@ fn decide_next_step_test_1() {
 #[test]
 fn decide_next_step_test_2() {
     let attacks = vec![
-        DirectionalAttack::Punch {
-            damage: 23
-        },
-        DirectionalAttack::Punch {
-            damage: 100
-        },
+        DirectionalAttack::Punch { damage: 23 },
+        DirectionalAttack::Punch { damage: 100 },
     ];
     let mut targets = HashMap::new();
-    targets.insert(0, TargetProps {
-        health: RangedProp {
-            min: 0,
-            current: 110,
-            max: 110,
+    targets.insert(
+        0,
+        TargetProps {
+            health: RangedProp {
+                min: 0,
+                current: 110,
+                max: 110,
+            },
+            energy: RangedProp {
+                min: 0,
+                current: 0,
+                max: 0,
+            },
+            armor: 0,
+            evasion: 0,
         },
-        energy: RangedProp {
-            min: 0,
-            current: 0,
-            max: 0,
+    );
+    targets.insert(
+        1,
+        TargetProps {
+            health: RangedProp {
+                min: 0,
+                current: 65,
+                max: 110,
+            },
+            energy: RangedProp {
+                min: 0,
+                current: 0,
+                max: 0,
+            },
+            armor: 50,
+            evasion: 0,
         },
-        armor: 0,
-        evasion: 0,
-    });
-    targets.insert(1, TargetProps {
-        health: RangedProp {
-            min: 0,
-            current: 65,
-            max: 110,
-        },
-        energy: RangedProp {
-            min: 0,
-            current: 0,
-            max: 0,
-        },
-        armor: 50,
-        evasion: 0,
-    });
+    );
 
     let expected = StepDecision {
         target_id: 0,
@@ -164,57 +174,62 @@ fn decide_next_step_test_2() {
 #[test]
 fn decide_next_step_test_3() {
     let attacks = vec![
-        DirectionalAttack::Punch {
-            damage: 20
-        },
-        DirectionalAttack::Punch {
-            damage: 100
-        },
+        DirectionalAttack::Punch { damage: 20 },
+        DirectionalAttack::Punch { damage: 100 },
     ];
     let mut targets = HashMap::new();
-    targets.insert(0, TargetProps {
-        health: RangedProp {
-            min: 0,
-            current: 1,
-            max: 110,
+    targets.insert(
+        0,
+        TargetProps {
+            health: RangedProp {
+                min: 0,
+                current: 1,
+                max: 110,
+            },
+            energy: RangedProp {
+                min: 0,
+                current: 0,
+                max: 0,
+            },
+            armor: 0,
+            evasion: 100,
         },
-        energy: RangedProp {
-            min: 0,
-            current: 0,
-            max: 0,
+    );
+    targets.insert(
+        1,
+        TargetProps {
+            health: RangedProp {
+                min: 0,
+                current: 65,
+                max: 110,
+            },
+            energy: RangedProp {
+                min: 0,
+                current: 0,
+                max: 0,
+            },
+            armor: 0,
+            evasion: 80,
         },
-        armor: 0,
-        evasion: 100,
-    });
-    targets.insert(1, TargetProps {
-        health: RangedProp {
-            min: 0,
-            current: 65,
-            max: 110,
-        },
-        energy: RangedProp {
-            min: 0,
-            current: 0,
-            max: 0,
-        },
-        armor: 0,
-        evasion: 80,
-    });
+    );
 
-    targets.insert(2, TargetProps {
-        health: RangedProp {
-            min: 0,
-            current: 110,
-            max: 110,
+    targets.insert(
+        2,
+        TargetProps {
+            health: RangedProp {
+                min: 0,
+                current: 110,
+                max: 110,
+            },
+            energy: RangedProp {
+                min: 0,
+                current: 0,
+                max: 0,
+            },
+            armor: 0,
+            evasion: 0,
         },
-        energy: RangedProp {
-            min: 0,
-            current: 0,
-            max: 0,
-        },
-        armor: 0,
-        evasion: 0,
-    });
+    );
 
     let expected = StepDecision {
         target_id: 2,
@@ -227,57 +242,62 @@ fn decide_next_step_test_3() {
 #[test]
 fn decide_next_step_test_4() {
     let attacks = vec![
-        DirectionalAttack::Punch {
-            damage: 20
-        },
-        DirectionalAttack::Punch {
-            damage: 100
-        },
+        DirectionalAttack::Punch { damage: 20 },
+        DirectionalAttack::Punch { damage: 100 },
     ];
     let mut targets = HashMap::new();
-    targets.insert(0, TargetProps {
-        health: RangedProp {
-            min: 0,
-            current: 1,
-            max: 110,
+    targets.insert(
+        0,
+        TargetProps {
+            health: RangedProp {
+                min: 0,
+                current: 1,
+                max: 110,
+            },
+            energy: RangedProp {
+                min: 0,
+                current: 0,
+                max: 0,
+            },
+            armor: 0,
+            evasion: 50,
         },
-        energy: RangedProp {
-            min: 0,
-            current: 0,
-            max: 0,
+    );
+    targets.insert(
+        1,
+        TargetProps {
+            health: RangedProp {
+                min: 0,
+                current: 65,
+                max: 110,
+            },
+            energy: RangedProp {
+                min: 0,
+                current: 0,
+                max: 0,
+            },
+            armor: 0,
+            evasion: 80,
         },
-        armor: 0,
-        evasion: 50,
-    });
-    targets.insert(1, TargetProps {
-        health: RangedProp {
-            min: 0,
-            current: 65,
-            max: 110,
-        },
-        energy: RangedProp {
-            min: 0,
-            current: 0,
-            max: 0,
-        },
-        armor: 0,
-        evasion: 80,
-    });
+    );
 
-    targets.insert(2, TargetProps {
-        health: RangedProp {
-            min: 0,
-            current: 110,
-            max: 110,
+    targets.insert(
+        2,
+        TargetProps {
+            health: RangedProp {
+                min: 0,
+                current: 110,
+                max: 110,
+            },
+            energy: RangedProp {
+                min: 0,
+                current: 0,
+                max: 0,
+            },
+            armor: 0,
+            evasion: 0,
         },
-        energy: RangedProp {
-            min: 0,
-            current: 0,
-            max: 0,
-        },
-        armor: 0,
-        evasion: 0,
-    });
+    );
 
     let expected = StepDecision {
         target_id: 0,

@@ -10,7 +10,7 @@ pub struct FightStorage;
 impl FightStorage {
     pub fn load(&self, id: &usize) -> Option<Fight> {
         let mut fights = test_fights();
-        return fights.remove(id);
+        fights.remove(id)
     }
 
     pub fn get_all(&self) -> Vec<Fight> {
@@ -19,7 +19,7 @@ impl FightStorage {
         for (_, item) in fights {
             items.push(item)
         }
-        return items;
+        items
     }
 }
 
@@ -53,12 +53,8 @@ pub fn test_fights() -> HashMap<usize, Fight> {
                         evasion: 25,
                     },
                     attacks: vec![
-                        DirectionalAttack::Punch {
-                            damage: 20,
-                        },
-                        DirectionalAttack::Punch {
-                            damage: 30,
-                        },
+                        DirectionalAttack::Punch { damage: 20 },
+                        DirectionalAttack::Punch { damage: 30 },
                     ],
                 },
                 Enemy {
@@ -83,12 +79,8 @@ pub fn test_fights() -> HashMap<usize, Fight> {
                         evasion: 0,
                     },
                     attacks: vec![
-                        DirectionalAttack::Punch {
-                            damage: 20,
-                        },
-                        DirectionalAttack::InevitableDamage {
-                            damage: 5,
-                        },
+                        DirectionalAttack::Punch { damage: 20 },
+                        DirectionalAttack::InevitableDamage { damage: 5 },
                     ],
                 },
                 Enemy {
@@ -112,11 +104,7 @@ pub fn test_fights() -> HashMap<usize, Fight> {
                         armor: 0,
                         evasion: 70,
                     },
-                    attacks: vec![
-                        DirectionalAttack::InevitableDamage {
-                            damage: 5,
-                        },
-                    ],
+                    attacks: vec![DirectionalAttack::InevitableDamage { damage: 5 }],
                 },
                 Enemy {
                     id: 3,
@@ -139,16 +127,12 @@ pub fn test_fights() -> HashMap<usize, Fight> {
                         armor: 0,
                         evasion: 70,
                     },
-                    attacks: vec![
-                        DirectionalAttack::Punch {
-                            damage: 15,
-                        },
-                    ],
+                    attacks: vec![DirectionalAttack::Punch { damage: 15 }],
                 },
             ],
         },
     );
-    return test_fights;
+    test_fights
 }
 
 pub const TEST_FIGHT_ID_0: FightId = FightId(10);

@@ -1,7 +1,6 @@
 use bevy::app::{Plugin, Update};
-use bevy::asset::{Assets, AssetServer};
+use bevy::asset::{AssetServer, Assets};
 use bevy::math::Vec3;
-use bevy::prelude::{Commands, Component, NextState};
 use bevy::prelude::in_state;
 use bevy::prelude::IntoSystemConfigs;
 use bevy::prelude::OnEnter;
@@ -13,6 +12,7 @@ use bevy::prelude::SpriteBundle;
 use bevy::prelude::States;
 use bevy::prelude::TextureAtlasLayout;
 use bevy::prelude::Transform;
+use bevy::prelude::{Commands, Component, NextState};
 use bevy_rapier2d::dynamics::RigidBody;
 
 use crate::animation::entities::MoveDirection;
@@ -20,16 +20,16 @@ use crate::core::collisions::recalculate_z;
 use crate::core::entities::LevelYMax;
 use crate::core::z_index::{calculate_z, FLOOR_Z, ON_WALL_OBJECT_Z, WALL_Z};
 use crate::dialog::SelectedVariantsSource;
+use crate::level::dialog_starts;
+use crate::level::objects::spawn_object;
+use crate::level::HasDialogId;
+use crate::level::CRAZY_MAN_DIALOG;
 use crate::level::CRAZY_MAN_DIALOG_BEATEN;
 use crate::level::CRAZY_MAN_DIALOG_COMPLETED;
-use crate::level::dialog_starts;
+use crate::level::HALL_GUARDIAN_FIRST_DIALOG;
 use crate::level::HALL_GUARDIAN_FIRST_DIALOG_BEATEN;
 use crate::level::HALL_GUARDIAN_SECOND_COMPLETED;
 use crate::level::HALL_GUARDIAN_SECOND_DIALOG;
-use crate::level::CRAZY_MAN_DIALOG;
-use crate::level::HALL_GUARDIAN_FIRST_DIALOG;
-use crate::level::HasDialogId;
-use crate::level::objects::spawn_object;
 use crate::level::TABLE_1_DIALOG;
 use crate::level::TABLE_2_DIALOG;
 use crate::level::TABLE_3_DIALOG;
@@ -41,7 +41,7 @@ struct GuardianFirstStage;
 
 impl HasDialogId for GuardianFirstStage {
     fn dialog_id(&self) -> usize {
-        return HALL_GUARDIAN_FIRST_DIALOG;
+        HALL_GUARDIAN_FIRST_DIALOG
     }
 }
 
@@ -50,7 +50,7 @@ struct GuardianSecondStage;
 
 impl HasDialogId for GuardianSecondStage {
     fn dialog_id(&self) -> usize {
-        return HALL_GUARDIAN_SECOND_DIALOG;
+        HALL_GUARDIAN_SECOND_DIALOG
     }
 }
 
@@ -59,7 +59,7 @@ struct Clerc1;
 
 impl HasDialogId for Clerc1 {
     fn dialog_id(&self) -> usize {
-        return TABLE_1_DIALOG;
+        TABLE_1_DIALOG
     }
 }
 
@@ -68,7 +68,7 @@ struct Clerc2;
 
 impl HasDialogId for Clerc2 {
     fn dialog_id(&self) -> usize {
-        return TABLE_2_DIALOG;
+        TABLE_2_DIALOG
     }
 }
 
@@ -76,14 +76,18 @@ impl HasDialogId for Clerc2 {
 struct Clerc3;
 
 impl HasDialogId for Clerc3 {
-    fn dialog_id(&self) -> usize { return TABLE_3_DIALOG; }
+    fn dialog_id(&self) -> usize {
+        TABLE_3_DIALOG
+    }
 }
 
 #[derive(Component)]
 struct CrazyMan;
 
 impl HasDialogId for CrazyMan {
-    fn dialog_id(&self) -> usize { return CRAZY_MAN_DIALOG; }
+    fn dialog_id(&self) -> usize {
+        CRAZY_MAN_DIALOG
+    }
 }
 
 pub struct CourtHouseHallPlugin<S: States> {
@@ -99,13 +103,34 @@ impl<S: States> Plugin for CourtHouseHallPlugin<S> {
             .add_systems(OnEnter(self.state.clone()), spawn_speaking_clerks)
             .add_systems(OnEnter(self.state.clone()), spawn_visitors)
             .add_systems(OnEnter(self.state.clone()), spawn_crazy_man)
-            .add_systems(Update, dialog_starts::<Clerc1>.run_if(in_state(GoIntoCourt::Wait)))
-            .add_systems(Update, dialog_starts::<Clerc2>.run_if(in_state(GoIntoCourt::Wait)))
-            .add_systems(Update, dialog_starts::<Clerc3>.run_if(in_state(GoIntoCourt::Wait)))
-            .add_systems(Update, dialog_starts::<GuardianFirstStage>.run_if(in_state(GoIntoCourt::Wait)))
-            .add_systems(Update, dialog_starts::<GuardianSecondStage>.run_if(in_state(GoIntoCourt::CanGo)))
-            .add_systems(Update, dialog_starts::<CrazyMan>.run_if(in_state(GoIntoCourt::Wait)))
-            .add_systems(Update, (dialog_variants_handles, recalculate_z).run_if(in_state(self.state.clone())));
+            .add_systems(
+                Update,
+                dialog_starts::<Clerc1>.run_if(in_state(GoIntoCourt::Wait)),
+            )
+            .add_systems(
+                Update,
+                dialog_starts::<Clerc2>.run_if(in_state(GoIntoCourt::Wait)),
+            )
+            .add_systems(
+                Update,
+                dialog_starts::<Clerc3>.run_if(in_state(GoIntoCourt::Wait)),
+            )
+            .add_systems(
+                Update,
+                dialog_starts::<GuardianFirstStage>.run_if(in_state(GoIntoCourt::Wait)),
+            )
+            .add_systems(
+                Update,
+                dialog_starts::<GuardianSecondStage>.run_if(in_state(GoIntoCourt::CanGo)),
+            )
+            .add_systems(
+                Update,
+                dialog_starts::<CrazyMan>.run_if(in_state(GoIntoCourt::Wait)),
+            )
+            .add_systems(
+                Update,
+                (dialog_variants_handles, recalculate_z).run_if(in_state(self.state.clone())),
+            );
     }
 }
 
@@ -121,15 +146,42 @@ fn load(
     spawn_floor(&mut commands, &asset_server);
 
     let wall_top = asset_server.load("courthouse_hall/wall_top.png");
-    spawn_object(&mut commands, wall_top, 0.0, y_max.value, WALL_Z, 256.0, 30.0, 0.0);
+    spawn_object(
+        &mut commands,
+        wall_top,
+        0.0,
+        y_max.value,
+        WALL_Z,
+        256.0,
+        30.0,
+        0.0,
+    );
 
     spawn_doors(&mut commands, &asset_server, 0.0, 351.0);
 
     let wall_left = asset_server.load("courthouse_hall/wall_left.png");
-    spawn_object(&mut commands, wall_left, -240.0, 30.0, WALL_Z, 17.0, 359.0, 0.0);
+    spawn_object(
+        &mut commands,
+        wall_left,
+        -240.0,
+        30.0,
+        WALL_Z,
+        17.0,
+        359.0,
+        0.0,
+    );
 
     let wall_right = asset_server.load("courthouse_hall/wall_right.png");
-    spawn_object(&mut commands, wall_right, 240.0, 30.0, WALL_Z, 17.0, 359.0, 0.0);
+    spawn_object(
+        &mut commands,
+        wall_right,
+        240.0,
+        30.0,
+        WALL_Z,
+        17.0,
+        359.0,
+        0.0,
+    );
 
     // -------------------------------------------------------------------
     let flower = asset_server.load("courthouse_hall/flower.png");
@@ -209,34 +261,25 @@ fn load(
 }
 
 fn spawn_floor(commands: &mut Commands, asset_server: &Res<AssetServer>) {
-    commands
-        .spawn(RigidBody::Fixed)
-        .insert(SpriteBundle {
-            texture: asset_server.load("courthouse_hall/floor.png"),
-            transform: Transform {
-                translation: Vec3::new(0.0, 0.0, FLOOR_Z),
-                ..Default::default()
-            },
+    commands.spawn(RigidBody::Fixed).insert(SpriteBundle {
+        texture: asset_server.load("courthouse_hall/floor.png"),
+        transform: Transform {
+            translation: Vec3::new(0.0, 0.0, FLOOR_Z),
             ..Default::default()
-        });
+        },
+        ..Default::default()
+    });
 }
 
-fn spawn_doors(
-    commands: &mut Commands,
-    asset_server: &Res<AssetServer>,
-    x: f32,
-    y: f32,
-) {
-    commands
-        .spawn(RigidBody::Fixed)
-        .insert(SpriteBundle {
-            texture: asset_server.load("courthouse_hall/doors.png"),
-            transform: Transform {
-                translation: Vec3::new(x, y, ON_WALL_OBJECT_Z),
-                ..Default::default()
-            },
+fn spawn_doors(commands: &mut Commands, asset_server: &Res<AssetServer>, x: f32, y: f32) {
+    commands.spawn(RigidBody::Fixed).insert(SpriteBundle {
+        texture: asset_server.load("courthouse_hall/doors.png"),
+        transform: Transform {
+            translation: Vec3::new(x, y, ON_WALL_OBJECT_Z),
             ..Default::default()
-        });
+        },
+        ..Default::default()
+    });
 }
 
 fn spawn_guardians(

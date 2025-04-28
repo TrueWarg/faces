@@ -1,5 +1,5 @@
-use bevy::color::Color;
 use bevy::color::palettes::css::ANTIQUE_WHITE;
+use bevy::color::Color;
 use bevy::prelude::AlignItems;
 use bevy::prelude::BackgroundColor;
 use bevy::prelude::Component;
@@ -34,11 +34,11 @@ pub enum Stat {
 impl Stat {
     fn name(&self) -> String {
         let str = match self {
-            Stat::Health => { "Здоровье" }
-            Stat::Energy => { "Энергия" }
-            Stat::Armor => { "Броня" }
-            Stat::Evasion => { "Уклонение" }
-            Stat::BaseAttack => { "Базовый урон" }
+            Stat::Health => "Здоровье",
+            Stat::Energy => "Энергия",
+            Stat::Armor => "Броня",
+            Stat::Evasion => "Уклонение",
+            Stat::BaseAttack => "Базовый урон",
         };
 
         str.to_string()
@@ -52,25 +52,17 @@ impl HasDescription for Stat {
 }
 
 #[derive(Component)]
-pub struct StatsValues(
-    pub HashMap<Stat, i32>
-);
+pub struct StatsValues(pub HashMap<Stat, i32>);
 
 #[derive(Component)]
 pub struct StatValue;
 
 pub trait StatItemExt<'a> {
-    fn stat(
-        &mut self,
-        typ: Stat,
-    ) -> UiBuilder<Entity>;
+    fn stat(&mut self, typ: Stat) -> UiBuilder<Entity>;
 }
 
 impl<'a> StatItemExt<'a> for UiBuilder<'a, Entity> {
-    fn stat(
-        &mut self,
-        typ: Stat,
-    ) -> UiBuilder<Entity> {
+    fn stat(&mut self, typ: Stat) -> UiBuilder<Entity> {
         let mut item = self.row(|parent| {
             parent
                 .configure_text_button(
@@ -89,36 +81,31 @@ impl<'a> StatItemExt<'a> for UiBuilder<'a, Entity> {
                 .style()
                 .focus_policy(FocusPolicy::Pass);
 
-            parent.row(|parent| {
-                parent
-                    .configure_text(
-                        "",
-                        TextConfig::from_color(Color::from(ANTIQUE_WHITE)),
-                    )
-                    .insert((typ, StatValue))
-                    .style()
-                    .padding(UiRect {
-                        left: Val::Px(20.0),
-                        right: Val::Px(20.0),
-                        top: Default::default(),
-                        bottom: Default::default(),
-                    });
-            })
+            parent
+                .row(|parent| {
+                    parent
+                        .configure_text("", TextConfig::from_color(Color::from(ANTIQUE_WHITE)))
+                        .insert((typ, StatValue))
+                        .style()
+                        .padding(UiRect {
+                            left: Val::Px(20.0),
+                            right: Val::Px(20.0),
+                            top: Default::default(),
+                            bottom: Default::default(),
+                        });
+                })
                 .style()
                 .justify_content(JustifyContent::Center)
                 .align_items(AlignItems::Center)
                 .width(Val::Percent(30.0));
         });
 
-        item
-            .style()
+        item.style()
             .justify_content(JustifyContent::FlexStart)
             .align_items(AlignItems::Center);
         item
     }
 }
 
-
 /// <div style="background-color:rgb(60.0%, 44.4%, 25.0%); width: 10px; padding: 10px; border: 1px solid;"></div>
 const PRESSED_HOVER_BUTTON_COLOR: Color = Color::srgba(0.6, 0.444, 0.25, 1.0);
-

@@ -3,11 +3,11 @@ use bevy::input::ButtonInput;
 use bevy::prelude::{KeyCode, Query, Res, Transform};
 
 use crate::core::entities::Description;
-use crate::interaction::interactors::ActiveInteractor;
 use crate::interaction::interactors::change_switcher_state;
 use crate::interaction::interactors::detect_active_interaction;
-use crate::interaction::interactors::PassiveInteractor;
 use crate::interaction::interactors::transit_to_next_container_state;
+use crate::interaction::interactors::ActiveInteractor;
+use crate::interaction::interactors::PassiveInteractor;
 
 pub mod interactors;
 

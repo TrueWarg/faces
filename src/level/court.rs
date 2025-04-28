@@ -1,8 +1,7 @@
 use bevy::app::{Plugin, Update};
-use bevy::asset::{Assets, AssetServer};
+use bevy::asset::{AssetServer, Assets};
 use bevy::hierarchy::BuildChildren;
 use bevy::math::{UVec2, Vec3};
-use bevy::prelude::{Commands, Component, NextState};
 use bevy::prelude::in_state;
 use bevy::prelude::IntoSystemConfigs;
 use bevy::prelude::OnEnter;
@@ -17,6 +16,7 @@ use bevy::prelude::TextureAtlasLayout;
 use bevy::prelude::Timer;
 use bevy::prelude::Transform;
 use bevy::prelude::TransformBundle;
+use bevy::prelude::{Commands, Component, NextState};
 use bevy_rapier2d::dynamics::RigidBody;
 use bevy_rapier2d::geometry::Collider;
 
@@ -25,12 +25,12 @@ use crate::core::entities::{BodyYOffset, LevelYMax};
 use crate::core::z_index::{calculate_z, DEFAULT_OBJECT_Z, FLOOR_Z, ON_WALL_OBJECT_Z, WALL_Z};
 use crate::dialog::SelectedVariantsSource;
 use crate::interaction::interactors::{InteractionArea, InteractionSide, PassiveInteractor};
-use crate::level::{dialog_starts, JUDGES_FIRST_DIALOG_BEATEN, JUDGES_FIRST_DIALOG_COMPLETED};
+use crate::level::objects::spawn_object;
 use crate::level::HasDialogId;
 use crate::level::JUDGES_FIRST_DIALOG;
 use crate::level::JUDGES_SECOND_DIALOG;
 use crate::level::JUDGES_THIRD_DIALOG;
-use crate::level::objects::spawn_object;
+use crate::level::{dialog_starts, JUDGES_FIRST_DIALOG_BEATEN, JUDGES_FIRST_DIALOG_COMPLETED};
 use crate::npc::IdleAnimation;
 use crate::world_state::Trial;
 
@@ -39,7 +39,7 @@ struct JudgesDialog;
 
 impl HasDialogId for JudgesDialog {
     fn dialog_id(&self) -> usize {
-        return JUDGES_FIRST_DIALOG;
+        JUDGES_FIRST_DIALOG
     }
 }
 
@@ -48,7 +48,7 @@ struct JudgesFormidableFaceWon;
 
 impl HasDialogId for JudgesFormidableFaceWon {
     fn dialog_id(&self) -> usize {
-        return JUDGES_SECOND_DIALOG;
+        JUDGES_SECOND_DIALOG
     }
 }
 
@@ -57,7 +57,7 @@ struct JudgesFormidableFaceFailed;
 
 impl HasDialogId for JudgesFormidableFaceFailed {
     fn dialog_id(&self) -> usize {
-        return JUDGES_THIRD_DIALOG;
+        JUDGES_THIRD_DIALOG
     }
 }
 
@@ -70,10 +70,23 @@ impl<S: States> Plugin for CourtPlugin<S> {
         app.add_systems(OnEnter(self.state.clone()), load)
             .add_systems(OnExit(self.state.clone()), unload)
             .add_systems(OnEnter(self.state.clone()), spawn_judges)
-            .add_systems(Update, dialog_starts::<JudgesDialog>.run_if(in_state(Trial::SpeakWithJudges)))
-            .add_systems(Update, dialog_starts::<JudgesFormidableFaceWon>.run_if(in_state(Trial::FormidableFaceWon)))
-            .add_systems(Update, dialog_starts::<JudgesFormidableFaceFailed>.run_if(in_state(Trial::FormidableFaceFailed)))
-            .add_systems(Update, (dialog_variants_handles, recalculate_z).run_if(in_state(self.state.clone())));
+            .add_systems(
+                Update,
+                dialog_starts::<JudgesDialog>.run_if(in_state(Trial::SpeakWithJudges)),
+            )
+            .add_systems(
+                Update,
+                dialog_starts::<JudgesFormidableFaceWon>.run_if(in_state(Trial::FormidableFaceWon)),
+            )
+            .add_systems(
+                Update,
+                dialog_starts::<JudgesFormidableFaceFailed>
+                    .run_if(in_state(Trial::FormidableFaceFailed)),
+            )
+            .add_systems(
+                Update,
+                (dialog_variants_handles, recalculate_z).run_if(in_state(self.state.clone())),
+            );
     }
 }
 
@@ -89,7 +102,16 @@ fn load(
     spawn_floor(&mut commands, &asset_server);
 
     let wall = asset_server.load("court/wall.png");
-    spawn_object(&mut commands, wall, 0.0, y_max.value, WALL_Z, 359.0, 30.0, 0.0);
+    spawn_object(
+        &mut commands,
+        wall,
+        0.0,
+        y_max.value,
+        WALL_Z,
+        359.0,
+        30.0,
+        0.0,
+    );
 
     spawn_doors(&mut commands, &asset_server, -200.0, 218.0);
     spawn_doors(&mut commands, &asset_server, 0.0, 218.0);
@@ -197,34 +219,25 @@ fn load(
 }
 
 fn spawn_floor(commands: &mut Commands, asset_server: &Res<AssetServer>) {
-    commands
-        .spawn(RigidBody::Fixed)
-        .insert(SpriteBundle {
-            texture: asset_server.load("court/floor.png"),
-            transform: Transform {
-                translation: Vec3::new(0.0, 0.0, FLOOR_Z),
-                ..Default::default()
-            },
+    commands.spawn(RigidBody::Fixed).insert(SpriteBundle {
+        texture: asset_server.load("court/floor.png"),
+        transform: Transform {
+            translation: Vec3::new(0.0, 0.0, FLOOR_Z),
             ..Default::default()
-        });
+        },
+        ..Default::default()
+    });
 }
 
-fn spawn_doors(
-    commands: &mut Commands,
-    asset_server: &Res<AssetServer>,
-    x: f32,
-    y: f32,
-) {
-    commands
-        .spawn(RigidBody::Fixed)
-        .insert(SpriteBundle {
-            texture: asset_server.load("courthouse_hall/doors.png"),
-            transform: Transform {
-                translation: Vec3::new(x, y, ON_WALL_OBJECT_Z),
-                ..Default::default()
-            },
+fn spawn_doors(commands: &mut Commands, asset_server: &Res<AssetServer>, x: f32, y: f32) {
+    commands.spawn(RigidBody::Fixed).insert(SpriteBundle {
+        texture: asset_server.load("courthouse_hall/doors.png"),
+        transform: Transform {
+            translation: Vec3::new(x, y, ON_WALL_OBJECT_Z),
             ..Default::default()
-        });
+        },
+        ..Default::default()
+    });
 }
 
 fn spawn_judges(
@@ -240,9 +253,7 @@ fn spawn_judges(
     let z = calculate_z(y, y_max.value);
 
     let image_handle = asset_server.load("npc/judges.png");
-    let layout = TextureAtlasLayout::from_grid(
-        UVec2::new(229, 108), 22, 1, None, None,
-    );
+    let layout = TextureAtlasLayout::from_grid(UVec2::new(229, 108), 22, 1, None, None);
 
     let layout_handle = layouts.add(layout);
 
@@ -258,12 +269,13 @@ fn spawn_judges(
                 index: 0,
             },
         ))
-        .insert((JudgesDialog, JudgesFormidableFaceWon, JudgesFormidableFaceFailed))
+        .insert((
+            JudgesDialog,
+            JudgesFormidableFaceWon,
+            JudgesFormidableFaceFailed,
+        ))
         .insert(IdleAnimation {
-            timer: Timer::from_seconds(
-                0.15,
-                bevy::time::TimerMode::Repeating,
-            ),
+            timer: Timer::from_seconds(0.15, bevy::time::TimerMode::Repeating),
             frames_count: 22,
         })
         .insert(TransformBundle::from(Transform::from_xyz(x, y, z)))

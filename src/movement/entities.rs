@@ -16,7 +16,7 @@ pub struct Blocks {
 
 impl Blocks {
     pub fn from(items: Vec<BBox>) -> Self {
-        return Blocks { blocks: items };
+        Blocks { blocks: items }
     }
 }
 

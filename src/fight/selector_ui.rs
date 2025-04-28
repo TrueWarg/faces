@@ -1,10 +1,9 @@
 use bevy::audio::{AudioBundle, PlaybackSettings};
-use bevy::color::{Color, Srgba};
 use bevy::color::palettes::css::ANTIQUE_WHITE;
+use bevy::color::{Color, Srgba};
 use bevy::ecs::system::EntityCommands;
 use bevy::hierarchy::Children;
 use bevy::log::warn;
-use bevy::prelude::{AlignItems, Res};
 use bevy::prelude::BackgroundColor;
 use bevy::prelude::Changed;
 use bevy::prelude::Commands;
@@ -15,8 +14,8 @@ use bevy::prelude::JustifyContent;
 use bevy::prelude::Query;
 use bevy::prelude::Val;
 use bevy::prelude::With;
+use bevy::prelude::{AlignItems, Res};
 use bevy::ui::{FocusPolicy, UiRect};
-use sickle_ui::prelude::{LabelConfig, SetFocusPolicyExt};
 use sickle_ui::prelude::ScrollAxis;
 use sickle_ui::prelude::SetAlignItemsExt;
 use sickle_ui::prelude::SetBackgroundColorExt;
@@ -29,11 +28,14 @@ use sickle_ui::prelude::UiColumnExt;
 use sickle_ui::prelude::UiRoot;
 use sickle_ui::prelude::UiRowExt;
 use sickle_ui::prelude::UiScrollViewExt;
+use sickle_ui::prelude::{LabelConfig, SetFocusPolicyExt};
 use sickle_ui::ui_commands::UpdateTextExt;
 use sickle_ui::widgets::layout::label::SetLabelTextExt;
 
 use crate::fight::party_member_ui::Health;
-use crate::gui::{ButtonConfig, SelectorItem, Text, TextButton, TextButtonExt, TextConfig, TextExt};
+use crate::gui::{
+    ButtonConfig, SelectorItem, Text, TextButton, TextButtonExt, TextConfig, TextExt,
+};
 use crate::sound::ButtonSounds;
 
 pub struct Selector;
@@ -51,7 +53,7 @@ pub struct Description;
 
 impl SelectedItemPosHolder {
     pub fn new() -> Self {
-        return SelectedItemPosHolder { value: None };
+        SelectedItemPosHolder { value: None }
     }
 
     fn store(&mut self, value: usize) {
@@ -61,21 +63,18 @@ impl SelectedItemPosHolder {
     pub fn take_away_unsafe(&mut self) -> usize {
         let value = self.value.expect("Value was not be stored");
         self.value = None;
-        return value;
+        value
     }
 
     pub fn take_away(&mut self) -> Option<usize> {
         let value = self.value;
         self.value = None;
-        return value;
+        value
     }
 }
 
 pub trait SelectorExt<'a> {
-    fn selector(
-        &mut self,
-        items: Vec<SelectorItem>,
-    ) -> UiBuilder<Entity>;
+    fn selector(&mut self, items: Vec<SelectorItem>) -> UiBuilder<Entity>;
 }
 
 impl<'a> SelectorExt<'a> for UiBuilder<'a, UiRoot> {
@@ -84,49 +83,56 @@ impl<'a> SelectorExt<'a> for UiBuilder<'a, UiRoot> {
             parent
                 .column(|parent| {
                     parent
-                        .configure_text("".to_string(), TextConfig::from_color(Color::from(ANTIQUE_WHITE)))
+                        .configure_text(
+                            "".to_string(),
+                            TextConfig::from_color(Color::from(ANTIQUE_WHITE)),
+                        )
                         .insert(Description)
                         .style()
-                        .margin(
-                            UiRect {
-                                left: Val::Px(20.0),
-                                right: Val::Px(20.0),
-                                top: Val::Px(20.0),
-                                bottom: Val::Px(20.0),
-                            }
-                        );
+                        .margin(UiRect {
+                            left: Val::Px(20.0),
+                            right: Val::Px(20.0),
+                            top: Val::Px(20.0),
+                            bottom: Val::Px(20.0),
+                        });
                 })
                 .style()
                 .justify_content(JustifyContent::FlexStart)
                 .width(Val::Percent(50.0))
                 .height(Val::Percent(100.0));
 
-            parent.column(|parent| {
-                parent.scroll_view(Some(ScrollAxis::Vertical), |parent| {
-                    for (pos, item) in items.iter().enumerate() {
-                        parent
-                            .configure_text_button(
-                                &item.name,
-                                PosAndDescr(pos, item.description.clone()),
-                                TextConfig::from_color(Color::from(ANTIQUE_WHITE)),
-                                ButtonConfig {
-                                    width: Val::Percent(100.0),
-                                    height: Val::Px(70.0),
-                                    idle: BackgroundColor::from(Color::NONE),
-                                    hover: BackgroundColor::from(PRESSED_HOVER_BUTTON_COLOR),
-                                    pressed: BackgroundColor::from(PRESSED_HOVER_BUTTON_COLOR),
-                                    justify_content: JustifyContent::Center,
-                                },
-                            )
-                            .style()
-                            .focus_policy(FocusPolicy::Pass)
-                            .justify_content(JustifyContent::FlexStart);
-                    }
+            parent
+                .column(|parent| {
+                    parent
+                        .scroll_view(Some(ScrollAxis::Vertical), |parent| {
+                            for (pos, item) in items.iter().enumerate() {
+                                parent
+                                    .configure_text_button(
+                                        &item.name,
+                                        PosAndDescr(pos, item.description.clone()),
+                                        TextConfig::from_color(Color::from(ANTIQUE_WHITE)),
+                                        ButtonConfig {
+                                            width: Val::Percent(100.0),
+                                            height: Val::Px(70.0),
+                                            idle: BackgroundColor::from(Color::NONE),
+                                            hover: BackgroundColor::from(
+                                                PRESSED_HOVER_BUTTON_COLOR,
+                                            ),
+                                            pressed: BackgroundColor::from(
+                                                PRESSED_HOVER_BUTTON_COLOR,
+                                            ),
+                                            justify_content: JustifyContent::Center,
+                                        },
+                                    )
+                                    .style()
+                                    .focus_policy(FocusPolicy::Pass)
+                                    .justify_content(JustifyContent::FlexStart);
+                            }
+                        })
+                        .style()
+                        .width(Val::Percent(100.0))
+                        .height(Val::Percent(100.0));
                 })
-                    .style()
-                    .width(Val::Percent(100.0))
-                    .height(Val::Percent(100.0));
-            })
                 .style()
                 .width(Val::Percent(50.0))
                 .height(Val::Percent(100.0));
@@ -138,7 +144,7 @@ impl<'a> SelectorExt<'a> for UiBuilder<'a, UiRoot> {
             .align_items(AlignItems::Center)
             .background_color(Color::from(Srgba::new(0.302, 0.302, 0.302, 0.7)));
 
-        return selector;
+        selector
     }
 }
 
@@ -161,7 +167,9 @@ pub fn pick_item_handle<S>(
                 for mut children in description_query.iter() {
                     for &child in children.iter() {
                         match commands.get_entity(child) {
-                            None => { warn!("Description is not found") }
+                            None => {
+                                warn!("Description is not found")
+                            }
                             Some(mut entity_commands) => {
                                 entity_commands.update_text(item.payload.1.clone());
                             }
