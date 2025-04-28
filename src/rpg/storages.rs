@@ -19,10 +19,10 @@ impl Default for CharacterStorage {
                     charisma: 1,
                 },
                 level: Level {
-                    current: 1,
+                    current: 0,
                     current_experience: 0,
-                    experience_for_the_next: 2000,
-                    available_points: 15,
+                    experience_for_the_next: 500,
+                    available_points: 10,
                     characteristic_max_value: 5,
                 },
             }],
@@ -35,8 +35,24 @@ impl CharacterStorage {
         self.characters.clone()
     }
 
+    pub fn get_class_by_id(&self, id: usize) -> &Class {
+        &self.characters[id].class
+    }
+
+    pub fn get_level_by_id(&self, id: usize) -> &Level {
+        &self.characters[id].level
+    }
+
     pub fn update_by_id(&mut self, id: usize, new_value: Character) {
         self.characters[id] = new_value;
+    }
+
+    pub fn update_class_by_id(&mut self, id: usize, class: Class) {
+        self.characters[id].class = class;
+    }
+
+    pub fn update_level_by_id(&mut self, id: usize, level: Level) {
+        self.characters[id].level = level;
     }
 
     pub fn update_exp_by_id(&mut self, id: usize, exp: i32) {

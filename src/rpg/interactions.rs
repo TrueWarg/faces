@@ -1,5 +1,5 @@
-use std::cmp::{max, min};
 use bevy::prelude::Component;
+use std::cmp::{max, min};
 
 #[derive(Component, Clone, PartialEq, Debug)]
 pub struct TargetProps {
@@ -11,11 +11,11 @@ pub struct TargetProps {
 
 impl TargetProps {
     pub fn is_defeated(&self) -> bool {
-        return self.health.current <= self.health.min;
+        self.health.current <= self.health.min
     }
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Default)]
 pub struct RangedProp {
     pub min: i32,
     pub current: i32,
@@ -26,12 +26,12 @@ impl RangedProp {
     pub fn decrease(&mut self, value: i32) -> bool {
         let prev = self.current;
         self.current = max(self.min, self.current - value);
-        return prev != self.current
+        prev != self.current
     }
 
-    pub fn increase(&mut self, value: i32) -> bool{
+    pub fn increase(&mut self, value: i32) -> bool {
         let prev = self.current;
         self.current = min(self.max, self.current + value);
-        return prev != self.current
+        prev != self.current
     }
 }

@@ -33,3 +33,15 @@ pub struct Level {
     pub available_points: i32,
     pub characteristic_max_value: i32,
 }
+
+impl Level {
+    pub fn up_level(&self) -> Level {
+        Level {
+            current: self.current + 1,
+            current_experience: 0,
+            experience_for_the_next: self.experience_for_the_next * 2,
+            available_points: 0,
+            characteristic_max_value: self.characteristic_max_value + 1,
+        }
+    }
+}

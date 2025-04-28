@@ -41,13 +41,13 @@ impl Stat {
             Stat::BaseAttack => { "Базовый урон" }
         };
 
-        return str.to_string();
+        str.to_string()
     }
 }
 
 impl HasDescription for Stat {
     fn description(&self) -> String {
-        return format!("{:?}", self);
+        format!("{:?}", self)
     }
 }
 
@@ -114,7 +114,7 @@ impl<'a> StatItemExt<'a> for UiBuilder<'a, Entity> {
             .style()
             .justify_content(JustifyContent::FlexStart)
             .align_items(AlignItems::Center);
-        return item;
+        item
     }
 }
 

@@ -1,16 +1,12 @@
-use bevy::prelude::Component;
 use crate::rpg::TargetProps;
+use bevy::prelude::Component;
 
 #[derive(Component, PartialEq, Clone, Debug)]
 pub enum Ability {
-    NeckTwist {
-        damage: i32,
-        cost: i32,
-    },
-    WoundsLicking {
-        health: i32,
-        cost: i32,
-    },
+    NeckTwist { damage: i32, cost: i32 },
+    SuperPunch { damage: i32, cost: i32 },
+    WoundsLicking { health: i32, cost: i32 },
+    NeckGnawing { damage: i32, cost: i32 },
 }
 
 impl Ability {
@@ -22,6 +18,12 @@ impl Ability {
             Ability::WoundsLicking { health, .. } => {
                 target.health.increase(*health);
             }
+            Ability::SuperPunch { damage, .. } => {
+                target.health.decrease(*damage);
+            }
+            Ability::NeckGnawing { damage, .. } => {
+                target.health.decrease(*damage);
+            }
         }
     }
 
@@ -31,6 +33,12 @@ impl Ability {
                 target.energy.decrease(*cost);
             }
             Ability::WoundsLicking { health, cost } => {
+                target.energy.decrease(*cost);
+            }
+            Ability::SuperPunch { damage, cost } => {
+                target.energy.decrease(*cost);
+            }
+            Ability::NeckGnawing { damage, cost } => {
                 target.energy.decrease(*cost);
             }
         }

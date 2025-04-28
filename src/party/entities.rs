@@ -7,6 +7,7 @@ pub struct PartyMember {
     pub name: String,
     pub asset_path: String,
     pub target: TargetProps,
+    pub base_attack: i32,
     pub attacks: Vec<DirectionalAttack>,
     pub abilities: Vec<Ability>,
 }
