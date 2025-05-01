@@ -56,6 +56,8 @@ pub const SLEEPING_FORMIDABLE_DOG_DIALOG: usize = 1;
 
 pub const END_DIALOG_FORMIDABLE_DOG_JOINED: usize = 1;
 
+pub const END_DIALOG_FORMIDABLE_DOG_CONTINUED_SLEEP: usize = 2;
+
 pub fn sleeping_formidable_dog_dialog() -> Dialog {
     let (root_id, sticks) = sleeping_formidable_dog();
     Dialog::from(
@@ -118,7 +120,7 @@ fn sleeping_formidable_dog() -> (usize, HashMap<usize, DialogStick>) {
                 Variant::create_with_effect(
                     "Всьтавай давай, шавка парщивая! Сколько можно валяться? Мне повестьку в суть дали!".to_string(),
                     you_are_rude_stick.id,
-                    DialogEffect::EndDialog(None),
+                    DialogEffect::EndDialog(Some(END_DIALOG_FORMIDABLE_DOG_CONTINUED_SLEEP)),
                 ),
             ],
         }

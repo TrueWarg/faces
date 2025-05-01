@@ -53,7 +53,7 @@ use crate::level::house::FormidableDogState::Wakefulness;
 use crate::level::states::Level;
 use crate::npc::{spawn_fixed_npc, spawn_formidable_dog, IdleAnimation};
 use crate::party::{PartyMember, PartyStateStorage};
-use crate::player::entities::PlayerPosition;
+use crate::player::entities::{FormidableDog, PlayerPosition};
 use crate::rpg::{Character, CharacterStorage};
 use crate::world_state::EscapeFromHouse;
 use crate::world_state::EscapeFromHouse::{CallDog, Escape, GoSleep};
@@ -93,9 +93,6 @@ impl HasDialogId for SleepingFormidableDog {
         SLEEPING_FORMIDABLE_DOG_DIALOG
     }
 }
-
-#[derive(Component)]
-struct FormidableDog;
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
 enum FormidableDogState {
@@ -186,8 +183,8 @@ fn escape_from_house_handle(
             detect_active_interaction(&active_interactor_query, (interactor, transform));
         if is_interacting {
             let mut position = next_player_position_query.single_mut();
-            position.x = 0.0;
-            position.y = 0.0;
+            position.x = 20.0;
+            position.y = -400.0;
             level_state.set(Level::CourtHouseFront);
         }
     }
@@ -227,8 +224,8 @@ fn escape_from_house_variants_handles(
                     party_state.add_party_member(PartyMember::initial_formidable_dog());
                     formidable_dog_state.set(Wakefulness);
                 }
-                escape_from_house_state.set(Escape);
             }
+            escape_from_house_state.set(Escape);
         }
     }
 }

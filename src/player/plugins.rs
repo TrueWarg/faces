@@ -1,5 +1,6 @@
+use bevy::ecs::query::QuerySingleError;
 use bevy::math::UVec2;
-use bevy::prelude::{in_state, TransformBundle, Without};
+use bevy::prelude::{in_state, Changed, Mut, TransformBundle, Without};
 use bevy::sprite::SpriteBundle;
 use bevy::{
     prelude::AssetServer,
@@ -32,7 +33,8 @@ use super::{
 };
 use crate::core::entities::MainCamera;
 use crate::core::states::GameState;
-use crate::player::entities::PlayerPosition;
+use crate::party::PartyMember;
+use crate::player::entities::{FormidableDog, PlayerPosition};
 use crate::{
     animation::entities::MoveDirection,
     core::{entities::BodyYOffset, z_index::DEFAULT_OBJECT_Z},
@@ -49,6 +51,13 @@ impl Plugin for PlayerPlugin {
             .add_systems(
                 Update,
                 player_movement.run_if(in_state(GameState::Exploration)),
+            )
+            .add_systems(
+                Update,
+                (
+                    change_player_position_handle,
+                    change_party_members_position_handle,
+                ),
             )
             .add_systems(
                 Update,
@@ -79,6 +88,32 @@ impl Plugin for PlayerPlugin {
 
 fn spawn_initial_position(mut commands: Commands) {
     commands.spawn(PlayerPosition { x: 60.0, y: -100.0 });
+}
+
+fn change_player_position_handle(
+    mut player_transform_query: Query<&mut Transform, With<Player>>,
+    next_player_position_query: Query<&PlayerPosition, Changed<PlayerPosition>>,
+) {
+    for position in next_player_position_query.iter() {
+        let mut transform = player_transform_query.single_mut();
+        transform.translation.x = position.x;
+        transform.translation.y = position.y;
+    }
+}
+
+fn change_party_members_position_handle(
+    mut party_member_query: Query<&mut Transform, With<FormidableDog>>,
+    next_player_position_query: Query<&PlayerPosition, Changed<PlayerPosition>>,
+) {
+    for position in next_player_position_query.iter() {
+        match party_member_query.get_single_mut() {
+            Ok(mut transform) => {
+                transform.translation.x = position.x + 20.0;
+                transform.translation.y = position.y - 20.0;
+            }
+            Err(_) => {}
+        }
+    }
 }
 
 fn spawn_player(
@@ -118,8 +153,8 @@ fn spawn_player(
         .insert(LockedAxes::ROTATION_LOCKED)
         .insert(GravityScale(0.0))
         .insert(TransformBundle::from(Transform::from_xyz(
-            60.0,
-            -100.0,
+            0.0,
+            0.0,
             DEFAULT_OBJECT_Z,
         )))
         .insert(Player { speed: 200.0 })

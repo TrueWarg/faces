@@ -11,6 +11,9 @@ pub struct Player {
 }
 
 #[derive(Component)]
+pub struct FormidableDog;
+
+#[derive(Component)]
 pub struct MoveAnimation {
     pub timer: Timer,
     pub direction: MoveDirection,
