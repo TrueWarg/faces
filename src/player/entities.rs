@@ -17,3 +17,9 @@ pub struct MoveAnimation {
     // todo: remove it, find more conventional method to get particular sheets
     pub sheet_handle: Handle<TextureAtlasLayout>,
 }
+
+#[derive(Component, Debug)]
+pub struct PlayerPosition {
+    pub x: f32,
+    pub y: f32,
+}

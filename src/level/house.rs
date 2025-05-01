@@ -32,15 +32,29 @@ use bevy::{
 };
 use bevy_rapier2d::prelude::{Collider, RigidBody};
 
+use super::objects::LevelArm;
+use super::objects::WoodenChest;
+use super::sprites::WoodenChestSprites;
+use super::COURIER_DIALOG;
+use super::END_DIALOG_NECK_TWISTED;
+use super::SLEEPING_FORMIDABLE_DOG_DIALOG;
+use super::{
+    dialog_starts, HasDialogId, END_DIALOG_AGENDA_TAKEN, END_DIALOG_FORMIDABLE_DOG_JOINED,
+};
 use crate::animation::entities::MoveDirection;
 use crate::core::entities::BodyYOffset;
-use crate::core::states::GameState;
 use crate::core::z_index::DEFAULT_OBJECT_Z;
 use crate::dialog::SelectedVariantsSource;
-use crate::interaction::interactors::change_switcher_state;
 use crate::interaction::interactors::transit_to_next_container_state;
+use crate::interaction::interactors::{
+    change_switcher_state, detect_active_interaction, ActiveInteractor,
+};
 use crate::level::house::FormidableDogState::Wakefulness;
+use crate::level::states::Level;
 use crate::npc::{spawn_fixed_npc, spawn_formidable_dog, IdleAnimation};
+use crate::party::{PartyMember, PartyStateStorage};
+use crate::player::entities::PlayerPosition;
+use crate::rpg::{Character, CharacterStorage};
 use crate::world_state::EscapeFromHouse;
 use crate::world_state::EscapeFromHouse::{CallDog, Escape, GoSleep};
 use crate::{
@@ -56,25 +70,18 @@ use crate::{
     },
 };
 
-use super::objects::LevelArm;
-use super::objects::WoodenChest;
-use super::sprites::WoodenChestSprites;
-use super::COURIER_DIALOG;
-use super::END_DIALOG_NECK_TWISTED;
-use super::SLEEPING_FORMIDABLE_DOG_DIALOG;
-use super::{
-    dialog_starts, HasDialogId, END_DIALOG_AGENDA_TAKEN, END_DIALOG_FORMIDABLE_DOG_JOINED,
-};
-
 #[derive(Component)]
 struct HouseLevel;
 
 #[derive(Component)]
 struct Courier;
 
+#[derive(Component)]
+struct Door;
+
 impl HasDialogId for Courier {
     fn dialog_id(&self) -> usize {
-        return COURIER_DIALOG;
+        COURIER_DIALOG
     }
 }
 
@@ -83,7 +90,7 @@ struct SleepingFormidableDog;
 
 impl HasDialogId for SleepingFormidableDog {
     fn dialog_id(&self) -> usize {
-        return SLEEPING_FORMIDABLE_DOG_DIALOG;
+        SLEEPING_FORMIDABLE_DOG_DIALOG
     }
 }
 
@@ -106,7 +113,6 @@ impl<S: States> Plugin for HousePlugin<S> {
         app.init_state::<FormidableDogState>()
             .add_systems(OnEnter(self.state.clone()), load)
             .add_systems(OnExit(self.state.clone()), unload)
-            .add_systems(OnExit(GameState::Exploration), unload)
             .add_systems(Update, courier_spawns.run_if(in_state(self.state.clone())))
             .add_systems(OnExit(self.state.clone()), despawn_courier)
             .add_systems(
@@ -123,6 +129,7 @@ impl<S: States> Plugin for HousePlugin<S> {
                 Update,
                 dialog_starts::<SleepingFormidableDog>.run_if(in_state(CallDog)),
             )
+            .add_systems(Update, escape_from_house_handle.run_if(in_state(Escape)))
             .add_systems(
                 Update,
                 (
@@ -142,7 +149,7 @@ fn load(
     texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
 ) {
     let y_max = LevelYMax::create(192.0);
-    commands.spawn(y_max);
+    commands.spawn((y_max, HouseLevel));
 
     let wooden_chest_sprites = WoodenChestSprites {
         closed: asset_server.load("chest/wooden.png"),
@@ -163,7 +170,32 @@ fn load(
     spawn_test_chest(&mut commands, &asset_server, y_max);
 }
 
+fn escape_from_house_handle(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mut level_state: ResMut<NextState<Level>>,
+    mut next_player_position_query: Query<&mut PlayerPosition>,
+    interactors_query: Query<(&PassiveInteractor, &Transform), With<Door>>,
+    active_interactor_query: Query<(&ActiveInteractor, &Transform)>,
+) {
+    if !(keyboard.pressed(KeyCode::KeyE) && keyboard.just_pressed(KeyCode::KeyE)) {
+        return;
+    }
+
+    for (interactor, transform) in interactors_query.iter() {
+        let is_interacting =
+            detect_active_interaction(&active_interactor_query, (interactor, transform));
+        if is_interacting {
+            let mut position = next_player_position_query.single_mut();
+            position.x = 0.0;
+            position.y = 0.0;
+            level_state.set(Level::CourtHouseFront);
+        }
+    }
+}
+
 fn escape_from_house_variants_handles(
+    mut character_storage: ResMut<CharacterStorage>,
+    mut party_state: ResMut<PartyStateStorage>,
     mut dialog_variant_source: ResMut<SelectedVariantsSource>,
     mut escape_from_house_state: ResMut<NextState<EscapeFromHouse>>,
     mut formidable_dog_state: ResMut<NextState<FormidableDogState>>,
@@ -191,19 +223,20 @@ fn escape_from_house_variants_handles(
         Some(ids) => {
             for id in ids {
                 if id == END_DIALOG_FORMIDABLE_DOG_JOINED {
-                    escape_from_house_state.set(Escape);
+                    character_storage.add(Character::initial_formidable_dog());
+                    party_state.add_party_member(PartyMember::initial_formidable_dog());
                     formidable_dog_state.set(Wakefulness);
                 }
+                escape_from_house_state.set(Escape);
             }
         }
     }
 }
 
-fn unload(mut commands: Commands, query: Query<Entity>) {
-    // for entity in query.iter() {
-    //     println!("!!!! kek");
-    //     commands.entity(entity).despawn();
-    // }
+fn unload(mut commands: Commands, query: Query<Entity, With<HouseLevel>>) {
+    for entity in query.iter() {
+        commands.entity(entity).despawn_recursive();
+    }
 }
 
 fn draw_level_arm_states(mut switchers: Query<(&mut TextureAtlas, &Switcher), With<LevelArm>>) {
@@ -238,6 +271,7 @@ fn spawn_level_arm(
             layout: layout_handle,
             index: 0,
         },
+        HouseLevel,
     );
 
     commands
@@ -281,14 +315,17 @@ fn spawn_test_chest(commands: &mut Commands, asset_server: &Res<AssetServer>, y_
     let chest_z = calculate_z(chest_y, y_max.value);
     commands
         .spawn(RigidBody::Fixed)
-        .insert(SpriteBundle {
-            texture: asset_server.load("chest/wooden.png"),
-            transform: Transform {
-                translation: Vec3::new(-145.0, 105.0, chest_z),
+        .insert((
+            SpriteBundle {
+                texture: asset_server.load("chest/wooden.png"),
+                transform: Transform {
+                    translation: Vec3::new(-145.0, 105.0, chest_z),
+                    ..Default::default()
+                },
                 ..Default::default()
             },
-            ..Default::default()
-        })
+            HouseLevel,
+        ))
         .with_children(|children| {
             children
                 .spawn(Collider::cuboid(16.0, 11.0))
@@ -315,14 +352,17 @@ fn spawn_dog_house(commands: &mut Commands, asset_server: &Res<AssetServer>, y_m
     let doghouse_z = calculate_z(doghouse_y, y_max.value);
     commands
         .spawn(RigidBody::Fixed)
-        .insert(SpriteBundle {
-            texture: asset_server.load("house/doghouse.png"),
-            transform: Transform {
-                translation: Vec3::new(145.0, -100.0, doghouse_z),
+        .insert((
+            SpriteBundle {
+                texture: asset_server.load("house/doghouse.png"),
+                transform: Transform {
+                    translation: Vec3::new(145.0, -100.0, doghouse_z),
+                    ..Default::default()
+                },
                 ..Default::default()
             },
-            ..Default::default()
-        })
+            HouseLevel,
+        ))
         .with_children(|children| {
             children
                 .spawn(Collider::cuboid(36.0, 20.0))
@@ -390,6 +430,7 @@ fn spawn_sleeping_formidable_dog(
                 index: 0,
             },
             SleepingFormidableDog,
+            HouseLevel,
         ))
         .insert(IdleAnimation {
             timer: Timer::from_seconds(0.4, bevy::time::TimerMode::Repeating),
@@ -423,14 +464,17 @@ fn spawn_bed(commands: &mut Commands, asset_server: &Res<AssetServer>, y_max: Le
     let bed_z = calculate_z(bed_y, y_max.value);
     commands
         .spawn(RigidBody::Fixed)
-        .insert(SpriteBundle {
-            texture: asset_server.load("house/bed.png"),
-            transform: Transform {
-                translation: Vec3::new(-145.0, -120.0, bed_z),
+        .insert((
+            SpriteBundle {
+                texture: asset_server.load("house/bed.png"),
+                transform: Transform {
+                    translation: Vec3::new(-145.0, -120.0, bed_z),
+                    ..Default::default()
+                },
                 ..Default::default()
             },
-            ..Default::default()
-        })
+            HouseLevel,
+        ))
         .with_children(|children| {
             children
                 .spawn(Collider::cuboid(33.0, 40.0))
@@ -443,14 +487,17 @@ fn spawn_vase_on_table(commands: &mut Commands, asset_server: &Res<AssetServer>,
     let vase_z = calculate_z(vase_y, y_max.value);
     commands
         .spawn(RigidBody::Fixed)
-        .insert(SpriteBundle {
-            texture: asset_server.load("house/vase_on_table.png"),
-            transform: Transform {
-                translation: Vec3::new(-55.0, 175.0, vase_z),
+        .insert((
+            SpriteBundle {
+                texture: asset_server.load("house/vase_on_table.png"),
+                transform: Transform {
+                    translation: Vec3::new(-55.0, 175.0, vase_z),
+                    ..Default::default()
+                },
                 ..Default::default()
             },
-            ..Default::default()
-        })
+            HouseLevel,
+        ))
         .with_children(|children| {
             children
                 .spawn(Collider::cuboid(31.0, 12.0))
@@ -472,14 +519,14 @@ fn spawn_chest(commands: &mut Commands, asset_server: &Res<AssetServer>, y_max: 
     let chest_z = calculate_z(chest_y, y_max.value);
     commands
         .spawn(RigidBody::Fixed)
-        .insert(SpriteBundle {
+        .insert((SpriteBundle {
             texture: asset_server.load("house/chest.png"),
             transform: Transform {
                 translation: Vec3::new(-145.0, 155.0, chest_z),
                 ..Default::default()
             },
             ..Default::default()
-        })
+        }, HouseLevel))
         .with_children(|children| {
             children
                 .spawn(Collider::cuboid(31.0, 18.0))
@@ -497,75 +544,100 @@ fn spawn_chest(commands: &mut Commands, asset_server: &Res<AssetServer>, y_max: 
 }
 
 fn spawn_door(commands: &mut Commands, asset_server: &Res<AssetServer>) {
-    commands.spawn(RigidBody::Fixed).insert(SpriteBundle {
-        texture: asset_server.load("house/door.png"),
-        transform: Transform {
-            translation: Vec3::new(120.0, 224.0, ON_WALL_OBJECT_Z),
-            ..Default::default()
-        },
-        ..Default::default()
-    });
+    commands
+        .spawn(RigidBody::Fixed)
+        .insert((
+            SpriteBundle {
+                texture: asset_server.load("house/door.png"),
+                transform: Transform {
+                    translation: Vec3::new(120.0, 224.0, ON_WALL_OBJECT_Z),
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+            Door,
+            HouseLevel,
+        ))
+        .insert(PassiveInteractor {
+            area: InteractionArea::from_sizes(30.0, 32.0),
+            side: InteractionSide::Bottom,
+        });
 }
 
 fn spawn_floor(commands: &mut Commands, asset_server: &Res<AssetServer>) {
-    commands.spawn(RigidBody::Fixed).insert(SpriteBundle {
-        texture: asset_server.load("house/floor.png"),
-        transform: Transform {
-            translation: Vec3::new(0.0, 0.0, FLOOR_Z),
+    commands.spawn(RigidBody::Fixed).insert((
+        SpriteBundle {
+            texture: asset_server.load("house/floor.png"),
+            transform: Transform {
+                translation: Vec3::new(0.0, 0.0, FLOOR_Z),
+                ..Default::default()
+            },
             ..Default::default()
         },
-        ..Default::default()
-    });
+        HouseLevel,
+    ));
 }
 
 fn spawn_walls(commands: &mut Commands, asset_server: &Res<AssetServer>) {
     commands
         .spawn(RigidBody::Fixed)
         .insert(Collider::cuboid(32.0, 256.0))
-        .insert(SpriteBundle {
-            texture: asset_server.load("house/wall_left.png"),
-            transform: Transform {
-                translation: Vec3::new(-224.0, 0.0, WALL_Z),
+        .insert((
+            SpriteBundle {
+                texture: asset_server.load("house/wall_left.png"),
+                transform: Transform {
+                    translation: Vec3::new(-224.0, 0.0, WALL_Z),
+                    ..Default::default()
+                },
                 ..Default::default()
             },
-            ..Default::default()
-        });
+            HouseLevel,
+        ));
 
     commands
         .spawn(RigidBody::Fixed)
         .insert(Collider::cuboid(256.0, 32.0))
-        .insert(SpriteBundle {
-            texture: asset_server.load("house/wall_top.png"),
-            transform: Transform {
-                translation: Vec3::new(0.0, 224.0, WALL_Z),
+        .insert((
+            SpriteBundle {
+                texture: asset_server.load("house/wall_top.png"),
+                transform: Transform {
+                    translation: Vec3::new(0.0, 224.0, WALL_Z),
+                    ..Default::default()
+                },
                 ..Default::default()
             },
-            ..Default::default()
-        });
+            HouseLevel,
+        ));
 
     commands
         .spawn(RigidBody::Fixed)
         .insert(Collider::cuboid(32.0, 256.0))
-        .insert(SpriteBundle {
-            texture: asset_server.load("house/wall_right.png"),
-            transform: Transform {
-                translation: Vec3::new(224.0, 0.0, WALL_Z),
+        .insert((
+            SpriteBundle {
+                texture: asset_server.load("house/wall_right.png"),
+                transform: Transform {
+                    translation: Vec3::new(224.0, 0.0, WALL_Z),
+                    ..Default::default()
+                },
                 ..Default::default()
             },
-            ..Default::default()
-        });
+            HouseLevel,
+        ));
 
     commands
         .spawn(RigidBody::Fixed)
         .insert(Collider::cuboid(256.0, 32.0))
-        .insert(SpriteBundle {
-            texture: asset_server.load("house/wall_bottom.png"),
-            transform: Transform {
-                translation: Vec3::new(0.0, -224.0, WALL_Z),
+        .insert((
+            SpriteBundle {
+                texture: asset_server.load("house/wall_bottom.png"),
+                transform: Transform {
+                    translation: Vec3::new(0.0, -224.0, WALL_Z),
+                    ..Default::default()
+                },
                 ..Default::default()
             },
-            ..Default::default()
-        });
+            HouseLevel,
+        ));
 }
 
 fn courier_spawns(
@@ -584,7 +656,7 @@ fn courier_spawns(
                 &asset_server,
                 &mut commands,
                 &mut layouts,
-                Courier,
+                (Courier, HouseLevel),
                 "npc/clerk.png".to_string(),
                 MoveDirection::ForwardIdle,
                 120.0,

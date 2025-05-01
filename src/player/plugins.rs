@@ -26,8 +26,13 @@ use bevy_rapier2d::prelude::LockedAxes;
 use bevy_rapier2d::prelude::RigidBody;
 use bevy_rapier2d::prelude::Velocity;
 
+use super::{
+    animations::PlayerAnimations,
+    entities::{MoveAnimation, Player},
+};
 use crate::core::entities::MainCamera;
 use crate::core::states::GameState;
+use crate::player::entities::PlayerPosition;
 use crate::{
     animation::entities::MoveDirection,
     core::{entities::BodyYOffset, z_index::DEFAULT_OBJECT_Z},
@@ -35,16 +40,12 @@ use crate::{
     movement::entities::Target,
 };
 
-use super::{
-    animations::PlayerAnimations,
-    entities::{MoveAnimation, Player},
-};
-
 pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         app.add_systems(Startup, spawn_player)
+            .add_systems(Startup, spawn_initial_position)
             .add_systems(
                 Update,
                 player_movement.run_if(in_state(GameState::Exploration)),
@@ -74,6 +75,10 @@ impl Plugin for PlayerPlugin {
                     .run_if(in_state(GameState::Exploration)),
             );
     }
+}
+
+fn spawn_initial_position(mut commands: Commands) {
+    commands.spawn(PlayerPosition { x: 60.0, y: -100.0 });
 }
 
 fn spawn_player(

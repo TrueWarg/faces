@@ -7,7 +7,6 @@ pub enum EscapeFromHouse {
     GoSleep,
     CallDog,
     Escape,
-    Completed,
 }
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]

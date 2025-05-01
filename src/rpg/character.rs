@@ -7,6 +7,47 @@ pub struct Character {
     pub level: Level,
 }
 
+impl Character {
+    pub fn initial_formidable_face() -> Self {
+        Character {
+            name: "Грозный Личик".to_string(),
+            class: Class::FormidableFace {
+                strength: 1,
+                agility: 1,
+                stamina: 1,
+                fortitude: 1,
+                charisma: 1,
+            },
+            level: Level {
+                current: 0,
+                current_experience: 0,
+                experience_for_the_next: 500,
+                available_points: 10,
+                characteristic_max_value: 5,
+            },
+        }
+    }
+
+    pub fn initial_formidable_dog() -> Self {
+        Character {
+            name: "Грозный Пёс".to_string(),
+            class: Class::FormidableDog {
+                strength: 1,
+                agility: 1,
+                stamina: 1,
+                fortitude: 1,
+            },
+            level: Level {
+                current: 0,
+                current_experience: 0,
+                experience_for_the_next: 500,
+                available_points: 10,
+                characteristic_max_value: 5,
+            },
+        }
+    }
+}
+
 #[derive(Component, PartialEq, Clone, Debug)]
 pub enum Class {
     FormidableFace {

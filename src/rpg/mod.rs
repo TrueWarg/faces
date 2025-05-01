@@ -5,6 +5,8 @@ pub use interactions::*;
 pub use inventory_and_abilities_screen::*;
 pub use items::*;
 pub use plugin::RpgPlugin;
+pub use storages::CharacterStorage;
+pub use character::*;
 
 mod abilities;
 mod attacks;

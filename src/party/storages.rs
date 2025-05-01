@@ -2,7 +2,6 @@ use bevy::prelude::Resource;
 
 use crate::party::entities::PartyMember;
 use crate::rpg::Dumplings;
-use crate::rpg::RangedProp;
 use crate::rpg::TargetProps;
 use crate::rpg::Venison;
 use crate::rpg::{Ability, ConsumableItem, DirectionalAttack};
@@ -15,31 +14,7 @@ pub struct PartyStateStorage {
 impl Default for PartyStateStorage {
     fn default() -> Self {
         PartyStateStorage {
-            members: vec![PartyMember {
-                id: 0,
-                name: "Грозный Личик".to_string(),
-                base_attack: 15,
-                asset_path: "".to_string(),
-                target: TargetProps {
-                    health: RangedProp {
-                        min: 0,
-                        current: 113,
-                        max: 113,
-                    },
-                    energy: RangedProp {
-                        min: 0,
-                        current: 24,
-                        max: 24,
-                    },
-                    armor: 4,
-                    evasion: 4,
-                },
-                attacks: vec![DirectionalAttack::Punch { damage: 15 }],
-                abilities: vec![Ability::NeckTwist {
-                    damage: 30,
-                    cost: 10,
-                }],
-            }],
+            members: vec![PartyMember::initial_formidable_face()],
         }
     }
 }
@@ -47,6 +22,10 @@ impl Default for PartyStateStorage {
 impl PartyStateStorage {
     pub fn get_party_members(&self) -> Vec<PartyMember> {
         self.members.clone()
+    }
+
+    pub fn add_party_member(&mut self, member: PartyMember) {
+        self.members.push(member);
     }
 
     pub fn update_base_attack_by_id(&mut self, id: usize, base_attack: i32) {
