@@ -1,20 +1,20 @@
 use bevy::prelude::Resource;
 
 use crate::party::entities::PartyMember;
-use crate::rpg::Dumplings;
 use crate::rpg::TargetProps;
-use crate::rpg::Venison;
 use crate::rpg::{Ability, ConsumableItem, DirectionalAttack};
 
 #[derive(Resource)]
 pub struct PartyStateStorage {
     members: Vec<PartyMember>,
+    consumable: Vec<ConsumableItem>,
 }
 
 impl Default for PartyStateStorage {
     fn default() -> Self {
         PartyStateStorage {
             members: vec![PartyMember::initial_formidable_face()],
+            consumable: vec![ConsumableItem::default_dumplings()],
         }
     }
 }
@@ -45,71 +45,20 @@ impl PartyStateStorage {
     }
 
     pub fn get_consumables(&self) -> Vec<ConsumableItem> {
-        vec![
-            ConsumableItem::Dumplings(Dumplings {
-                health: 10,
-                energy: 10,
-            }),
-            ConsumableItem::Dumplings(Dumplings {
-                health: 10,
-                energy: 10,
-            }),
-            ConsumableItem::Dumplings(Dumplings {
-                health: 10,
-                energy: 10,
-            }),
-            ConsumableItem::Venison(Venison {
-                health: 20,
-                energy: 5,
-            }),
-            ConsumableItem::Dumplings(Dumplings {
-                health: 10,
-                energy: 10,
-            }),
-            ConsumableItem::Venison(Venison {
-                health: 20,
-                energy: 5,
-            }),
-            ConsumableItem::Venison(Venison {
-                health: 20,
-                energy: 5,
-            }),
-            ConsumableItem::Venison(Venison {
-                health: 20,
-                energy: 5,
-            }),
-            ConsumableItem::Dumplings(Dumplings {
-                health: 10,
-                energy: 10,
-            }),
-            ConsumableItem::Venison(Venison {
-                health: 20,
-                energy: 5,
-            }),
-            ConsumableItem::Venison(Venison {
-                health: 20,
-                energy: 5,
-            }),
-            ConsumableItem::Venison(Venison {
-                health: 20,
-                energy: 5,
-            }),
-            ConsumableItem::Venison(Venison {
-                health: 20,
-                energy: 5,
-            }),
-            ConsumableItem::Venison(Venison {
-                health: 20,
-                energy: 5,
-            }),
-            ConsumableItem::Dumplings(Dumplings {
-                health: 10,
-                energy: 10,
-            }),
-            ConsumableItem::Venison(Venison {
-                health: 20,
-                energy: 5,
-            }),
-        ]
+        self.consumable.clone()
+    }
+
+    pub fn add_consumable(&mut self, consumable: ConsumableItem) {
+        self.consumable.push(consumable);
+    }
+
+    pub fn add_consumables(&mut self, consumables: Vec<ConsumableItem>) {
+        for consumable in consumables {
+            self.consumable.push(consumable);
+        }
+    }
+
+    pub fn remove_consumable_by_id(&mut self, id: usize) {
+        self.consumable.remove(id);
     }
 }

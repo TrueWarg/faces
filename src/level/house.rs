@@ -32,8 +32,8 @@ use bevy::{
 };
 use bevy_rapier2d::prelude::{Collider, RigidBody};
 
-use super::objects::LevelArm;
-use super::objects::WoodenChest;
+use super::objects::wooden_chest_states_draws;
+use super::objects::{interact_with_container_handle, spawn_container, LevelArm};
 use super::sprites::WoodenChestSprites;
 use super::COURIER_DIALOG;
 use super::END_DIALOG_NECK_TWISTED;
@@ -45,7 +45,6 @@ use crate::animation::entities::MoveDirection;
 use crate::core::entities::BodyYOffset;
 use crate::core::z_index::DEFAULT_OBJECT_Z;
 use crate::dialog::SelectedVariantsSource;
-use crate::interaction::interactors::transit_to_next_container_state;
 use crate::interaction::interactors::{
     change_switcher_state, detect_active_interaction, ActiveInteractor,
 };
@@ -54,19 +53,18 @@ use crate::level::states::Level;
 use crate::npc::{spawn_fixed_npc, spawn_formidable_dog, IdleAnimation};
 use crate::party::{PartyMember, PartyStateStorage};
 use crate::player::entities::{FormidableDog, PlayerPosition};
-use crate::rpg::{Character, CharacterStorage};
+use crate::rpg::{Character, CharacterStorage, ConsumableItem};
 use crate::world_state::EscapeFromHouse;
 use crate::world_state::EscapeFromHouse::{CallDog, Escape, GoSleep};
 use crate::{
     core::{
         collisions::recalculate_z,
         entities::{Description, LevelYMax},
-        state_machines::{CycleLinearTransition, FiniteLinearTransition},
+        state_machines::CycleLinearTransition,
         z_index::{calculate_z, FLOOR_Z, ON_WALL_OBJECT_Z, WALL_Z},
     },
     interaction::interactors::{
-        Container, ContainerState, InteractionArea, InteractionSide, LimitedInteractor,
-        PassiveInteractor, Switcher, SwitcherState,
+        InteractionArea, InteractionSide, PassiveInteractor, Switcher, SwitcherState,
     },
 };
 
@@ -112,6 +110,7 @@ impl<S: States> Plugin for HousePlugin<S> {
             .add_systems(OnExit(self.state.clone()), unload)
             .add_systems(Update, courier_spawns.run_if(in_state(self.state.clone())))
             .add_systems(OnExit(self.state.clone()), despawn_courier)
+            .add_systems(Update, interact_with_container_handle)
             .add_systems(
                 Update,
                 sleeping_formidable_dog_spawns.run_if(in_state(self.state.clone())),
@@ -132,7 +131,8 @@ impl<S: States> Plugin for HousePlugin<S> {
                 (
                     recalculate_z,
                     escape_from_house_variants_handles,
-                    draw_wooden_chest_states.after(transit_to_next_container_state),
+                    wooden_chest_states_draws::<ConsumableItem>
+                        .after(interact_with_container_handle),
                     draw_level_arm_states.after(change_switcher_state),
                 )
                     .run_if(in_state(self.state.clone())),
@@ -164,7 +164,7 @@ fn load(
     spawn_bed(&mut commands, &asset_server, y_max);
     spawn_dog_house(&mut commands, &asset_server, y_max);
     spawn_level_arm(&mut commands, &asset_server, texture_atlases);
-    spawn_test_chest(&mut commands, &asset_server, y_max);
+    spawn_wooden_chest(&mut commands, &asset_server, y_max);
 }
 
 fn escape_from_house_handle(
@@ -288,60 +288,22 @@ fn spawn_level_arm(
         });
 }
 
-fn draw_wooden_chest_states(
-    mut commands: Commands,
-    keyboard: Res<ButtonInput<KeyCode>>,
-    sprites: Res<WoodenChestSprites>,
-    chests: Query<(Entity, &Container), With<WoodenChest>>,
-) {
-    if !(keyboard.pressed(KeyCode::KeyE) && keyboard.just_pressed(KeyCode::KeyE)) {
-        return;
-    }
-    for (entity, container) in chests.iter() {
-        let new_sprite = match container.state {
-            ContainerState::Closed => sprites.closed.clone(),
-            ContainerState::Full => sprites.full.clone(),
-            ContainerState::Empty => sprites.empty.clone(),
-        };
-        commands.entity(entity).insert(new_sprite);
-    }
-}
-
-fn spawn_test_chest(commands: &mut Commands, asset_server: &Res<AssetServer>, y_max: LevelYMax) {
+fn spawn_wooden_chest(commands: &mut Commands, asset_server: &Res<AssetServer>, y_max: LevelYMax) {
     let chest_y = 112.0;
     let chest_z = calculate_z(chest_y, y_max.value);
-    commands
-        .spawn(RigidBody::Fixed)
-        .insert((
-            SpriteBundle {
-                texture: asset_server.load("chest/wooden.png"),
-                transform: Transform {
-                    translation: Vec3::new(-145.0, 105.0, chest_z),
-                    ..Default::default()
-                },
-                ..Default::default()
-            },
-            HouseLevel,
-        ))
-        .with_children(|children| {
-            children
-                .spawn(Collider::cuboid(16.0, 11.0))
-                .insert(TransformBundle::from(Transform::from_xyz(
-                    0.0, -2.0, chest_z,
-                )));
-        })
-        .insert(PassiveInteractor {
-            area: InteractionArea::from_sizes(16.0, 11.0),
-            side: InteractionSide::Bottom,
-        })
-        .insert(LimitedInteractor)
-        .insert(WoodenChest)
-        .insert(Container {
-            state: ContainerState::initial_state(),
-        })
-        .insert(Description {
-            text: "Closed chest".to_string(),
-        });
+    spawn_container(
+        commands,
+        HouseLevel,
+        asset_server.load("chest/wooden.png"),
+        -145.0,
+        105.0,
+        chest_z,
+        -2.0,
+        vec![
+            ConsumableItem::default_dumplings(),
+            ConsumableItem::default_venison(),
+        ],
+    );
 }
 
 fn spawn_dog_house(commands: &mut Commands, asset_server: &Res<AssetServer>, y_max: LevelYMax) {

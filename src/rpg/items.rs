@@ -8,6 +8,22 @@ pub enum ConsumableItem {
 }
 
 impl ConsumableItem {
+    pub fn default_dumplings() -> Self {
+        ConsumableItem::Dumplings(Dumplings {
+            health: 20,
+            energy: 5,
+        })
+    }
+
+    pub fn default_venison() -> Self {
+        ConsumableItem::Venison(Venison {
+            health: 40,
+            energy: 5,
+        })
+    }
+}
+
+impl ConsumableItem {
     pub fn apply(&self, target: &mut TargetProps) {
         match self {
             ConsumableItem::Dumplings(value) => {

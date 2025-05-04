@@ -50,3 +50,19 @@ impl FromWorld for Soundtrack {
         }
     }
 }
+
+#[derive(Resource)]
+pub struct ChestSounds {
+    pub opened: Handle<AudioSource>,
+    pub items_picked: Handle<AudioSource>,
+}
+
+impl FromWorld for ChestSounds {
+    fn from_world(world: &mut World) -> Self {
+        let asset_server = world.resource::<AssetServer>();
+        ChestSounds {
+            opened: asset_server.load("sounds/world/container_door.ogg"),
+            items_picked: asset_server.load("sounds/world/pick_items.ogg"),
+        }
+    }
+}

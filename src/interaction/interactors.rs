@@ -1,11 +1,12 @@
 use bevy::input::ButtonInput;
-use bevy::prelude::{Commands, Entity, KeyCode, Query, Res, Time, Transform, With};
+use bevy::prelude::{Bundle, Commands, Entity, KeyCode, Query, Res, ResMut, Time, Transform, With};
 use bevy::{prelude::Component, time::Timer};
 
 use crate::core::{
     geometry::BBox,
     state_machines::{CycleLinearTransition, FiniteLinearTransition},
 };
+use crate::party::PartyStateStorage;
 
 #[derive(Component)]
 pub struct ActiveInteractor {
@@ -23,8 +24,9 @@ pub struct PassiveInteractor {
 pub struct LimitedInteractor;
 
 #[derive(Component)]
-pub struct Container {
+pub struct Container<T: Bundle + Clone> {
     pub state: ContainerState,
+    pub items: Vec<T>,
 }
 #[derive(PartialEq)]
 pub enum ContainerState {
@@ -156,29 +158,6 @@ pub fn detect_active_interaction(
     let area = interactor.area.to_box(translation.x, translation.y);
     let intersection = active_area.round_intersection_with(&area);
     active_translation.z - translation.z >= delta && intersection > 0
-}
-
-pub fn transit_to_next_container_state(
-    mut commands: Commands,
-    keyboard: Res<ButtonInput<KeyCode>>,
-    active: Query<(&ActiveInteractor, &Transform)>,
-    mut interactors: Query<
-        (Entity, &PassiveInteractor, &Transform, &mut Container),
-        With<LimitedInteractor>,
-    >,
-) {
-    if !(keyboard.pressed(KeyCode::KeyE) && keyboard.just_pressed(KeyCode::KeyE)) {
-        return;
-    }
-    for (entity, interactor, transform, mut container) in interactors.iter_mut() {
-        let is_interacting = detect_active_interaction(&active, (interactor, transform));
-        if is_interacting {
-            container.state = container.state.transit();
-            if container.state.is_finished() {
-                commands.entity(entity).remove::<LimitedInteractor>();
-            }
-        }
-    }
 }
 
 pub fn change_switcher_state(
