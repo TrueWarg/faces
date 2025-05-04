@@ -129,9 +129,10 @@ fn main_respawns(
     party_storage: Res<PartyStateStorage>,
     tab_state: Res<State<Tab>>,
     selected_member_state: Res<State<SelectedMember>>,
+    game_state: ResMut<NextState<GameState>>,
     screen_query: Query<Entity, With<InventoryAndAbilityScreen>>,
 ) {
-    if !tab_state.is_changed() && !selected_member_state.is_changed() {
+    if !tab_state.is_changed() && !selected_member_state.is_changed() && !game_state.is_changed() {
         return;
     }
 
