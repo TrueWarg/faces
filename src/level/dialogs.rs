@@ -61,10 +61,10 @@ pub const END_DIALOG_FORMIDABLE_DOG_CONTINUED_SLEEP: usize = 2;
 pub fn sleeping_formidable_dog_dialog() -> Dialog {
     let (root_id, sticks) = sleeping_formidable_dog();
     Dialog::from(
-        DialogId(COURIER_DIALOG),
+        DialogId(SLEEPING_FORMIDABLE_DOG_DIALOG),
         "Dialog 1".to_string(),
         "background/dialog_bg.png".to_string(),
-        "npc/dialog_courier.png".to_string(),
+        "npc/dialog/formidable_dog.png".to_string(),
         root_id,
         sticks,
     )
@@ -609,7 +609,7 @@ pub fn gopniks_dialog() -> Dialog {
         DialogId(GOPNIKS_DIALOG),
         "Dialog 1".to_string(),
         "background/dialog_bg.png".to_string(),
-        "npc/dialog_courier.png".to_string(),
+        "npc/dialog/gopniks.png".to_string(),
         root_id,
         sticks,
     )
