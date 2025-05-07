@@ -491,7 +491,7 @@ pub fn blond_first_dialog() -> Dialog {
         DialogId(BLOND_FIRST_DIALOG),
         "Dialog 1".to_string(),
         "background/dialog_bg.png".to_string(),
-        "npc/dialog_courier.png".to_string(),
+        "npc/dialog/blonde.png".to_string(),
         root_id,
         sticks,
     )
@@ -749,7 +749,7 @@ pub fn blond_give_dumplings_dialog() -> Dialog {
         DialogId(BLOND_GIVE_DUMPLINGS_DIALOG),
         "Dialog 1".to_string(),
         "background/dialog_bg.png".to_string(),
-        "npc/dialog_courier.png".to_string(),
+        "npc/dialog/blonde.png".to_string(),
         root_id,
         sticks,
     )
@@ -813,7 +813,7 @@ pub fn blond_take_dumplings_dialog() -> Dialog {
         DialogId(BLOND_GIVE_DUMPLINGS_DIALOG),
         "Dialog 1".to_string(),
         "background/dialog_bg.png".to_string(),
-        "npc/dialog_courier.png".to_string(),
+        "npc/dialog/blonde.png".to_string(),
         root_id,
         sticks,
     )
