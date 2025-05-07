@@ -203,6 +203,15 @@ fn load(
 
     spawn_ground(&mut commands, &asset_server);
 
+    commands
+        .spawn_empty()
+        .insert(TransformBundle::from(Transform::from_xyz(0.0, 0.0, 1.0)))
+        .with_children(|children| {
+            children
+                .spawn(Collider::cuboid(500.0, 1.0))
+                .insert(TransformBundle::from(Transform::from_xyz(0.0, -500.0, 1.0)));
+        });
+
     let courthouse = asset_server.load("courthouse_front/courthouse.png");
     spawn_object(
         &mut commands,
