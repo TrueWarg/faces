@@ -12,6 +12,7 @@ impl Plugin for SoundPlugin {
         app.init_resource::<ButtonSounds>()
             .init_resource::<Soundtrack>()
             .init_resource::<ChestSounds>()
+            .init_resource::<FightActionSounds>()
             .add_systems(Update, menu_button_hover_sounds_handle);
     }
 }

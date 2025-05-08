@@ -66,3 +66,17 @@ impl FromWorld for ChestSounds {
         }
     }
 }
+
+#[derive(Resource)]
+pub struct FightActionSounds {
+    pub player_punch: Handle<AudioSource>,
+}
+
+impl FromWorld for FightActionSounds {
+    fn from_world(world: &mut World) -> Self {
+        let asset_server = world.resource::<AssetServer>();
+        FightActionSounds {
+            player_punch: asset_server.load("sounds/fight/player_punch_1.ogg"),
+        }
+    }
+}

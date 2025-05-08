@@ -8,6 +8,7 @@ mod scene;
 mod selector_ui;
 mod step;
 mod storages;
+mod hits_and_spells_ui;
 
 pub use entities::*;
 pub use plugin::FightPlugin;

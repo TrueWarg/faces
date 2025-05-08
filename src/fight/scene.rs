@@ -1,5 +1,18 @@
+use crate::core::states::GameState;
+use crate::fight::actions_ui::{ActionId, ActionItemExt};
+use crate::fight::enemy_ui::{EnemyId, EnemyItemExt};
+use crate::fight::hits_and_spells_ui::MovingObject;
+use crate::fight::party_member_ui::{Health, MemberId, PartyMemberItemExt};
+use crate::fight::selector_ui::{pick_item_handle, SelectedItemPosHolder, SelectorExt};
+use crate::fight::step::decide_next_step;
+use crate::fight::{ActionTarget, Enemy, Fight, FightId, FightStorage, GetActionTarget};
+use crate::gui::{GetSelectorItem, TextButton};
+use crate::party::{PartyMember, PartyStateStorage};
+use crate::rpg::{Ability, AttackResult, ConsumableItem, DirectionalAttack, TargetProps};
+use crate::sound::FightActionSounds;
 use bevy::app::Update;
 use bevy::asset::AssetServer;
+use bevy::audio::{AudioBundle, PlaybackSettings};
 use bevy::color::palettes::basic::YELLOW;
 use bevy::color::palettes::css::ANTIQUE_WHITE;
 use bevy::color::palettes::css::BLUE;
@@ -10,9 +23,8 @@ use bevy::hierarchy::Children;
 use bevy::hierarchy::DespawnRecursiveExt;
 use bevy::input::ButtonInput;
 use bevy::log::warn;
-use bevy::prelude::default;
-use bevy::prelude::in_state;
-use bevy::prelude::AppExtStates;
+use bevy::math::Vec3;
+use bevy::prelude::{AppExtStates, Camera, Camera2d, ClearColorConfig};
 use bevy::prelude::BackgroundColor;
 use bevy::prelude::Changed;
 use bevy::prelude::Color;
@@ -35,10 +47,14 @@ use bevy::prelude::State;
 use bevy::prelude::States;
 use bevy::prelude::UiImage;
 use bevy::prelude::With;
+use bevy::prelude::{default, Time, Timer, TimerMode, Transform};
+use bevy::prelude::{in_state, SpriteBundle};
 use bevy::prelude::{AlignItems, PositionType};
+use bevy::sprite::Sprite;
 use bevy::text::Text;
 use bevy::ui::{UiRect, Val};
 use bevy::utils::{warn, HashMap, HashSet};
+use bevy_rapier2d::dynamics::RigidBody;
 use sickle_ui::prelude::SetBackgroundColorExt;
 use sickle_ui::prelude::SetHeightExt;
 use sickle_ui::prelude::SetJustifyContentExt;
@@ -51,17 +67,9 @@ use sickle_ui::prelude::UiRowExt;
 use sickle_ui::prelude::{SetAlignItemsExt, SetLeftExt, SetPositionTypeExt, SetTopExt};
 use sickle_ui::ui_builder::{UiBuilder, UiBuilderExt, UiRoot};
 use std::fmt::format;
-
-use crate::core::states::GameState;
-use crate::fight::actions_ui::{ActionId, ActionItemExt};
-use crate::fight::enemy_ui::{EnemyId, EnemyItemExt};
-use crate::fight::party_member_ui::{Health, MemberId, PartyMemberItemExt};
-use crate::fight::selector_ui::{pick_item_handle, SelectedItemPosHolder, SelectorExt};
-use crate::fight::step::decide_next_step;
-use crate::fight::{ActionTarget, Enemy, Fight, FightId, FightStorage, GetActionTarget};
-use crate::gui::{GetSelectorItem, TextButton};
-use crate::party::{PartyMember, PartyStateStorage};
-use crate::rpg::{Ability, AttackResult, ConsumableItem, DirectionalAttack, TargetProps};
+use bevy::render::view::RenderLayers;
+use bevy_rapier2d::na::ComplexField;
+use crate::core::entities::MainCamera;
 
 pub struct FightingScene;
 
@@ -365,7 +373,10 @@ fn target_ally_selection_input_handle(
 
 fn ally_step_handle(
     mut commands: Commands,
+    time_res: Res<Time>,
+    fight_action_sounds: Res<FightActionSounds>,
     mut next_state: ResMut<NextState<ScreenState>>,
+    mut moving_objects_query: Query<(Entity, &mut Transform, &mut MovingObject)>,
     mut selected_member_query: Query<(&mut SelectedMemberId)>,
     mut current_step_query: Query<(&mut CurrentAllyStep)>,
     mut available_members_query: Query<(&mut AvailableMembers)>,
@@ -374,6 +385,33 @@ fn ally_step_handle(
     mut enemies_attacks_query: Query<(&mut EnemyAttacks)>,
     enemies_query: Query<(Entity, &EnemyId)>,
 ) {
+    let result = moving_objects_query.get_single_mut();
+    if result.is_err() {
+        return;
+    }
+
+    let (entity, mut transform, mut moving_object) = result.unwrap();
+
+    moving_object.timer.tick(time_res.delta());
+
+    let progress = ease_out_quad(
+        moving_object.timer.elapsed_secs() / moving_object.timer.duration().as_secs() as f32,
+    );
+
+    transform.translation = moving_object
+        .start_position
+        .lerp(moving_object.end_position, progress);
+
+    if moving_object.timer.just_finished() {
+        commands.spawn(AudioBundle {
+            source: fight_action_sounds.player_punch.clone(),
+            settings: PlaybackSettings::ONCE,
+        });
+        commands.entity(entity).despawn();
+    } else {
+        return;
+    }
+
     for curr_step in current_step_query.iter() {
         match &curr_step.0 {
             None => {
@@ -413,6 +451,10 @@ fn ally_step_handle(
             }
         }
     }
+}
+
+fn ease_out_quad(x: f32) -> f32 {
+    x.exp()
 }
 
 fn handle_ally_action_result(
@@ -497,10 +539,10 @@ fn apply_action(action: &StepAction, target: &mut TargetProps) -> StepActionResu
 }
 
 fn apply_attack(attack: &DirectionalAttack, target: &mut TargetProps) -> StepActionResult {
-    return match attack.apply(target) {
+    match attack.apply(target) {
         AttackResult::Hit => StepActionResult::AttackHit,
         AttackResult::Miss => StepActionResult::AttackMiss,
-    };
+    }
 }
 
 fn apply_cost(action: &StepAction, target: &mut TargetProps) {
@@ -578,6 +620,8 @@ fn party_state_changes(
 }
 
 fn target_enemy_selection_input_handle(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
     mut next_state: ResMut<NextState<ScreenState>>,
     mut query: Query<
         (&EnemyId, &Interaction, &mut BackgroundColor),
@@ -595,10 +639,36 @@ fn target_enemy_selection_input_handle(
                 *background = Color::NONE.into();
                 let mut step = current_step_query.single_mut();
                 step.set_target_id(id.0);
+                prepare_step_ui(&mut commands, &asset_server, &step);
                 next_state.set(ScreenState::PlayerStepApply);
             }
         }
     }
+}
+
+fn prepare_step_ui(
+    mut commands: &mut Commands,
+    asset_server: &Res<AssetServer>,
+    step: &CurrentAllyStep,
+) {
+    commands.spawn((
+        SpriteBundle {
+            texture: asset_server.load("fight/player_punch.png"),
+            // sprite: Sprite {
+            //     color: Color::srgba(1.0, 1.0, 1.0, 0.5),
+            //     ..default()
+            // },
+            transform: Transform::from_xyz(400.0, 0.0, 1.0),
+            ..default()
+        },
+        MovingObject {
+            start_position: Vec3::new(400.0, 0.0, 1.0),
+            end_position: Vec3::new(200.0, 0.0, 1.0),
+            duration: 1.0,
+            timer: Timer::from_seconds(1.0, TimerMode::Once),
+        },
+        RenderLayers::layer(2),
+    ));
 }
 
 fn spawn_attacks_list(
